@@ -4,32 +4,32 @@
 REVIEW_REQUIRED
 
 ## Date
-2026-08-17 17:38 local
+2026-08-17 18:04 local
 
 ## Command
 .\.venv\Scripts\python.exe main.py
 
 ## Runtime
 - completed
-- approximate duration: 78s
+- approximate duration: 71s
 - full main.py output saved to logs/latest_full_run.txt
-- detailed audit output saved to logs/reset_v21_pre_freeze_audit.txt
+- focused audit output saved to logs/reset_v21_threshold_independent_audit.txt
 
 ## Files changed
-- .gitignore
 - analysis/reset_audit.py
 - LAST_RUN.md
 - PROJECT_STATE.md
 - TODO.md
 
 ## Tests executed
-- .\.venv\Scripts\python.exe -m compileall analysis\reset_audit.py analysis\reset_analyzer.py analysis\reset_statistics.py main.py database
 - .\.venv\Scripts\python.exe -m compileall analysis\reset_audit.py
+- .\.venv\Scripts\python.exe -m compileall analysis\reset_audit.py analysis\reset_analyzer.py analysis\reset_statistics.py main.py database
 - .\.venv\Scripts\python.exe -m analysis.reset_audit
 - .\.venv\Scripts\python.exe main.py
 
 ## Errors encountered
-- none
+- Initial sandboxed compile could not access the venv's external Python target; the same compile was rerun with approved escalation and passed.
+- No code/runtime errors after the audit changes.
 
 ## Main analyzer results
 ### Death Analyzer
@@ -46,42 +46,43 @@ REVIEW_REQUIRED
 
 ### Current analyzer
 - Recall / Reset Analyzer v21 production logic was not modified.
+- Production SHOP_CLUSTER_GAP_SECONDS remains 20.
 - Full run completed with 891 shop/reset proxy sequences.
 - Production split remains 509 VOLUNTARY_RESET_PROXY and 382 POST_DEATH_SHOP.
-- Historical reference coverage remains: 339 CHAMPION_PHASE_ORIGIN_TIME, 282 PHASE_ORIGIN_TIME, 227 WARMUP, 32 CHAMPION_PHASE_ORIGIN, 11 PHASE_ORIGIN.
-- Pre-freeze audit inspected all 24 consecutive player shop-cluster pairs with 20s < gap <= 45s.
-- Audit-only classification: 10 LIKELY_SAME_SHOP_VISIT, 14 LIKELY_SEPARATE_VISITS, 0 AMBIGUOUS.
-- Gap bins: 20-25s = 7, 25-30s = 3, 30-35s = 5, 35-40s = 3, 40-45s = 6.
-- Champion distribution: Shyvana 17, Belveth 4, Viego 3.
-- Phase distribution: LATE 9, MID 4, EARLY_MID 4, MID_LATE 4, EARLY_CLEAR 3.
-- Sensitivity: 30s threshold would merge 10 sequences; 45s threshold would merge 24 sequences.
-- Sensitivity counts: 20s = 891 total / 509 voluntary / 382 post-death; 30s = 881 / 509 / 372; 45s = 867 / 508 / 359.
-- Game-level medians changed little under sensitivity, but post-death sequence volume changed materially enough for review.
-- All 54 voluntary tight-pre-objective resets were audited.
-- Tight voluntary summary: DRAGON 31, GRUBS 11, BARON 6, HERALD 5, ELDER 1; ENEMY 33, ALLY 20, UNKNOWN 1.
-- Tight time-to-objective: 0-15s = 12, 15-30s = 17, 30-45s = 25.
-- Tight reset checks: 0 misclassified post-death candidates, 0 split-purchase-cluster candidates, 6 objective-timing artifact candidates with next objective <=5s.
-- Target match EUW1_7951911875 confirmed: 7 sequences, 4 voluntary, 3 post-death, 0 near-threshold split candidates, 2 tight-pre-objective proxies.
+- Historical references remain: 339 CHAMPION_PHASE_ORIGIN_TIME, 282 PHASE_ORIGIN_TIME, 32 CHAMPION_PHASE_ORIGIN, 11 PHASE_ORIGIN, 227 WARMUP.
+- Final threshold-independent audit inspected all 24 consecutive player shop-cluster pairs with 20s < gap <= 45s.
+- Final audit classification: 13 SEPARATE_VISITS, 11 UNRESOLVED, 0 SAME_VISIT_CANDIDATE.
+- Riot frame resolution: 13 pairs used the same Riot frame, 11 used distinct frames.
+- Classification reasons: 11 same-frame UNRESOLVED, 6 player K/A/D between clusters, 3 major objective/building events on distinct frames, 3 observable OUTSIDE_BASE intermediate frames, 1 resource progression on distinct frames.
+- Gap-bin summary after classification:
+  - 20-25s: total 7, SAME 0, SEPARATE 1, UNRESOLVED 6
+  - 25-30s: total 3, SAME 0, SEPARATE 1, UNRESOLVED 2
+  - 30-35s: total 5, SAME 0, SEPARATE 4, UNRESOLVED 1
+  - 35-40s: total 3, SAME 0, SEPARATE 2, UNRESOLVED 1
+  - 40-45s: total 6, SAME 0, SEPARATE 5, UNRESOLVED 1
+- Sensitivity unchanged: 20s = 891 total / 509 voluntary / 382 post-death; 30s = 881 / 509 / 372; 45s = 867 / 508 / 359.
+- Scored/unscored sensitivity: 20s = 628 scored / 263 unscored; 30s = 617 / 264; 45s = 605 / 262.
+- Tight voluntary objective sequences: 20s = 54, 30s = 54, 45s = 56.
+- Target match EUW1_7951911875 remains 7 sequences: 4 voluntary, 3 post-death, 0 near-threshold pairs, 2 tight-pre-objective proxies.
+- Objective <=5s technical check: 6/6 timing values are measured from cluster end, 6/6 objectives occur after the complete purchase cluster, 6/6 extraction/order checks passed.
 
 ## Suspicious findings
-- The audit found 10 near-threshold pairs likely to be one same shop visit under the audit-only heuristic.
-- Those 10 are mostly post-death shop pairs with no observable player XP/JCS/Gold gain between clusters and no player K/A/D evidence between clusters.
-- Raising the threshold to 30s would merge exactly those 10 near-threshold pairs; 45s would merge all 24 audited pairs.
-- Six voluntary tight-objective resets occur <=5s before the objective event, so objective timing should be reviewed as possible event-order/proxy artifact before interpretation.
+- No SAME_VISIT_CANDIDATE remains under the stricter threshold-independent audit.
+- 11/24 pairs remain UNRESOLVED because both clusters map to the same Riot frame; zero XP/JCS/Gold delta on those rows was not used as evidence of one shop visit.
+- The lower gap bins are mostly unresolved once gap is removed from classification, so the audit no longer provides independent support for choosing 30s solely from gap behavior.
 
 ## Methodological concerns
 - SHOP_CLUSTER_GAP_SECONDS was not changed.
 - Reentry weights, historical-reference minimums, validation thresholds, and FDR families were not changed.
 - Near-objective reset remains context only. No reset is labeled a mistake because an objective follows.
-- Audit-only classifications are not production labels and should not be used for coaching without project review.
+- Any production threshold change or v21 freeze decision remains a project-review decision.
 
 ## Remaining issues
-- Project review must decide whether the 20s clustering threshold should stay or whether a threshold change is methodologically justified.
-- If the threshold changes, v21 validation should be rerun and reviewed before any freeze decision.
-- Raw logs are intentionally ignored by Git after fixing .gitignore; they remain available locally in logs/.
+- Project review must decide whether the current 20s clustering threshold should stay, whether more audit evidence is needed, or whether a production threshold change is justified.
+- If the production threshold changes, v21 validation should be rerun before any freeze decision.
 
 ## Codex technical recommendation
-- Review the 10 LIKELY_SAME_SHOP_VISIT near-threshold pairs and the 6 <=5s objective-timing artifact candidates before changing any production threshold.
+- Use the threshold-independent 24-pair audit, especially the 11 same-frame UNRESOLVED cases, as the review basis before changing production clustering.
 
 ## Review request
-- REVIEW_REQUIRED because the audit suggests the current 20s shop-clustering threshold may split some real shop visits, but changing it is a methodology/project-review decision.
+- REVIEW_REQUIRED because the final audit affects the interpretation of clustering-threshold readiness, but changing the production threshold or freezing v21 is reserved for project review.

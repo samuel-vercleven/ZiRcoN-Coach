@@ -1,9 +1,9 @@
-# ZiRcoN Coach — Project State
+# ZiRcoN Coach - Project State
 
 ## Frozen analyzers
-- Death Analyzer: v11 — FROZEN.
-- Jungle Tempo / Pathing Analyzer: v17 — FROZEN.
-- Objective Analyzer: v20 — FROZEN.
+- Death Analyzer: v11 - FROZEN.
+- Jungle Tempo / Pathing Analyzer: v17 - FROZEN.
+- Objective Analyzer: v20 - FROZEN.
 
 Frozen means: no retuning/refactor without a demonstrated correctness or integration bug.
 
@@ -27,8 +27,8 @@ Known limits: minute-level Riot frames, overlapping episode costs, contextual tr
 - Personal FARMABLE pathing = own XP + Jungle CS.
 - MIRRORED for neutral direct comparison.
 - Time-local references.
-- Boundary guard ±60s.
-- 1 weak minute = WATCH; sustained ≈2+ min = pathing-hole candidate.
+- Boundary guard +/-60s.
+- 1 weak minute = WATCH; sustained about 2+ min = pathing-hole candidate.
 Known limits: no exact camps/routes; shop/reset proxy; lane-catch heuristic.
 
 ## Objective Analyzer v20
@@ -41,12 +41,12 @@ Known limits: no exact camps/routes; shop/reset proxy; lane-catch heuristic.
 Known limits: proximity != intent; close objective sequences may share fight context; compensation thresholds are heuristic.
 
 ## Recall / Reset Analyzer v21
-Status: validated on the real local history; pre-freeze clustering audit completed; REVIEW_REQUIRED before any freeze decision.
+Status: validated on the real local history; final threshold-independent clustering audit completed; REVIEW_REQUIRED before any threshold or freeze decision.
 
 Design:
 - Uses SHOP/RESET proxy from purchase clusters.
 - Separates post-death shop vs voluntary reset proxy.
-- Analyzes ~120s before/after.
+- Analyzes about 120s before/after.
 - Reentry Score is historical-only.
 - Current Gold before reset is exploratory/contextual only.
 
@@ -61,23 +61,25 @@ Current technical state:
 - Current Gold remains exploratory only; it is not an automatic mistake label.
 - Objective proximity remains context only; no reset is labeled a mistake because an objective follows.
 
-Pre-freeze clustering audit:
+Final threshold-independent clustering audit:
 - 24 consecutive player shop-cluster pairs had 20s < gap <= 45s.
-- Audit-only classification: 10 LIKELY_SAME_SHOP_VISIT, 14 LIKELY_SEPARATE_VISITS, 0 AMBIGUOUS.
-- Gap bins: 20-25s 7, 25-30s 3, 30-35s 5, 35-40s 3, 40-45s 6.
-- 30s sensitivity would merge 10 sequences: 881 total, 509 voluntary, 372 post-death.
-- 45s sensitivity would merge 24 sequences: 867 total, 508 voluntary, 359 post-death.
-- Game-level median reentry stats changed little, but post-death sequence volume changed materially enough to require review.
-- All 54 voluntary tight-pre-objective resets were audited: 33 ENEMY, 20 ALLY, 1 UNKNOWN.
-- Tight-objective checks found 0 misclassified post-death candidates, 0 split-purchase-cluster candidates, and 6 objective-timing artifact candidates with next objective <=5s.
-- Target match EUW1_7951911875 remains 7 sequences: 4 voluntary, 3 post-death, 0 near-threshold split candidates, 2 tight-pre-objective proxies.
+- Classification no longer uses 20s/30s/45s or any gap cutoff; gap is reported only after classification.
+- Audit-only classification: 13 SEPARATE_VISITS, 11 UNRESOLVED, 0 SAME_VISIT_CANDIDATE.
+- Riot frame resolution: 13 same-frame pairs, 11 distinct-frame pairs.
+- Evidence reasons: 11 same-frame UNRESOLVED, 6 player K/A/D events, 3 major objective/building events on distinct frames, 3 observable OUTSIDE_BASE intermediate frames, 1 resource-progression case.
+- Gap-bin results after classification: 20-25s = 0 SAME / 1 SEPARATE / 6 UNRESOLVED; 25-30s = 0 / 1 / 2; 30-35s = 0 / 4 / 1; 35-40s = 0 / 2 / 1; 40-45s = 0 / 5 / 1.
+- Sensitivity remains audit-only: 30s would merge 10 sequences; 45s would merge 24 sequences.
+- Sensitivity counts: 20s = 891 total / 509 voluntary / 382 post-death; 30s = 881 / 509 / 372; 45s = 867 / 508 / 359.
+- Tight voluntary objective sequences: 54 at 20s, 54 at 30s, 56 at 45s.
+- Objective <=5s technical check passed: 6/6 timings measured from cluster end, 6/6 objectives after complete cluster, 6/6 extraction/order checks OK.
+- Target match EUW1_7951911875 remains 7 sequences: 4 voluntary, 3 post-death, 0 near-threshold pairs, 2 tight-pre-objective proxies.
 - Freeze status: NOT FROZEN by Codex; project review must decide whether threshold changes or freeze are appropriate.
 
 Technical fixes / audit support:
 - main.py can fall back to existing local SQLite history when Riot account/match lookup is unavailable.
 - main.py configures stdout/stderr as UTF-8 to avoid Windows console encoding failures while rendering analyzer reports.
-- analysis/reset_audit.py provides audit-only reporting and threshold sensitivity; it does not change production logic.
-- .gitignore now correctly ignores .env, .venv, *.db, __pycache__, and logs/ so private local DB/log output is not staged accidentally.
+- analysis/reset_audit.py provides audit-only threshold-independent clustering diagnostics and threshold sensitivity; it does not change production logic.
+- .gitignore ignores .env, .venv, *.db, __pycache__, and logs/ so local secrets, DBs, and logs are not staged accidentally.
 
 ## Architecture
 - main.py remains a dev/integration harness.

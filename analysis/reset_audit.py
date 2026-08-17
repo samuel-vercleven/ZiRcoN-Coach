@@ -36,6 +36,23 @@ ROLE = "JUNGLE"
 MATCH_COUNT = 100
 TARGET_MATCH_ID = "EUW1_7951911875"
 
+SAME_VISIT_CANDIDATE = "SAME_VISIT_CANDIDATE"
+SEPARATE_VISITS = "SEPARATE_VISITS"
+UNRESOLVED = "UNRESOLVED"
+
+GAP_BIN_ORDER = (
+    "20-25",
+    "25-30",
+    "30-35",
+    "35-40",
+    "40-45",
+)
+
+# Audit-only base heuristic for Summoner's Rift absolute coordinates.
+BLUE_BASE_MAX_COORD = 3500
+RED_BASE_MIN_COORD = 11370
+MEANINGFUL_TOTAL_GOLD_GAIN = 300
+
 
 def _fmt(value, pattern="{:.1f}"):
     if value is None:
@@ -220,9 +237,25 @@ def _event_summary(bundle, events):
 
         if event_type == "ELITE_MONSTER_KILL":
             objectives.append({
+                "type": event_type,
                 "timestamp": event.get("timestamp", 0),
                 "monster_type": event.get("monster_type"),
                 "monster_sub_type": event.get("monster_sub_type"),
+                "team_id": event.get("team_id"),
+            })
+        elif event_type == "BUILDING_KILL":
+            raw = event.get("raw") or {}
+            objectives.append({
+                "type": event_type,
+                "timestamp": event.get("timestamp", 0),
+                "building_type": raw.get("buildingType"),
+                "tower_type": raw.get("towerType"),
+                "team_id": event.get("team_id"),
+            })
+        elif event_type == "TURRET_PLATE_DESTROYED":
+            objectives.append({
+                "type": event_type,
+                "timestamp": event.get("timestamp", 0),
                 "team_id": event.get("team_id"),
             })
 
@@ -232,6 +265,53 @@ def _event_summary(bundle, events):
         "player_deaths": deaths,
         "champion_kills": champion_kills,
         "objectives": objectives,
+        "major_objective_count": sum(
+            event.get("type") in ("ELITE_MONSTER_KILL", "BUILDING_KILL")
+            for event in objectives
+        ),
+    }
+
+
+def _base_zone_for_position(bundle, x, y):
+    if x is None or y is None:
+        return "UNKNOWN"
+
+    team_id = bundle.get("my_team_id")
+
+    if team_id == 100:
+        return (
+            "BASE"
+            if x <= BLUE_BASE_MAX_COORD and y <= BLUE_BASE_MAX_COORD
+            else "OUTSIDE_BASE"
+        )
+
+    if team_id == 200:
+        return (
+            "BASE"
+            if x >= RED_BASE_MIN_COORD and y >= RED_BASE_MIN_COORD
+            else "OUTSIDE_BASE"
+        )
+
+    return "UNKNOWN"
+
+
+def _frame_observation(bundle, pair):
+    state = _relative_state(pair)
+
+    if not state:
+        return None
+
+    x = state.get("player_x")
+    y = state.get("player_y")
+
+    return {
+        "timestamp": state["timestamp"],
+        "position": (x, y),
+        "zone": _base_zone_for_position(bundle, x, y),
+        "xp": state["player_xp"],
+        "jungle_cs": state["player_jungle_cs"],
+        "gold": state["player_gold"],
+        "current_gold": state["player_current_gold"],
     }
 
 
@@ -239,29 +319,95 @@ def _state_at(bundle, timestamp_ms):
     frames = bundle["frames"]
     frame_ts = _frame_timestamps(frames)
     pair = _frame_before_or_at(frames, frame_ts, timestamp_ms)
-    return _relative_state(pair)
+    return _frame_observation(bundle, pair)
+
+
+def _intermediate_frame_observations(bundle, start_ms, end_ms):
+    observations = []
+
+    for pair in bundle["frames"]:
+        timestamp = pair["timestamp"]
+
+        if not (start_ms < timestamp < end_ms):
+            continue
+
+        observation = _frame_observation(bundle, pair)
+
+        if observation:
+            observations.append(observation)
+
+    return observations
+
+
+def _distinct_observations(observations):
+    result = []
+    seen = set()
+
+    for observation in observations:
+        if not observation:
+            continue
+
+        timestamp = observation["timestamp"]
+
+        if timestamp in seen:
+            continue
+
+        seen.add(timestamp)
+        result.append(observation)
+
+    return result
 
 
 def _between_state_delta(bundle, first_cluster, second_cluster):
     start = _state_at(bundle, first_cluster["end_timestamp"])
     end = _state_at(bundle, second_cluster["start_timestamp"])
+    intermediate = _intermediate_frame_observations(
+        bundle,
+        first_cluster["end_timestamp"],
+        second_cluster["start_timestamp"],
+    )
+    frame_path = _distinct_observations([start] + intermediate + [end])
+    observable_outside_base_between = any(
+        observation["zone"] == "OUTSIDE_BASE"
+        for observation in intermediate
+    )
+    base_outside_base_path = (
+        len(frame_path) >= 3
+        and frame_path[0]["zone"] == "BASE"
+        and frame_path[-1]["zone"] == "BASE"
+        and any(
+            observation["zone"] == "OUTSIDE_BASE"
+            for observation in frame_path[1:-1]
+        )
+    )
 
     if not start or not end:
         return {
             "available": False,
             "start_frame": None,
             "end_frame": None,
+            "same_riot_frame": None,
+            "distinct_riot_frames": False,
             "xp_delta": None,
             "jungle_cs_delta": None,
             "gold_delta": None,
             "current_gold_delta": None,
             "position_delta": None,
+            "first_state": start,
+            "second_state": end,
+            "intermediate_frames": intermediate,
+            "frame_path": frame_path,
+            "observable_outside_base_between": observable_outside_base_between,
+            "base_outside_base_path": base_outside_base_path,
+            "all_observed_zones_base": False,
+            "has_unknown_zone": any(
+                observation["zone"] == "UNKNOWN"
+                for observation in frame_path
+            ),
         }
 
-    start_x = start.get("player_x")
-    start_y = start.get("player_y")
-    end_x = end.get("player_x")
-    end_y = end.get("player_y")
+    start_x, start_y = start["position"]
+    end_x, end_y = end["position"]
     position_delta = None
 
     if None not in (start_x, start_y, end_x, end_y):
@@ -270,21 +416,35 @@ def _between_state_delta(bundle, first_cluster, second_cluster):
             + (end_y - start_y) ** 2
         )
 
+    same_riot_frame = start["timestamp"] == end["timestamp"]
+    zones = [observation["zone"] for observation in frame_path]
+
     return {
         "available": True,
         "start_frame": start["timestamp"],
         "end_frame": end["timestamp"],
-        "xp_delta": end["player_xp"] - start["player_xp"],
-        "jungle_cs_delta": (
-            end["player_jungle_cs"] - start["player_jungle_cs"]
-        ),
-        "gold_delta": end["player_gold"] - start["player_gold"],
+        "same_riot_frame": same_riot_frame,
+        "distinct_riot_frames": not same_riot_frame,
+        "xp_delta": end["xp"] - start["xp"],
+        "jungle_cs_delta": end["jungle_cs"] - start["jungle_cs"],
+        "gold_delta": end["gold"] - start["gold"],
         "current_gold_delta": (
-            end["player_current_gold"] - start["player_current_gold"]
+            end["current_gold"] - start["current_gold"]
         ),
         "position_delta": position_delta,
-        "start_position": (start_x, start_y),
-        "end_position": (end_x, end_y),
+        "start_position": start["position"],
+        "end_position": end["position"],
+        "first_state": start,
+        "second_state": end,
+        "intermediate_frames": intermediate,
+        "frame_path": frame_path,
+        "observable_outside_base_between": observable_outside_base_between,
+        "base_outside_base_path": base_outside_base_path,
+        "all_observed_zones_base": (
+            bool(frame_path)
+            and all(zone == "BASE" for zone in zones)
+        ),
+        "has_unknown_zone": any(zone == "UNKNOWN" for zone in zones),
     }
 
 
@@ -300,37 +460,96 @@ def _gap_bin(gap):
     return "40-45"
 
 
-def _classify_pair(gap, state_delta, event_summary):
-    if not state_delta.get("available"):
-        return "AMBIGUOUS"
-
-    xp_delta = state_delta.get("xp_delta") or 0
-    jcs_delta = state_delta.get("jungle_cs_delta") or 0
-    gold_delta = state_delta.get("gold_delta") or 0
-    movement = state_delta.get("position_delta")
-
+def _classify_pair(state_delta, event_summary):
     player_event = (
         event_summary["player_kills"] > 0
         or event_summary["player_assists"] > 0
         or event_summary["player_deaths"] > 0
-        or bool(event_summary["objectives"])
-    )
-    resource_gain = (
-        xp_delta > 0
-        or jcs_delta > 0
-        or gold_delta > 0
     )
 
-    if player_event or resource_gain:
-        return "LIKELY_SEPARATE_VISITS"
+    if player_event:
+        return (
+            SEPARATE_VISITS,
+            "player K/A/D event exists between the two clusters",
+        )
 
-    if gap <= 30:
-        return "LIKELY_SAME_SHOP_VISIT"
+    if state_delta.get("same_riot_frame"):
+        return (
+            UNRESOLVED,
+            (
+                "both clusters use the same Riot frame; zero resource delta "
+                "or global map events are not evidence of one shop visit"
+            ),
+        )
 
-    if movement is not None and movement > 2500:
-        return "AMBIGUOUS"
+    if event_summary["major_objective_count"] > 0:
+        return (
+            SEPARATE_VISITS,
+            "major objective/building event exists between distinct frames",
+        )
 
-    return "LIKELY_SAME_SHOP_VISIT"
+    if state_delta.get("base_outside_base_path"):
+        return (
+            SEPARATE_VISITS,
+            "frame path includes BASE->OUTSIDE_BASE->BASE",
+        )
+
+    if state_delta.get("observable_outside_base_between"):
+        return (
+            SEPARATE_VISITS,
+            "player is observable OUTSIDE_BASE on an intermediate Riot frame",
+        )
+
+    xp_delta = state_delta.get("xp_delta") or 0
+    jcs_delta = state_delta.get("jungle_cs_delta") or 0
+    gold_delta = state_delta.get("gold_delta") or 0
+
+    if state_delta.get("distinct_riot_frames"):
+        resource_evidence = []
+
+        if xp_delta > 0:
+            resource_evidence.append(f"XP +{xp_delta:.0f}")
+        if jcs_delta > 0:
+            resource_evidence.append(f"JCS +{jcs_delta:.0f}")
+        if gold_delta >= MEANINGFUL_TOTAL_GOLD_GAIN:
+            resource_evidence.append(f"Gold +{gold_delta:.0f}")
+
+        if resource_evidence:
+            return (
+                SEPARATE_VISITS,
+                (
+                    "resource progression on distinct Riot frames: "
+                    + ", ".join(resource_evidence)
+                ),
+            )
+
+        if state_delta.get("all_observed_zones_base"):
+            return (
+                SAME_VISIT_CANDIDATE,
+                (
+                    "distinct frames remain BASE-compatible with no "
+                    "observable activity/resource progression"
+                ),
+            )
+
+        return (
+            UNRESOLVED,
+            (
+                "distinct frames do not independently prove either base "
+                "continuity or separated visits"
+            ),
+        )
+
+    if not state_delta.get("available"):
+        return (
+            UNRESOLVED,
+            "required cluster-end/start frame evidence is unavailable",
+        )
+
+    return (
+        UNRESOLVED,
+        "no threshold-independent observable evidence is decisive",
+    )
 
 
 def _load_context():
@@ -419,8 +638,7 @@ def _build_near_gap_pairs(context):
             )
             event_summary = _event_summary(bundle, events)
             state_delta = _between_state_delta(bundle, first, second)
-            classification = _classify_pair(
-                gap,
+            classification, classification_reason = _classify_pair(
                 state_delta,
                 event_summary,
             )
@@ -437,6 +655,7 @@ def _build_near_gap_pairs(context):
                 "event_summary": event_summary,
                 "state_delta": state_delta,
                 "classification": classification,
+                "classification_reason": classification_reason,
             })
 
     pairs.sort(
@@ -447,6 +666,74 @@ def _build_near_gap_pairs(context):
         )
     )
     return pairs
+
+
+def _same_frame_text(value):
+    if value is None:
+        return "UNKNOWN"
+    return "YES" if value else "NO"
+
+
+def _format_position(position):
+    if not position or None in position:
+        return "(N/A,N/A)"
+    return f"({position[0]},{position[1]})"
+
+
+def _format_observation(observation):
+    if not observation:
+        return "N/A"
+
+    return (
+        f"{_format_time(observation['timestamp'])} "
+        f"pos={_format_position(observation['position'])} "
+        f"zone={observation['zone']} "
+        f"XP={observation['xp']:.0f} "
+        f"JCS={observation['jungle_cs']:.0f} "
+        f"Gold={observation['gold']:.0f}"
+    )
+
+
+def _format_observation_list(observations):
+    if not observations:
+        return "none"
+
+    return " ; ".join(
+        _format_observation(observation)
+        for observation in observations
+    )
+
+
+def _format_frame_path(state):
+    path = state.get("frame_path") or []
+
+    if not path:
+        return "N/A"
+
+    return " -> ".join(
+        observation["zone"]
+        for observation in path
+    )
+
+
+def _format_objective_event(event):
+    event_type = event.get("type") or "-"
+
+    if event_type == "ELITE_MONSTER_KILL":
+        return (
+            f"ELITE:{event.get('monster_type') or '-'}:"
+            f"{event.get('monster_sub_type') or '-'}@"
+            f"{_format_time(event.get('timestamp'))}"
+        )
+
+    if event_type == "BUILDING_KILL":
+        return (
+            f"BUILDING:{event.get('building_type') or '-'}:"
+            f"{event.get('tower_type') or '-'}@"
+            f"{_format_time(event.get('timestamp'))}"
+        )
+
+    return f"{event_type}@{_format_time(event.get('timestamp'))}"
 
 
 def _render_pair(pair, index):
@@ -466,6 +753,7 @@ def _render_pair(pair, index):
             f"gap={pair['gap']:.2f}s | bin={pair['gap_bin']} | "
             f"audit_class={pair['classification']}"
         ),
+        f"classification_reason={pair['classification_reason']}",
         (
             f"first={_format_time(first['start_timestamp'])}-"
             f"{_format_time(first['end_timestamp'])} | "
@@ -506,6 +794,13 @@ def _render_pair(pair, index):
 
     if state.get("available"):
         lines.append(
+            "frame_resolution="
+            f"cluster1EndFrame={_format_time(state['start_frame'])} | "
+            f"cluster2StartFrame={_format_time(state['end_frame'])} | "
+            f"sameRiotFrame={_same_frame_text(state['same_riot_frame'])} | "
+            f"distinctFrameCount={len(state.get('frame_path') or [])}"
+        )
+        lines.append(
             "between_frame_delta="
             f"frames {_format_time(state['start_frame'])}->"
             f"{_format_time(state['end_frame'])} | "
@@ -520,15 +815,33 @@ def _render_pair(pair, index):
             f"distance={_fmt(state.get('position_delta'), '{:.0f}')}"
         )
     else:
+        lines.append(
+            "frame_resolution="
+            f"cluster1EndFrame={_format_observation(state.get('first_state'))} | "
+            f"cluster2StartFrame={_format_observation(state.get('second_state'))} | "
+            "sameRiotFrame=UNKNOWN"
+        )
         lines.append("between_frame_delta=N/A")
         lines.append("movement_frame_proxy=N/A")
 
+    lines.append(
+        "absolute_positions="
+        f"cluster1End={_format_observation(state.get('first_state'))} | "
+        f"cluster2Start={_format_observation(state.get('second_state'))}"
+    )
+    lines.append(
+        "intermediate_frames="
+        f"{_format_observation_list(state.get('intermediate_frames') or [])}"
+    )
+    lines.append(
+        "base_zone_evidence="
+        f"path={_format_frame_path(state)} | "
+        f"outsideBetween={state.get('observable_outside_base_between')} | "
+        f"baseOutsideBasePath={state.get('base_outside_base_path')}"
+    )
+
     objective_text = ", ".join(
-        (
-            f"{obj.get('monster_type') or '-'}:"
-            f"{obj.get('monster_sub_type') or '-'}@"
-            f"{_format_time(obj.get('timestamp'))}"
-        )
+        _format_objective_event(obj)
         for obj in events["objectives"]
     ) or "-"
     lines.append(
@@ -536,7 +849,8 @@ def _render_pair(pair, index):
         f"playerK/A/D={events['player_kills']}/"
         f"{events['player_assists']}/{events['player_deaths']} | "
         f"championKills={events['champion_kills']} | "
-        f"majorObjectives={objective_text}"
+        f"majorObjectiveCount={events['major_objective_count']} | "
+        f"objectiveEvents={objective_text}"
     )
     lines.append("")
     return lines
@@ -658,6 +972,34 @@ def _render_threshold_summary(summary):
     ]
 
 
+def _render_gap_classification_summary(near_pairs):
+    lines = [
+        "PART C - POST-CLASSIFICATION SUMMARY BY GAP BIN",
+        (
+            "Gap bins are descriptive only; the classification above did "
+            "not use the gap seconds."
+        ),
+    ]
+
+    for gap_bin in GAP_BIN_ORDER:
+        rows = [
+            pair
+            for pair in near_pairs
+            if pair["gap_bin"] == gap_bin
+        ]
+        counts = Counter(pair["classification"] for pair in rows)
+        lines.append(
+            (
+                f"{gap_bin}s | total={len(rows)} | "
+                f"{SAME_VISIT_CANDIDATE}={counts[SAME_VISIT_CANDIDATE]} | "
+                f"{SEPARATE_VISITS}={counts[SEPARATE_VISITS]} | "
+                f"{UNRESOLVED}={counts[UNRESOLVED]}"
+            )
+        )
+
+    return lines
+
+
 def _time_to_objective_bin(seconds):
     if seconds is None:
         return "N/A"
@@ -668,9 +1010,125 @@ def _time_to_objective_bin(seconds):
     return "30-45"
 
 
+def _objective_rows_by_match_for_audit(context):
+    result = defaultdict(list)
+
+    for row in context["objectives"]:
+        result[row["match_id"]].append(row)
+
+    for rows in result.values():
+        rows.sort(key=lambda row: row["timestamp"])
+
+    return result
+
+
+def _render_objective_le_5s_audit(context):
+    rows = sorted(
+        [
+            row
+            for row in context["resets_20"]
+            if (
+                row["reset_origin"] == "VOLUNTARY_RESET_PROXY"
+                and row.get("next_objective_seconds") is not None
+                and row["next_objective_seconds"] <= 5
+            )
+        ],
+        key=lambda row: (
+            row.get("next_objective_seconds") or 9999,
+            row["game_creation"],
+            row["match_id"],
+            row["start_timestamp"],
+        ),
+    )
+    objectives_by_match = _objective_rows_by_match_for_audit(context)
+    timing_ok = 0
+    after_cluster_ok = 0
+    extraction_ok = 0
+
+    lines = [
+        "PART E - OBJECTIVE <=5S TECHNICAL CHECK",
+        f"total={len(rows)}",
+    ]
+
+    for index, row in enumerate(rows, start=1):
+        objective = next(
+            (
+                objective_row
+                for objective_row in objectives_by_match[row["match_id"]]
+                if objective_row["timestamp"] > row["end_timestamp"]
+            ),
+            None,
+        )
+
+        computed_seconds = (
+            (objective["timestamp"] - row["end_timestamp"]) / 1000
+            if objective
+            else None
+        )
+        expected_seconds = row.get("next_objective_seconds")
+        timing_matches = (
+            computed_seconds is not None
+            and expected_seconds is not None
+            and abs(computed_seconds - expected_seconds) < 0.001
+        )
+        objective_after_complete_cluster = (
+            objective is not None
+            and objective["timestamp"] > row["end_timestamp"]
+        )
+        extraction_order_ok = (
+            timing_matches
+            and objective_after_complete_cluster
+            and (
+                row.get("next_objective_kind")
+                == objective.get("objective_kind")
+            )
+            and (
+                row.get("next_objective_side")
+                == objective.get("secured_side")
+            )
+        )
+
+        timing_ok += int(timing_matches)
+        after_cluster_ok += int(objective_after_complete_cluster)
+        extraction_ok += int(extraction_order_ok)
+
+        lines.append(
+            (
+                f"OBJ_LE_5S {index:02d} | match={row['match_id']} | "
+                f"{row['champion']} {_result(row)} | "
+                f"cluster={_format_time(row['start_timestamp'])}-"
+                f"{_format_time(row['end_timestamp'])} | "
+                f"rowNext={row.get('next_objective_kind') or '-'} "
+                f"{row.get('next_objective_side') or '-'} "
+                f"{_fmt(expected_seconds, '{:.3f}s')} | "
+                f"computedFromClusterEnd={_fmt(computed_seconds, '{:.3f}s')} | "
+                f"objectiveTime="
+                f"{_format_time(objective['timestamp']) if objective else 'N/A'} | "
+                f"timingFromEndOk={timing_matches} | "
+                f"afterCompleteCluster={objective_after_complete_cluster} | "
+                f"extractionOrderOk={extraction_order_ok}"
+            )
+        )
+
+    lines.extend([
+        (
+            "summary="
+            f"timingFromClusterEndOk={timing_ok}/{len(rows)} | "
+            f"objectiveAfterCompleteCluster={after_cluster_ok}/{len(rows)} | "
+            f"extractionOrderOk={extraction_ok}/{len(rows)}"
+        ),
+        (
+            "interpretation=technical timing context only; no player mistake "
+            "label is inferred."
+        ),
+    ])
+
+    return lines
+
+
 def _render_tight_objective_audit(context, near_pairs):
     near_keys = set()
-    likely_same_keys = set()
+    same_candidate_keys = set()
 
     for pair in near_pairs:
         keys = {
@@ -678,8 +1136,8 @@ def _render_tight_objective_audit(context, near_pairs):
             _cluster_key(pair["bundle"]["match_id"], pair["second_cluster"]),
         }
         near_keys.update(keys)
-        if pair["classification"] == "LIKELY_SAME_SHOP_VISIT":
-            likely_same_keys.update(keys)
+        if pair["classification"] == SAME_VISIT_CANDIDATE:
+            same_candidate_keys.update(keys)
 
     rows = sorted(
         [
@@ -699,7 +1157,7 @@ def _render_tight_objective_audit(context, near_pairs):
     )
 
     lines = [
-        "PART C - ALL VOLUNTARY RESET PROXIES <=45S BEFORE OBJECTIVE",
+        "PART F - ALL VOLUNTARY RESET PROXIES <=45S BEFORE OBJECTIVE",
         f"total={len(rows)}",
         f"by_objective_type={dict(Counter(row.get('next_objective_kind') for row in rows))}",
         f"by_objective_side={dict(Counter(row.get('next_objective_side') for row in rows))}",
@@ -735,7 +1193,7 @@ def _render_tight_objective_audit(context, near_pairs):
     split_candidates = [
         row
         for row in rows
-        if _row_key(row) in likely_same_keys
+        if _row_key(row) in same_candidate_keys
     ]
     timing_artifacts = [
         row
@@ -788,7 +1246,7 @@ def _render_tight_objective_audit(context, near_pairs):
 
     for index, row in enumerate(rows, start=1):
         flags = []
-        if _row_key(row) in likely_same_keys:
+        if _row_key(row) in same_candidate_keys:
             flags.append("SPLIT_CLUSTER_CANDIDATE")
         if row in timing_artifacts:
             flags.append("TIMING_ARTIFACT_CANDIDATE")
@@ -848,7 +1306,7 @@ def _render_target_match(context, near_pairs):
     ]
 
     lines = [
-        "PART D - TARGET MATCH",
+        "PART G - TARGET MATCH",
         f"match={TARGET_MATCH_ID}",
         (
             f"sequence_count={len(rows)} | "
@@ -907,23 +1365,39 @@ def render_audit_report():
         f"objective_rows={len(context['objectives'])}",
         f"reset_rows_20s={len(context['resets_20'])}",
         "",
-        "PART A - NEAR-THRESHOLD CLUSTER GAPS",
+        "PART A - THRESHOLD-INDEPENDENT NEAR-THRESHOLD CLUSTER AUDIT",
         f"total_audited_pairs={len(near_pairs)}",
         f"classification_counts={dict(pair_classes)}",
         f"gap_bins={dict(gap_bins)}",
         f"champion_distribution={dict(champion_distribution)}",
         f"phase_distribution={dict(phase_distribution)}",
         "",
-        "Classification is audit-only and not used in production logic.",
+        (
+            "Classification is audit-only, threshold-independent, and not "
+            "used in production logic."
+        ),
+        (
+            "Same Riot frame is reported as UNRESOLVED unless exact player "
+            "K/A/D evidence independently supports separated visits."
+        ),
+        (
+            f"Meaningful total Gold progression threshold for this audit: "
+            f">={MEANINGFUL_TOTAL_GOLD_GAIN}."
+        ),
+        "",
+        "PART B - DETAILED FRAME RESOLUTION FOR 24 PAIRS",
         "",
     ]
 
     for index, pair in enumerate(near_pairs, start=1):
         lines.extend(_render_pair(pair, index))
 
+    lines.extend([""])
+    lines.extend(_render_gap_classification_summary(near_pairs))
+
     lines.extend([
         "",
-        "PART B - SENSITIVITY ANALYSIS",
+        "PART D - SENSITIVITY ANALYSIS",
     ])
 
     summaries = [
@@ -947,18 +1421,21 @@ def render_audit_report():
         ),
         "",
     ])
+    lines.extend(_render_objective_le_5s_audit(context))
+    lines.extend([""])
     lines.extend(_render_tight_objective_audit(context, near_pairs))
     lines.extend([""])
     lines.extend(_render_target_match(context, near_pairs))
 
-    if pair_classes.get("LIKELY_SAME_SHOP_VISIT", 0) > 0:
+    if pair_classes.get(SAME_VISIT_CANDIDATE, 0) > 0:
         lines.extend([
             "",
             "AUDIT CONCLUSION",
             (
-                "REVIEW_REQUIRED: near-threshold pairs include likely same "
-                "shop visits under the audit-only heuristic. Any threshold "
-                "change must be decided by project review."
+                "REVIEW_REQUIRED: near-threshold pairs include "
+                "SAME_VISIT_CANDIDATE rows under threshold-independent "
+                "audit evidence. Any production threshold or freeze change "
+                "must be decided by project review."
             ),
         ])
     else:
