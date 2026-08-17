@@ -9,7 +9,8 @@
 Frozen means: no retuning/refactor without a demonstrated correctness or integration bug or explicit project review request.
 
 ## In development
-- None currently documented.
+- Build / Itemization Analyzer v22 Phase 1 - implemented, in validation, REVIEW_REQUIRED.
+- Scope is factual item timeline / inventory reconstruction only; no recommendation logic, item-quality label, or build scoring.
 
 ## Dataset
 - Main historical validation set: 87 Jungle games with exploitable timelines.
@@ -87,10 +88,37 @@ Technical fixes / audit support:
 - analysis/reset_audit.py provides audit-only threshold-independent clustering diagnostics and threshold sensitivity; it does not change production logic.
 - .gitignore ignores .env, .venv, *.db, __pycache__, and logs/ so local secrets, DBs, and logs are not staged accidentally.
 
+## Build / Itemization Analyzer v22
+Status: Phase 1 implemented, REVIEW_REQUIRED, not frozen.
+
+Design:
+- New UI-agnostic analyzer reconstructs factual item state from Riot timeline item events.
+- Handles ITEM_PURCHASED, ITEM_SOLD, ITEM_UNDO, and ITEM_DESTROYED.
+- Uses Data Dragon metadata for names, costs, tags, consumables, boots, and item `from` / `into` graph.
+- Consumes component trees transitively, so held subcomponents are removed when a completed item is bought through an implicit intermediate component.
+- Treats Data Dragon `consumeOnFull` consumables, such as elixirs, as consumed on purchase.
+- Tracks a six-slot item multiset plus trinket state; exact slot ordering is not fabricated.
+- Associates purchase events with frozen Recall / Reset v21 shop/reset proxy visit IDs for factual context only.
+
+Latest verification:
+- `python main.py` completed on 2026-08-17 after v22 integration.
+- Full Jungle history: 87 games, 4277 player item events.
+- Event counts: 1536 purchases, 11 sells, 45 undo events, 2685 destroyed events.
+- Final inventory validation: 86 EXACT, 1 PARTIAL, 0 MISMATCH, 0 UNKNOWN.
+- Exact final inventory rate: 98.9%.
+- Target match EUW1_7951911875: EXACT final inventory reconstruction.
+
+Known remaining issues:
+- EUW1_7836627546 remains PARTIAL because Riot final inventory includes 2422 / Magical Footwear but the stored timeline has no player transaction event exposing that grant.
+- Normal ITEM_DESTROYED events are preserved as auditable AMBIGUOUS cases unless explained by same-timestamp component completion, consumable removal, jungle-item removal, or trinket-use handling.
+- Viego produces many normal destroyed-item events consistent with temporary copied/possession inventory state; these are not treated as permanent deletion.
+- The analyzer is not freeze-ready until project review decides how to handle unobserved non-purchasable item grants and ambiguous normal ITEM_DESTROYED semantics.
+
 ## Architecture
 - main.py remains a dev/integration harness.
 - Final UI later with PySide6.
 - Analysis modules should remain UI-agnostic.
+- Itemization v22 logic lives in analysis/itemization_analyzer.py; synthetic checks live in analysis/itemization_synthetic_checks.py.
 
 ## Handoff rule
 Codex must update this file after each completed task.

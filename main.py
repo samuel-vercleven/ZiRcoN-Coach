@@ -128,6 +128,13 @@ from analysis.reset_statistics import (
     render_reset_phase_validation,
 )
 
+from analysis.itemization_analyzer import (
+    TARGET_MATCH_ID as ITEMIZATION_TARGET_MATCH_ID,
+    build_itemization_history,
+    render_itemization_audit,
+    render_match_itemization_report,
+)
+
 
 # ============================================================
 # CONFIGURATION
@@ -1966,6 +1973,39 @@ def main():
         render_match_reset_report(
             reset_dataset,
             latest_match_id,
+        )
+    )
+
+
+    # ========================================================
+    # BUILD / ITEMIZATION ANALYZER V22 - PHASE 1
+    # ========================================================
+
+    print()
+    print()
+    print("==============================")
+    print("BUILD / ITEMIZATION ANALYZER V22 - PHASE 1")
+    print("==============================")
+
+    itemization_history = build_itemization_history(
+        puuid,
+        position=ROLE_FILTER,
+        queue_id=SOLOQ_QUEUE_ID,
+    )
+
+    print()
+    print(
+        render_itemization_audit(
+            itemization_history
+        )
+    )
+
+    print()
+    print()
+    print(
+        render_match_itemization_report(
+            itemization_history,
+            ITEMIZATION_TARGET_MATCH_ID,
         )
     )
 
