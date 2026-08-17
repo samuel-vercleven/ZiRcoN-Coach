@@ -266,6 +266,102 @@ def save_match(match):
 # FILTRE LOCAL PAR ROLE
 # ============================================================
 
+def get_local_account_by_riot_id(
+    game_name,
+    tag_line,
+    queue_id=SOLOQ_QUEUE_ID,
+):
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            p.puuid,
+            p.riot_name,
+            p.riot_tag,
+            COUNT(*) AS games
+        FROM participants AS p
+        JOIN matches AS m
+            ON m.match_id = p.match_id
+        WHERE LOWER(p.riot_name) = LOWER(?)
+          AND LOWER(p.riot_tag) = LOWER(?)
+          AND m.queue_id = ?
+        GROUP BY
+            p.puuid,
+            p.riot_name,
+            p.riot_tag
+        ORDER BY games DESC
+        LIMIT 1
+        """,
+        (
+            game_name,
+            tag_line,
+            queue_id,
+        ),
+    )
+
+    row = cursor.fetchone()
+    connection.close()
+
+    if not row:
+        return None
+
+    return {
+        "puuid": row[0],
+        "gameName": row[1] or game_name,
+        "tagLine": row[2] or tag_line,
+        "source": "LOCAL_DB",
+    }
+
+
+def get_local_match_ids_by_puuid(
+    puuid,
+    queue_id=SOLOQ_QUEUE_ID,
+    count=None,
+):
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    query = """
+        SELECT DISTINCT
+            m.match_id,
+            m.game_creation
+        FROM participants AS p
+        JOIN matches AS m
+            ON m.match_id = p.match_id
+        WHERE p.puuid = ?
+          AND m.queue_id = ?
+        ORDER BY
+            m.game_creation DESC,
+            m.match_id DESC
+    """
+
+    params = [
+        puuid,
+        queue_id,
+    ]
+
+    if count is not None:
+        query += """
+        LIMIT ?
+        """
+        params.append(count)
+
+    cursor.execute(
+        query,
+        tuple(params),
+    )
+
+    rows = cursor.fetchall()
+    connection.close()
+
+    return [
+        row[0]
+        for row in rows
+    ]
+
+
 def filter_match_ids_by_position(
     match_ids,
     puuid,

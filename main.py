@@ -1,4 +1,10 @@
+import sys
 from time import perf_counter
+
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 from riot.riot_api import (
     get_account_by_riot_id,
@@ -30,6 +36,8 @@ from database.database import (
 
     get_event_window_dataset,
     aggregate_event_windows,
+    get_local_account_by_riot_id,
+    get_local_match_ids_by_puuid,
 )
 
 from analysis.benchmarks import (
@@ -441,11 +449,28 @@ def main():
         TAG_LINE,
     )
 
+    use_local_match_history = False
+
     if not account:
-        print(
-            "Compte Riot introuvable."
+        account = get_local_account_by_riot_id(
+            GAME_NAME,
+            TAG_LINE,
+            queue_id=SOLOQ_QUEUE_ID,
         )
-        return
+
+        if not account:
+            print(
+                "Compte Riot introuvable."
+            )
+            return
+
+        use_local_match_history = True
+
+        print()
+        print(
+            "API Riot indisponible pour le compte ; "
+            "historique local utilise."
+        )
 
     puuid = account["puuid"]
 
@@ -462,15 +487,41 @@ def main():
     # ========================================================
 
     print()
-    print(
-        "Recherche des matchs SoloQ..."
-    )
+    if use_local_match_history:
+        print(
+            "Chargement des matchs SoloQ depuis l'historique local..."
+        )
 
-    match_ids = get_match_ids_by_puuid(
-        puuid=puuid,
-        count=MATCH_COUNT,
-        queue=SOLOQ_QUEUE_ID,
-    )
+        match_ids = get_local_match_ids_by_puuid(
+            puuid=puuid,
+            queue_id=SOLOQ_QUEUE_ID,
+            count=MATCH_COUNT,
+        )
+
+    else:
+        print(
+            "Recherche des matchs SoloQ..."
+        )
+
+        match_ids = get_match_ids_by_puuid(
+            puuid=puuid,
+            count=MATCH_COUNT,
+            queue=SOLOQ_QUEUE_ID,
+        )
+
+        if not match_ids:
+            match_ids = get_local_match_ids_by_puuid(
+                puuid=puuid,
+                queue_id=SOLOQ_QUEUE_ID,
+                count=MATCH_COUNT,
+            )
+
+            if match_ids:
+                use_local_match_history = True
+                print(
+                    "Aucun match recupere via API ; "
+                    "historique local utilise."
+                )
 
     if not match_ids:
         print(
