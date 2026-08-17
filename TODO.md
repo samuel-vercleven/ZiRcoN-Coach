@@ -1,348 +1,330 @@
 # ZiRcoN Coach — TODO
 
 ## Current task
-Build / Itemization Analyzer v22 — Phase 1B:
-Final factual inventory audit and non-purchase item grants before freeze.
+Build / Itemization Analyzer v22 — Phase 1C:
+Evidence-based ITEM_DESTROYED final audit.
 
-Status: COMPLETED by Codex on 2026-08-17.
-Outcome: REVIEW_REQUIRED. Phase 1B audit implemented and tested; no Phase 2 or recommendation logic added.
+Status: COMPLETED by Codex on 2026-08-18.
+Outcome: REVIEW_REQUIRED. Evidence-based ITEM_DESTROYED audit implemented, sell-warning bug fixed, no build recommendation logic added.
 
-## Important scope
+## Context
 
-This task is still ONLY factual item reconstruction.
+Phase 1B currently achieves:
 
-Do NOT yet evaluate item quality against:
-- enemy champion;
-- enemy team composition;
-- allied team composition;
-- AP/AD damage profile;
-- burst/DPS;
-- CC;
-- armor/MR;
-- healing;
-- tanks;
-- assassins.
+- 87 Jungle games
+- 4277 item events
+- 86 EXACT final inventories
+- 1 EXACT_WITH_EXPLAINED_GRANT
+- 0 PARTIAL
+- 0 MISMATCH
+- 0 UNKNOWN
+- 100% observed-or-explained final inventory agreement
 
-The analyzer may store champion/team information for future use,
-but Phase 1 must not use it to recommend or judge items.
+Magical Footwear is now correctly identified as a confirmed RUNE_GRANT
+when perk 8304 is present.
 
----
+This part is accepted.
 
-# Current verified state
+The remaining review problem is the ITEM_DESTROYED audit methodology.
 
-Phase 1 currently reconstructs:
+## Problem found during project review
 
-- 87 Jungle games;
-- 4277 player item events;
-- 1536 purchases;
-- 11 sells;
-- 45 undo events;
-- 2685 ITEM_DESTROYED events.
+Current `_classify_unexplained_destroyed()` is not sufficiently
+evidence-based.
 
-Final inventory validation:
+In particular:
 
-- 86 EXACT;
-- 1 PARTIAL;
-- 0 MISMATCH;
-- 0 UNKNOWN;
-- 98.9% exact final reconstruction.
+- every Viego unexplained destroy is automatically classified
+  TEMPORARY_OR_NON_PERMANENT_STATE;
+- every not-held destroy is automatically classified temporary;
+- a held destroy may be classified temporary simply because the item is
+  present in the final inventory;
+- the function currently has no meaningful path which can classify a case as:
+  - LIKELY_REAL_REMOVAL
+  - MISSED_TRANSFORMATION
 
-Target match:
-EUW1_7951911875 = EXACT.
+Therefore the current:
 
-Remaining PARTIAL:
-EUW1_7836627546.
+1582 TEMPORARY_OR_NON_PERMANENT_STATE
+18 UNRESOLVED
 
-Riot final inventory contains:
-2422 / Slightly Magical Boots
+must NOT be used as freeze evidence by itself.
 
-but no normal ITEM_PURCHASED event exposes that item.
+The purpose of this task is to make the audit genuinely evidence-based.
 
-This is expected to be related to the Magical Footwear rune.
+Do NOT change production reconstruction unless the new audit reveals a
+demonstrated reconstruction bug.
 
 ---
 
-# Part A — Magical Footwear / granted item support
+# Part A — Remove circular audit assumptions
 
-Inspect the participant perks/runes stored in the Riot match raw data for:
+Modify the audit classifier only.
 
-EUW1_7836627546
+Do NOT classify an event as temporary solely because:
 
-Determine whether the player selected:
+- champion == Viego;
+- item is present in final inventory;
+- final reconstruction status is EXACT;
+- item was not currently reconstructed as held.
 
-Magical Footwear
+Those facts may be supporting context, but not sufficient proof.
 
-If yes:
-
-classify item 2422 as:
-
-source = RUNE_GRANT
-grant_type = MAGICAL_FOOTWEAR
-purchase_event = NONE
-
-Do NOT treat the absence of ITEM_PURCHASED as a reconstruction error.
-
-Do NOT fabricate an exact Riot item event.
-
-## Acquisition timestamp
-
-If the rune is confirmed, it is acceptable to compute a separate:
-
-derived_grant_timestamp
-
-using the known Magical Footwear rule and observable takedown history,
-provided the implementation clearly labels the value as DERIVED / INFERRED.
-
-Never present a derived timestamp as a Riot-observed event.
-
-Keep fields conceptually separated:
-
-- observed_timestamp
-- derived_timestamp
-- source
-- confidence / evidence
-
-If the exact grant timing cannot be derived reliably:
-keep timestamp UNKNOWN.
+Final inventory correctness must not be used as proof that the
+intermediate inventory was correct.
 
 ---
 
-# Part B — Generic non-purchase grants
+# Part B — Evidence-based classifications
 
-Search all 87 games for final items which:
+For every unexplained normal ITEM_DESTROYED event classify as one of:
 
-- appear in Riot final inventory;
-- were not reconstructed through normal item transactions;
-- are non-purchasable or likely granted by game mechanics.
+## CONFIRMED_OR_STRONG_TEMPORARY_STATE
 
-Report all such cases.
+Require positive evidence such as:
 
-Create an explicit factual source classification where justified:
+- item never belongs to the player's permanent purchased build;
+- event occurs inside an identifiable temporary mechanic/state;
+- repeated temporary item event pattern clearly incompatible with permanent ownership;
+- surrounding events strongly support temporary/copied inventory;
+- Viego possession context is observable from timeline events if available.
 
-- PURCHASE
-- RUNE_GRANT
-- AUTOMATIC_TRANSFORMATION
-- GAME_MECHANIC_GRANT
-- UNKNOWN_GRANT
+Champion identity alone is NOT sufficient.
 
-Do not hardcode arbitrary final items into earlier inventories.
+## LIKELY_REAL_REMOVAL
 
-A final-item observation must not be used to invent a historical acquisition time.
+Use when evidence supports that the player's permanently held item actually
+ceased being held.
 
----
+Examples:
 
-# Part C — ITEM_DESTROYED audit
+- held before destroy;
+- no simultaneous replacement/transformation;
+- subsequent inventory behavior is only coherent if it was removed;
+- later repurchase strongly supports that the old copy disappeared;
+- sale/upgrade/capacity chronology contradicts keeping it.
 
-Audit every ITEM_DESTROYED not already explained confidently as:
+## MISSED_TRANSFORMATION
 
-- component consumed by completed-item purchase;
-- consumable removal;
-- jungle item progression/removal;
-- trinket-use handling;
-- another validated deterministic transformation.
+Use when:
 
-For remaining events report:
+- destroy is associated with another item appearing;
+- component/upgrade graph explains the transition;
+- same or nearby timestamp indicates transformation;
+- current production deterministic handling missed the relationship.
 
-- total count;
-- games affected;
-- champion;
-- item ID/name;
-- whether item was reconstructed as held;
-- inventory before event;
-- same-timestamp item events;
-- later transactions involving the item;
-- final Riot inventory;
-- whether ignoring the destroy is required for final correctness.
+## UNRESOLVED
 
-Audit-only classification:
+Use when current Riot data cannot reliably distinguish the possibilities.
 
-- TEMPORARY_OR_NON_PERMANENT_STATE
-- LIKELY_REAL_REMOVAL
-- MISSED_TRANSFORMATION
-- UNRESOLVED
-
-Do not globally interpret ITEM_DESTROYED as permanent deletion.
+Do not force a classification.
 
 ---
 
-# Part D — Viego special audit
+# Part C — Reconstruct before/after evidence
 
-Audit Viego separately.
+For every unexplained destroy record:
 
-Because Viego can temporarily use another champion's state/items,
-ITEM_DESTROYED events may reflect temporary possession state rather than
-ZiRcoN's permanent inventory.
+- match_id
+- champion
+- timestamp
+- item ID/name
+- reconstructed inventory immediately before
+- reconstructed inventory immediately after under current production model
+- whether item was considered held before
+- same-timestamp ITEM_PURCHASED
+- same-timestamp ITEM_SOLD
+- same-timestamp ITEM_UNDO
+- item transformations/upgrades around event
+- next transaction involving same item
+- previous transaction involving same item
+- later repurchase of same item
+- final Riot inventory
+- reconstructed final inventory
+- slot count before/after
+- classification
+- classification evidence/reason
 
-Report:
-
-- Viego games;
-- Viego ITEM_DESTROYED count;
-- normal ambiguous destroyed count;
-- items involved;
-- whether those items belong to ZiRcoN's permanent reconstructed build;
-- whether events are compatible with temporary possession states.
-
-If temporary possession inventory cannot be reconstructed reliably,
-document:
-
-TEMPORARY_POSSESSION_INVENTORY_UNRELIABLE
-
-Future item coaching must ignore temporary possession inventory
-when evaluating Viego's permanent build.
-
-Do not create champion-specific inventory logic unless evidence requires it.
+Classification must be auditable from these fields.
 
 ---
 
-# Part E — Held-item ITEM_DESTROYED risk
+# Part D — Held normal destroyed events
 
-Inspect every:
+Audit ALL:
 
 DESTROYED_NORMAL_HELD_IGNORED_AS_AMBIGUOUS
 
-For each case determine whether production currently leaves an item in inventory
-that should clearly have disappeared.
+These are the highest priority.
 
-Check:
+Do not infer safety from final inventory alone.
 
-- subsequent sell;
-- subsequent upgrade;
-- repeated purchase;
-- inventory capacity;
-- final inventory;
-- same-timestamp transformations.
+Specifically detect situations like:
 
-If clear evidence shows a real permanent removal is being ignored:
-apply the smallest evidence-backed fix and rerun all 87 games.
+purchase item
+→ ITEM_DESTROYED
+→ item absent for a meaningful period
+→ later repurchase
 
-Otherwise leave the event explicitly ambiguous.
+because keeping the first copy through that interval would produce an
+incorrect intermediate inventory even if final inventory happens to match.
 
----
+Report:
 
-# Part F — Intermediate inventory invariants
-
-Audit the reconstructed timeline for:
-
-- >6 permanent inventory slots;
-- item sold but never held;
-- impossible duplicate completed items;
-- component upgrade without plausible ingredients;
-- ignored destroyed item creating an impossible long-lived state;
-- undo inconsistent with current inventory;
-- unknown item metadata;
-- contradictory later transactions.
-
-Report all warning codes and counts.
-
-Separate warnings into:
-
-- understood expected mechanic;
-- harmless Riot representation limitation;
-- genuine reconstruction bug;
+- total held-destroyed cases;
+- Viego vs non-Viego;
+- confirmed temporary;
+- likely real removal;
+- missed transformation;
 - unresolved.
 
-Zero warnings is NOT required.
+---
 
-Every important warning family must be understood.
+# Part E — Viego evidence audit
+
+Do not automatically classify Viego events as temporary.
+
+For each Viego ambiguous ITEM_DESTROYED family determine whether there is
+positive evidence compatible with possession/copied inventory.
+
+Use available timeline context if possible.
+
+If exact possession windows cannot be identified reliably:
+
+classify those cases UNRESOLVED_TEMPORARY_POSSIBLE
+
+or equivalent,
+
+rather than claiming temporary state as fact.
+
+Permanent limitation may remain:
+
+TEMPORARY_POSSESSION_INVENTORY_UNRELIABLE
+
+Future coaching can ignore unreliable intervals.
+
+The goal is honest uncertainty, not reconstructing Viego possession perfectly.
 
 ---
 
-# Part G — Major item milestone audit
+# Part F — Investigate the remaining sell warning
 
-Validate completed-major classification.
+There is currently:
 
-Ensure ordinary cases such as:
+1 SELL_ITEM_NOT_RECONSTRUCTED_AS_HELD
 
-- trinkets;
-- potions/elixirs;
-- jungle starter/pet items;
-- ordinary components;
-- granted boots;
-- non-major special items
+Inspect this exact case manually.
 
-are not incorrectly counted as completed major-item milestones.
+Report:
 
-Report unusual COMPLETED_MAJOR classifications.
+- match
+- champion
+- timestamp
+- item
+- previous item events
+- previous destroy events
+- reconstructed inventory
+- actual likely explanation
 
-Do not redesign the item category system without concrete evidence.
+Determine whether this warning exposes:
 
----
+- a real ignored ITEM_DESTROYED removal;
+- temporary mechanic;
+- transformation issue;
+- missing grant;
+- Riot event-order issue;
+- unresolved ambiguity.
 
-# Part H — Target matches
-
-## EUW1_7951911875
-
-Confirm:
-
-- EXACT reconstruction;
-- chronological inventory remains coherent;
-- Kraken Slayer completion;
-- Collector completion;
-- Immortal Shieldbow completion;
-- no unexplained ITEM_DESTROYED changes the conclusion.
-
-## EUW1_7836627546
-
-Show:
-
-- selected runes;
-- Magical Footwear presence or absence;
-- item 2422 source;
-- observed vs derived timestamp status;
-- reconstructed final inventory;
-- Riot final inventory;
-- final validation classification.
-
-If Magical Footwear explains the missing item,
-do not classify this case as a normal reconstruction failure.
+Do not leave this single warning unexplored.
 
 ---
 
-# Part I — Final validation policy
+# Part G — Intermediate-state contradiction tests
 
-Introduce/clarify validation states if useful:
+Explicitly search all 87 games for:
 
-- EXACT_OBSERVED
-- EXACT_WITH_EXPLAINED_GRANT
-- PARTIAL
-- MISMATCH
-- UNKNOWN
+- >6 permanent slots;
+- duplicate major item impossible states;
+- sell of an item not held;
+- upgrade requiring impossible prior state;
+- later purchase of an item already incorrectly retained;
+- item retained long after strong evidence of removal;
+- impossible component consumption caused by ignored destroy;
+- contradictory undo.
 
-For example:
+Report counts and affected matches.
 
-A game whose only difference is a confirmed Magical Footwear rune grant
-may become:
+Final inventory agreement alone is not sufficient.
 
-EXACT_WITH_EXPLAINED_GRANT
+---
 
-rather than forcing a fake ITEM_PURCHASED event.
+# Part H — Magical Footwear policy
 
-Do not merge observed and inferred facts silently.
+Keep the confirmed Magical Footwear source handling.
+
+Accepted factual policy:
+
+item 2422
+source = RUNE_GRANT
+perk = 8304
+purchase_event = NONE
+
+Do NOT fabricate a Riot-observed transaction.
+
+The derived acquisition timestamp must remain clearly separate:
+
+DERIVED_INFERRED
+
+Do not use the derived timestamp as factual Riot event evidence.
+
+Because rune rules can vary by patch, the derived timestamp must not become a
+freeze-critical factual dependency unless the rule is version-aware.
+
+For Phase 1 freeze, knowing the grant source is sufficient.
+Exact inferred grant timing is optional.
+
+---
+
+# Part I — Production changes
+
+Do NOT modify production ITEM_DESTROYED behavior merely because the audit
+classification changes.
+
+Only modify production reconstruction if the evidence-based audit reveals a
+specific demonstrated correctness bug.
+
+If production code is changed:
+
+- document exact bug;
+- add synthetic regression test;
+- rerun all 87 games;
+- compare final and intermediate results.
 
 ---
 
 # Freeze criteria
 
-Phase 1 can be freeze-ready if:
+Phase 1 can be recommended for freeze when:
 
-- normal purchases/sells/undo/component reconstruction remains reliable;
-- non-purchase grants are explicitly modeled rather than fabricated;
-- Magical Footwear case is explained correctly if rune evidence supports it;
-- ITEM_DESTROYED does not hide a systemic permanent-inventory bug;
-- Viego temporary state limitations are documented;
-- intermediate inventory invariants show no systemic corruption;
-- major-item milestones remain credible;
-- target match remains exact;
-- no frozen analyzer was modified.
+- Magical Footwear grant handling remains correct;
+- all final inventories remain explained;
+- ITEM_DESTROYED audit does not rely on final-state circular reasoning;
+- held destroyed events are evidence-audited;
+- the remaining sell warning is understood;
+- no systemic intermediate inventory corruption is found;
+- unresolved Viego temporary states are explicitly isolated rather than
+  falsely reconstructed;
+- major milestones remain correct;
+- target match remains coherent.
 
-100% observed transaction reconstruction is NOT required when Riot itself
-does not expose a grant as a transaction.
+UNRESOLVED events are acceptable if future coaching can identify and ignore
+unreliable intervals.
 
-Correct uncertainty is preferable to invented precision.
+Correct uncertainty is preferred over false precision.
 
 ---
 
-# Frozen modules
+# Restrictions
 
 Do NOT modify:
 
@@ -351,38 +333,26 @@ Do NOT modify:
 - Objective Analyzer v20
 - Recall / Reset Analyzer v21
 
----
+Do NOT start:
 
-# Do NOT implement yet
-
-Do NOT implement:
-
-- enemy champion item counter logic;
-- allied/enemy composition analysis;
-- item recommendations;
-- boots recommendations;
-- anti-heal logic;
-- armor/MR reasoning;
-- anti-tank logic;
-- AP/AD composition logic;
-- GOOD/BAD labels;
-- Itemization Score;
-- ML.
-
-These belong to later phases.
+- champion matchup reasoning
+- team composition analysis
+- item recommendations
+- build scoring
+- ML
 
 ---
 
-# Testing
+# Tests
 
 Run:
 
-- compile checks;
-- existing synthetic itemization checks;
-- focused rune/grant checks;
-- focused ITEM_DESTROYED audit;
-- full 87-game reconstruction audit;
-- python main.py if production code changes.
+- compile checks
+- existing synthetic checks
+- new focused destroyed-event audit
+- full 87-game audit
+- regression tests if production behavior changes
+- python main.py if production code changes
 
 ---
 
@@ -396,22 +366,21 @@ Update:
 
 LAST_RUN must include:
 
+- evidence-based destroyed classifications;
+- held destroyed classifications;
+- Viego-specific results;
+- detailed conclusion for the single sell warning;
+- intermediate contradiction counts;
+- whether production logic changed;
 - final inventory validation counts;
-- Magical Footwear conclusion;
-- non-purchase grant counts;
-- ITEM_DESTROYED audit counts;
-- Viego results;
-- warning-code counts;
-- intermediate invariant violations;
-- major-item milestone findings;
-- target-match result;
+- target-match confirmation;
 - freeze-readiness recommendation.
 
 Finish with:
 
 REVIEW_REQUIRED
 
-Do not freeze Phase 1 yourself.
+Do not freeze v22 yourself.
 
 ---
 
@@ -421,4 +390,29 @@ Commit and push tested work.
 
 Suggested commit:
 
-Audit item grants and destroyed events
+Strengthen itemization destroyed-event audit
+
+## Important — Viego is an exception audit, not the analyzer target
+
+Do NOT specialize the general itemization architecture around Viego.
+
+Viego is audited separately only because his possession mechanic can expose
+temporary/copied item states through Riot timeline events.
+
+The production itemization analyzer must remain champion-agnostic and work
+correctly for every champion.
+
+Viego-specific handling is allowed only when:
+- Riot data demonstrates a mechanic-specific representation;
+- the handling is isolated from normal champion reconstruction;
+- it does not change normal ITEM_DESTROYED semantics for other champions.
+
+Do not require additional Viego games for the analyzer to function.
+
+Do not optimize reconstruction accuracy specifically for Viego at the expense
+of Shyvana, Bel'Veth, Mundo, or other champions.
+
+The goal is:
+GENERAL ITEM RECONSTRUCTION
++
+isolated handling/uncertainty for exceptional champion mechanics.

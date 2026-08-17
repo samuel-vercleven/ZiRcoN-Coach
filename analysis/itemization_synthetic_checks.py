@@ -1,5 +1,6 @@
 from analysis.itemization_analyzer import (
     ItemCatalog,
+    _summarize_destroyed_audit,
     reconstruct_item_timeline,
 )
 
@@ -10,6 +11,12 @@ RAW_ITEMS = {
         "gold": {"total": 300, "base": 300, "purchasable": True},
         "tags": ["Boots"],
         "into": ["3001"],
+    },
+    "1029": {
+        "name": "Cloth Armor",
+        "gold": {"total": 300, "base": 300, "purchasable": True},
+        "tags": ["Armor"],
+        "into": ["3047"],
     },
     "1036": {
         "name": "Long Sword",
@@ -48,6 +55,12 @@ RAW_ITEMS = {
         "gold": {"total": 900, "base": 600, "purchasable": True},
         "tags": ["Boots"],
         "from": ["1001"],
+    },
+    "3047": {
+        "name": "Synthetic Steelcaps",
+        "gold": {"total": 1000, "base": 400, "purchasable": True},
+        "tags": ["Boots"],
+        "from": ["1001", "1029"],
     },
     "3340": {
         "name": "Warding Totem",
@@ -264,6 +277,107 @@ def test_missing_magical_boots_without_rune_stays_unexplained():
     assert not result["final_validation"]["explained_grants"]
 
 
+def _destroyed_classifications(result):
+    return _summarize_destroyed_audit([result])["classification_counts"]
+
+
+def test_undo_restores_consumed_components_for_later_sell():
+    catalog = ItemCatalog.from_raw_items(RAW_ITEMS)
+    result = reconstruct_item_timeline(
+        _meta(final_items=[1001]),
+        [
+            _event(10_000, "ITEM_PURCHASED", 1001),
+            _event(11_000, "ITEM_PURCHASED", 1029),
+            _event(20_000, "ITEM_DESTROYED", 1001),
+            _event(20_000, "ITEM_DESTROYED", 1029),
+            _event(20_000, "ITEM_PURCHASED", 3047),
+            _event(25_000, "ITEM_UNDO", beforeId=3047, afterId=0),
+            _event(30_000, "ITEM_SOLD", 1029),
+        ],
+        catalog,
+    )
+    warning_codes = [
+        warning["code"]
+        for warning in result["invariant_warnings"]
+    ]
+    assert "SELL_ITEM_NOT_RECONSTRUCTED_AS_HELD" not in warning_codes
+    assert _final_ids(result) == [1001]
+    assert result["final_validation"]["status"] == "EXACT"
+
+
+def test_destroyed_audit_strong_temporary_requires_no_acquisition():
+    catalog = ItemCatalog.from_raw_items(RAW_ITEMS)
+    result = reconstruct_item_timeline(
+        _meta(final_items=[]),
+        [_event(10_000, "ITEM_DESTROYED", 1036)],
+        catalog,
+    )
+    assert (
+        _destroyed_classifications(result)[
+            "CONFIRMED_OR_STRONG_TEMPORARY_STATE"
+        ]
+        == 1
+    )
+
+
+def test_destroyed_audit_final_inventory_is_not_temporary_proof():
+    catalog = ItemCatalog.from_raw_items(RAW_ITEMS)
+    result = reconstruct_item_timeline(
+        _meta(final_items=[1036]),
+        [
+            _event(10_000, "ITEM_PURCHASED", 1036),
+            _event(20_000, "ITEM_DESTROYED", 1036),
+        ],
+        catalog,
+    )
+    assert _destroyed_classifications(result)["UNRESOLVED"] == 1
+
+
+def test_destroyed_audit_detects_missed_transformation():
+    catalog = ItemCatalog.from_raw_items(RAW_ITEMS)
+    result = reconstruct_item_timeline(
+        _meta(final_items=[3001]),
+        [
+            _event(20_000, "ITEM_DESTROYED", 2422),
+            _event(20_000, "ITEM_PURCHASED", 3001),
+        ],
+        catalog,
+    )
+    assert _destroyed_classifications(result)["MISSED_TRANSFORMATION"] == 1
+
+
+def test_destroyed_audit_detects_likely_real_removal():
+    catalog = ItemCatalog.from_raw_items(RAW_ITEMS)
+    result = reconstruct_item_timeline(
+        _meta(final_items=[3000]),
+        [
+            _event(10_000, "ITEM_PURCHASED", 3000),
+            _event(20_000, "ITEM_DESTROYED", 3000),
+            _event(120_000, "ITEM_PURCHASED", 3000),
+        ],
+        catalog,
+    )
+    assert _destroyed_classifications(result)["LIKELY_REAL_REMOVAL"] == 1
+
+
+def test_viego_destroyed_audit_does_not_use_champion_only():
+    catalog = ItemCatalog.from_raw_items(RAW_ITEMS)
+    result = reconstruct_item_timeline(
+        _meta(final_items=[1036], champion="Viego"),
+        [
+            _event(10_000, "ITEM_PURCHASED", 1036),
+            _event(20_000, "ITEM_DESTROYED", 1036),
+        ],
+        catalog,
+    )
+    assert (
+        _destroyed_classifications(result)[
+            "UNRESOLVED_TEMPORARY_POSSIBLE"
+        ]
+        == 1
+    )
+
+
 def main():
     test_purchase()
     test_sell()
@@ -273,6 +387,12 @@ def main():
     test_consume_on_purchase_elixir()
     test_magical_footwear_rune_grant()
     test_missing_magical_boots_without_rune_stays_unexplained()
+    test_undo_restores_consumed_components_for_later_sell()
+    test_destroyed_audit_strong_temporary_requires_no_acquisition()
+    test_destroyed_audit_final_inventory_is_not_temporary_proof()
+    test_destroyed_audit_detects_missed_transformation()
+    test_destroyed_audit_detects_likely_real_removal()
+    test_viego_destroyed_audit_does_not_use_champion_only()
     print("Synthetic itemization checks passed.")
 
 

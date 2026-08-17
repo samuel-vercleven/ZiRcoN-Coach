@@ -927,6 +927,7 @@ def _base_transaction_row(
     timestamp = event.get("timestamp") or 0
     item_meta = catalog.meta(item_id)
     view = _inventory_view(slot_items, trinket_id, catalog)
+    slot_count_before = _slot_count(slot_items, catalog)
 
     row = {
         "match_id": meta["match_id"],
@@ -954,6 +955,11 @@ def _base_transaction_row(
         "shop_visit_id": visit_by_key.get(_event_key(event)),
         "reconstruction_status": "OK",
         "reconstruction_warnings": [],
+        "inventory_before_slot_item_ids": list(view["slot_item_ids"]),
+        "inventory_before_slot_items": list(view["slot_items"]),
+        "inventory_before_trinket_id": trinket_id,
+        "inventory_before_trinket": view["trinket"],
+        "slot_count_before": slot_count_before,
         "raw_event": raw,
     }
     row.update(view)
@@ -982,6 +988,11 @@ def _apply_capacity_invariant(row, slot_items, catalog):
 
 def _finalize_row_inventory(row, slot_items, trinket_id, catalog):
     view = _inventory_view(slot_items, trinket_id, catalog)
+    row["inventory_after_slot_item_ids"] = list(view["slot_item_ids"])
+    row["inventory_after_slot_items"] = list(view["slot_items"])
+    row["inventory_after_trinket_id"] = trinket_id
+    row["inventory_after_trinket"] = view["trinket"]
+    row["slot_count_after"] = _slot_count(slot_items, catalog)
     row.update(view)
 
 
@@ -1007,6 +1018,7 @@ def reconstruct_item_timeline(meta, events, catalog):
     }
     event_type_counts = Counter()
     special_case_counts = Counter()
+    undoable_purchases = []
 
     for warning in catalog.warnings:
         special_case_counts[warning[0]] += 1
@@ -1124,6 +1136,18 @@ def reconstruct_item_timeline(meta, events, catalog):
                         }
                     )
 
+                if category not in {"TRINKET", "CONSUMABLE"}:
+                    undoable_purchases.append(
+                        {
+                            "item_id": item_id,
+                            "consumed_components": list(
+                                consumed_components
+                            ),
+                            "timestamp": row["timestamp"],
+                            "undone": False,
+                        }
+                    )
+
                 _apply_capacity_invariant(row, slot_items, catalog)
 
             elif event_type == "ITEM_SOLD":
@@ -1148,6 +1172,7 @@ def reconstruct_item_timeline(meta, events, catalog):
                 row["item_id"] = before_id
                 row["item_name"] = catalog.name(before_id)
                 row["item_category"] = catalog.category(before_id)
+                row["undo_restored_components"] = []
 
                 if before_id not in (None, 0):
                     if (
@@ -1164,6 +1189,31 @@ def reconstruct_item_timeline(meta, events, catalog):
                             "UNDO_BEFORE_ITEM_NOT_RECONSTRUCTED_AS_HELD",
                             before_id,
                         )
+                    else:
+                        for purchase in reversed(undoable_purchases):
+                            if purchase["undone"]:
+                                continue
+                            if purchase["item_id"] != before_id:
+                                continue
+
+                            purchase["undone"] = True
+
+                            if after_id in (None, 0):
+                                for component_id in purchase[
+                                    "consumed_components"
+                                ]:
+                                    _add_item(slot_items, component_id)
+                                    row["undo_restored_components"].append(
+                                        component_id
+                                    )
+
+                                if row["undo_restored_components"]:
+                                    special_case_counts[
+                                        "UNDO_CONSUMED_COMPONENTS_RESTORED"
+                                    ] += len(
+                                        row["undo_restored_components"]
+                                    )
+                            break
 
                 if after_id not in (None, 0):
                     if catalog.category(after_id) == "TRINKET":
@@ -1698,6 +1748,10 @@ def _summarize_history(matches, transactions):
         "grant_derived_status_counts": grant_derived_status_counts,
         "destroyed_audit": _summarize_destroyed_audit(matches),
         "viego_audit": _summarize_viego_audit(matches),
+        "sell_warning_audit": _summarize_sell_warning_audit(matches),
+        "intermediate_contradictions": (
+            _summarize_intermediate_contradictions(matches)
+        ),
         "warning_buckets": _summarize_warning_buckets(warning_counts),
         "major_milestone_audit": _summarize_major_milestones(matches),
     }
@@ -1736,6 +1790,54 @@ def _same_timestamp_item_events(match, row):
     ]
 
 
+def _transaction_mentions_item(transaction, item_id):
+    raw = transaction.get("raw_event") or {}
+    return item_id in (
+        transaction.get("item_id"),
+        raw.get("itemId"),
+        raw.get("beforeId"),
+        raw.get("afterId"),
+    )
+
+
+def _is_acquisition_transaction(transaction, item_id):
+    raw = transaction.get("raw_event") or {}
+
+    if (
+        transaction.get("event_type") == "ITEM_PURCHASED"
+        and transaction.get("item_id") == item_id
+    ):
+        return True
+
+    return (
+        transaction.get("event_type") == "ITEM_UNDO"
+        and raw.get("afterId") == item_id
+    )
+
+
+def _item_acquisition_transactions(match, item_id):
+    return [
+        transaction
+        for transaction in match["transactions"]
+        if _is_acquisition_transaction(transaction, item_id)
+    ]
+
+
+def _previous_item_transactions(match, row):
+    item_id = row.get("item_id")
+    timestamp = row.get("timestamp") or 0
+    previous = []
+
+    for transaction in match["transactions"]:
+        if (transaction.get("timestamp") or 0) >= timestamp:
+            continue
+
+        if _transaction_mentions_item(transaction, item_id):
+            previous.append(transaction)
+
+    return previous
+
+
 def _later_item_transactions(match, row):
     item_id = row.get("item_id")
     timestamp = row.get("timestamp") or 0
@@ -1745,47 +1847,318 @@ def _later_item_transactions(match, row):
         if (transaction.get("timestamp") or 0) <= timestamp:
             continue
 
-        if transaction.get("item_id") == item_id:
-            later.append(transaction)
-            continue
-
-        raw = transaction.get("raw_event") or {}
-        if item_id in (
-            raw.get("itemId"),
-            raw.get("beforeId"),
-            raw.get("afterId"),
-        ):
+        if _transaction_mentions_item(transaction, item_id):
             later.append(transaction)
 
     return later
 
 
-def _classify_unexplained_destroyed(match, row):
-    codes = _warning_codes(row)
-    item_id = row.get("item_id")
-    final_counter = match["final_validation"]["riot_final_counter"]
-    final_status = match["final_validation"]["status"]
+def _nearby_item_events(match, row, window_ms=5_000):
+    timestamp = row.get("timestamp") or 0
+    return [
+        transaction
+        for transaction in match["transactions"]
+        if transaction is not row
+        and transaction.get("event_type", "").startswith("ITEM_")
+        and abs((transaction.get("timestamp") or 0) - timestamp)
+        <= window_ms
+    ]
 
-    if str(match.get("champion", "")).lower() == "viego":
-        return "TEMPORARY_OR_NON_PERMANENT_STATE"
 
-    if "DESTROYED_NORMAL_NOT_HELD_IGNORED_AS_AMBIGUOUS" in codes:
-        return "TEMPORARY_OR_NON_PERMANENT_STATE"
+def _component_or_upgrade_relation(catalog, source_item_id, target_item_id):
+    source_meta = catalog.meta(source_item_id)
+    target_meta = catalog.meta(target_item_id)
+
+    if not source_meta or not target_meta:
+        return False
+
+    if source_item_id in target_meta.from_items:
+        return True
+
+    if source_item_id in _component_tree(target_item_id, catalog):
+        return True
+
+    if target_item_id in source_meta.into_items:
+        return True
+
+    return False
+
+
+def _same_item_family(catalog, first_item_id, second_item_id):
+    first_meta = catalog.meta(first_item_id)
+    second_meta = catalog.meta(second_item_id)
+
+    if not first_meta or not second_meta:
+        return False
 
     if (
-        "DESTROYED_NORMAL_HELD_IGNORED_AS_AMBIGUOUS" in codes
-        and item_id in final_counter
-        and final_status in EXACT_FINAL_STATUSES
+        first_meta.from_items
+        and second_meta.from_items
+        and Counter(first_meta.from_items) == Counter(second_meta.from_items)
     ):
-        return "TEMPORARY_OR_NON_PERMANENT_STATE"
+        return True
 
-    if _same_timestamp_item_events(match, row):
-        return "UNRESOLVED"
+    return False
 
-    if _later_item_transactions(match, row):
-        return "UNRESOLVED"
 
-    return "UNRESOLVED"
+def _summarize_transaction(transaction):
+    if not transaction:
+        return None
+
+    raw = transaction.get("raw_event") or {}
+    return {
+        "time": transaction.get("time"),
+        "timestamp": transaction.get("timestamp"),
+        "event_type": transaction.get("event_type"),
+        "item_id": transaction.get("item_id"),
+        "item_name": transaction.get("item_name"),
+        "before_id": raw.get("beforeId"),
+        "after_id": raw.get("afterId"),
+    }
+
+
+def _find_transformation_purchase(match, row, catalog):
+    item_id = row.get("item_id")
+
+    for transaction in _nearby_item_events(match, row):
+        if transaction.get("event_type") != "ITEM_PURCHASED":
+            continue
+
+        target_item_id = transaction.get("item_id")
+        if _component_or_upgrade_relation(
+            catalog,
+            item_id,
+            target_item_id,
+        ):
+            return transaction
+
+    return None
+
+
+def _find_later_unobserved_replacement(match, row, catalog):
+    item_id = row.get("item_id")
+    timestamp = row.get("timestamp") or 0
+
+    for transaction in match["transactions"]:
+        if (transaction.get("timestamp") or 0) <= timestamp:
+            continue
+        if transaction.get("event_type") != "ITEM_DESTROYED":
+            continue
+
+        replacement_id = transaction.get("item_id")
+        if replacement_id == item_id:
+            continue
+        if not _same_item_family(catalog, item_id, replacement_id):
+            continue
+
+        previous_replacement_acquisitions = [
+            acquisition
+            for acquisition in _item_acquisition_transactions(
+                match,
+                replacement_id,
+            )
+            if (acquisition.get("timestamp") or 0)
+            < (transaction.get("timestamp") or 0)
+        ]
+        if previous_replacement_acquisitions:
+            continue
+
+        return transaction
+
+    return None
+
+
+def _find_later_repurchase(match, row):
+    item_id = row.get("item_id")
+    timestamp = row.get("timestamp") or 0
+
+    for transaction in match["transactions"]:
+        if (transaction.get("timestamp") or 0) <= timestamp:
+            continue
+        if _is_acquisition_transaction(transaction, item_id):
+            return transaction
+
+    return None
+
+
+def _final_effective_counter(match):
+    return match["final_validation"].get(
+        "effective_reconstructed_final_counter",
+        match["final_validation"]["riot_final_counter"],
+    )
+
+
+def _destroyed_evidence_context(match, row):
+    catalog = _catalog_for_match(match)
+    codes = _warning_codes(row)
+    item_id = row.get("item_id")
+    timestamp = row.get("timestamp") or 0
+    is_viego = str(match.get("champion", "")).lower() == "viego"
+    before_ids = row.get("inventory_before_slot_item_ids") or []
+    after_ids = row.get("inventory_after_slot_item_ids") or []
+    held_before = item_id in before_ids
+    retained_after = item_id in after_ids
+    same_events = _same_timestamp_item_events(match, row)
+    same_purchases = [
+        event for event in same_events
+        if event.get("event_type") == "ITEM_PURCHASED"
+    ]
+    same_sells = [
+        event for event in same_events
+        if event.get("event_type") == "ITEM_SOLD"
+    ]
+    same_undos = [
+        event for event in same_events
+        if event.get("event_type") == "ITEM_UNDO"
+    ]
+    previous_item_transactions = _previous_item_transactions(match, row)
+    later_item_transactions = _later_item_transactions(match, row)
+    acquisitions = _item_acquisition_transactions(match, item_id)
+    previous_acquisitions = [
+        transaction
+        for transaction in acquisitions
+        if (transaction.get("timestamp") or 0) < timestamp
+    ]
+    later_repurchase = _find_later_repurchase(match, row)
+    transformation_purchase = _find_transformation_purchase(
+        match,
+        row,
+        catalog,
+    )
+    later_replacement = _find_later_unobserved_replacement(
+        match,
+        row,
+        catalog,
+    )
+    final_counter = _final_effective_counter(match)
+    final_count = final_counter.get(item_id, 0)
+    item_category = catalog.category(item_id)
+    magical_footwear_context = (
+        item_id == SLIGHTLY_MAGICAL_BOOTS_ITEM_ID
+        and _has_perk(match, MAGICAL_FOOTWEAR_PERK_ID)
+    )
+    evidence = []
+    classification = "UNRESOLVED"
+
+    if transformation_purchase:
+        classification = "MISSED_TRANSFORMATION"
+        evidence.append(
+            "nearby purchase is connected by Data Dragon component/upgrade graph"
+        )
+    elif later_replacement:
+        classification = "MISSED_TRANSFORMATION"
+        evidence.append(
+            "later unpurchased sibling item appears in the same upgrade family"
+        )
+    elif held_before and later_repurchase and item_category in {
+        "BOOTS",
+        "BOOTS_UPGRADE",
+        "COMPLETED_MAJOR",
+        "INTERMEDIATE",
+    }:
+        classification = "LIKELY_REAL_REMOVAL"
+        evidence.append(
+            "item was held, ignored by production, and later reacquired"
+        )
+    elif (
+        not previous_acquisitions
+        and not acquisitions
+        and final_count == 0
+        and not magical_footwear_context
+    ):
+        classification = "CONFIRMED_OR_STRONG_TEMPORARY_STATE"
+        evidence.append(
+            "item has no observed acquisition/restoration and is absent from effective final inventory"
+        )
+    elif is_viego:
+        classification = "UNRESOLVED_TEMPORARY_POSSIBLE"
+        evidence.append(
+            "Viego may expose copied inventory, but no possession window is observable here"
+        )
+
+    if held_before:
+        evidence.append("item was reconstructed as held before destroy")
+    else:
+        evidence.append("item was not reconstructed as held before destroy")
+
+    if retained_after:
+        evidence.append("current production retains item after destroy")
+
+    if magical_footwear_context:
+        evidence.append(
+            "Magical Footwear rune 8304 confirms item 2422 can be granted without purchase"
+        )
+
+    if final_count:
+        evidence.append(
+            "item appears in effective final inventory, used only as context"
+        )
+
+    return {
+        "match_id": match["match_id"],
+        "champion": match["champion"],
+        "timestamp": timestamp,
+        "time": row["time"],
+        "item_id": item_id,
+        "item_name": row.get("item_name"),
+        "item_category": item_category,
+        "classification": classification,
+        "classification_evidence": evidence,
+        "warning_codes": sorted(codes),
+        "held_before": held_before,
+        "retained_after": retained_after,
+        "inventory_before": list(before_ids),
+        "inventory_before_names": list(
+            row.get("inventory_before_slot_items") or []
+        ),
+        "inventory_after": list(after_ids),
+        "inventory_after_names": list(
+            row.get("inventory_after_slot_items") or []
+        ),
+        "slot_count_before": row.get("slot_count_before"),
+        "slot_count_after": row.get("slot_count_after"),
+        "same_timestamp_purchases": [
+            _summarize_transaction(transaction)
+            for transaction in same_purchases
+        ],
+        "same_timestamp_sells": [
+            _summarize_transaction(transaction)
+            for transaction in same_sells
+        ],
+        "same_timestamp_undos": [
+            _summarize_transaction(transaction)
+            for transaction in same_undos
+        ],
+        "previous_item_transaction": _summarize_transaction(
+            previous_item_transactions[-1]
+            if previous_item_transactions
+            else None
+        ),
+        "next_item_transaction": _summarize_transaction(
+            later_item_transactions[0]
+            if later_item_transactions
+            else None
+        ),
+        "later_repurchase": _summarize_transaction(later_repurchase),
+        "transformation_purchase": _summarize_transaction(
+            transformation_purchase
+        ),
+        "later_unobserved_replacement": _summarize_transaction(
+            later_replacement
+        ),
+        "final_riot_inventory": dict(
+            match["final_validation"]["riot_final_counter"]
+        ),
+        "final_reconstructed_inventory": dict(
+            match["final_validation"]["reconstructed_final_counter"]
+        ),
+        "final_effective_inventory": dict(final_counter),
+        "viego_possible": is_viego,
+    }
+
+
+def _classify_unexplained_destroyed(match, row):
+    return _destroyed_evidence_context(match, row)["classification"]
 
 
 def _summarize_destroyed_audit(matches):
@@ -1800,11 +2173,17 @@ def _summarize_destroyed_audit(matches):
     classification_counts = Counter()
     champion_counts = Counter()
     item_counts = Counter()
+    held_classification_counts = Counter()
+    not_held_classification_counts = Counter()
+    viego_classification_counts = Counter()
+    non_viego_classification_counts = Counter()
     games = set()
     held_ignored = 0
     not_held_ignored = 0
     final_safe = 0
     clear_permanent_removal_evidence = 0
+    missed_transformation_evidence = 0
+    retained_after_destroy = 0
 
     for match in matches:
         for row in match["transactions"]:
@@ -1818,44 +2197,37 @@ def _summarize_destroyed_audit(matches):
                 confidently_explained += 1
                 continue
 
-            classification = _classify_unexplained_destroyed(match, row)
+            context = _destroyed_evidence_context(match, row)
+            classification = context["classification"]
             classification_counts[classification] += 1
             champion_counts[match["champion"]] += 1
             item_counts[(row.get("item_id"), row.get("item_name"))] += 1
             games.add(match["match_id"])
 
             codes = _warning_codes(row)
-            if "DESTROYED_NORMAL_HELD_IGNORED_AS_AMBIGUOUS" in codes:
+            if context["held_before"]:
                 held_ignored += 1
-            if "DESTROYED_NORMAL_NOT_HELD_IGNORED_AS_AMBIGUOUS" in codes:
+                held_classification_counts[classification] += 1
+            else:
                 not_held_ignored += 1
+                not_held_classification_counts[classification] += 1
+
+            if context["viego_possible"]:
+                viego_classification_counts[classification] += 1
+            else:
+                non_viego_classification_counts[classification] += 1
 
             if match["final_validation"]["status"] in EXACT_FINAL_STATUSES:
                 final_safe += 1
 
             if classification == "LIKELY_REAL_REMOVAL":
                 clear_permanent_removal_evidence += 1
+            if classification == "MISSED_TRANSFORMATION":
+                missed_transformation_evidence += 1
+            if context["retained_after"]:
+                retained_after_destroy += 1
 
-            remaining.append(
-                {
-                    "match_id": match["match_id"],
-                    "champion": match["champion"],
-                    "time": row["time"],
-                    "item_id": row.get("item_id"),
-                    "item_name": row.get("item_name"),
-                    "classification": classification,
-                    "held": (
-                        "DESTROYED_NORMAL_HELD_IGNORED_AS_AMBIGUOUS"
-                        in codes
-                    ),
-                    "same_timestamp_events": len(
-                        _same_timestamp_item_events(match, row)
-                    ),
-                    "later_transactions": len(
-                        _later_item_transactions(match, row)
-                    ),
-                }
-            )
+            remaining.append(context)
 
     return {
         "total_destroyed": total_destroyed,
@@ -1865,10 +2237,17 @@ def _summarize_destroyed_audit(matches):
         "classification_counts": classification_counts,
         "champion_counts": champion_counts,
         "item_counts": item_counts,
+        "held_classification_counts": held_classification_counts,
+        "not_held_classification_counts": not_held_classification_counts,
+        "viego_classification_counts": viego_classification_counts,
+        "non_viego_classification_counts": non_viego_classification_counts,
         "held_ignored": held_ignored,
         "not_held_ignored": not_held_ignored,
         "final_safe": final_safe,
         "clear_permanent_removal_evidence": clear_permanent_removal_evidence,
+        "missed_transformation_evidence": missed_transformation_evidence,
+        "retained_after_destroy": retained_after_destroy,
+        "records": remaining,
         "samples": remaining[:12],
     }
 
@@ -1883,6 +2262,8 @@ def _summarize_viego_audit(matches):
     ambiguous_count = 0
     item_counts = Counter()
     permanent_build_item_events = 0
+    classification_counts = Counter()
+    held_ambiguous_count = 0
 
     for match in viego_matches:
         final_counter = match["final_validation"]["riot_final_counter"]
@@ -1896,6 +2277,10 @@ def _summarize_viego_audit(matches):
 
             if row.get("reconstruction_status") == "AMBIGUOUS":
                 ambiguous_count += 1
+                context = _destroyed_evidence_context(match, row)
+                classification_counts[context["classification"]] += 1
+                if context["held_before"]:
+                    held_ambiguous_count += 1
 
             if row.get("item_id") in final_counter:
                 permanent_build_item_events += 1
@@ -1906,20 +2291,209 @@ def _summarize_viego_audit(matches):
         "ambiguous_count": ambiguous_count,
         "item_counts": item_counts,
         "permanent_build_item_events": permanent_build_item_events,
+        "classification_counts": classification_counts,
+        "held_ambiguous_count": held_ambiguous_count,
         "limitation": "TEMPORARY_POSSESSION_INVENTORY_UNRELIABLE",
+    }
+
+
+def _summarize_sell_warning_audit(matches):
+    current_warnings = []
+    restored_component_sells = []
+
+    for match in matches:
+        transactions = match["transactions"]
+
+        for index, row in enumerate(transactions):
+            codes = _warning_codes(row)
+            if "SELL_ITEM_NOT_RECONSTRUCTED_AS_HELD" in codes:
+                previous_transactions = _previous_item_transactions(
+                    match,
+                    row,
+                )
+                current_warnings.append(
+                    {
+                        "match_id": match["match_id"],
+                        "champion": match["champion"],
+                        "time": row["time"],
+                        "item_id": row.get("item_id"),
+                        "item_name": row.get("item_name"),
+                        "inventory_before": row.get(
+                            "inventory_before_slot_item_ids",
+                            [],
+                        ),
+                        "previous_item_transaction": (
+                            _summarize_transaction(
+                                previous_transactions[-1]
+                            )
+                            if previous_transactions
+                            else None
+                        ),
+                    }
+                )
+
+            if row.get("event_type") != "ITEM_UNDO":
+                continue
+
+            restored_components = row.get("undo_restored_components") or []
+            if not restored_components:
+                continue
+
+            for component_id in restored_components:
+                later_sell = None
+                for later in transactions[index + 1:]:
+                    if (
+                        later.get("event_type") == "ITEM_SOLD"
+                        and later.get("item_id") == component_id
+                    ):
+                        later_sell = later
+                        break
+
+                if later_sell:
+                    restored_component_sells.append(
+                        {
+                            "match_id": match["match_id"],
+                            "champion": match["champion"],
+                            "undo_time": row["time"],
+                            "undo_item_id": row.get("item_id"),
+                            "undo_item_name": row.get("item_name"),
+                            "restored_component_id": component_id,
+                            "restored_component_name": (
+                                _catalog_for_match(match).name(
+                                    component_id
+                                )
+                            ),
+                            "sell_time": later_sell["time"],
+                            "sell_warning_codes": sorted(
+                                _warning_codes(later_sell)
+                            ),
+                        }
+                    )
+
+    return {
+        "current_warning_count": len(current_warnings),
+        "current_warning_samples": current_warnings[:5],
+        "restored_component_sell_count": len(restored_component_sells),
+        "restored_component_sell_samples": restored_component_sells[:5],
+    }
+
+
+def _summarize_intermediate_contradictions(matches):
+    counts = Counter()
+    affected_matches = defaultdict(set)
+
+    for match in matches:
+        transactions = match["transactions"]
+
+        for row in transactions:
+            codes = _warning_codes(row)
+
+            if "INVENTORY_CAPACITY_EXCEEDED" in codes:
+                counts["slot_capacity_exceeded"] += 1
+                affected_matches["slot_capacity_exceeded"].add(
+                    match["match_id"]
+                )
+
+            if "SELL_ITEM_NOT_RECONSTRUCTED_AS_HELD" in codes:
+                counts["sell_item_not_held"] += 1
+                affected_matches["sell_item_not_held"].add(
+                    match["match_id"]
+                )
+
+            if any(code.startswith("UNDO_") for code in codes):
+                counts["contradictory_undo"] += 1
+                affected_matches["contradictory_undo"].add(
+                    match["match_id"]
+                )
+
+            major_counts = Counter(row.get("major_item_ids") or [])
+            impossible_major_duplicates = [
+                item_id
+                for item_id, count in major_counts.items()
+                if count > 1
+                and not _catalog_for_match(match).is_stackable_for_slots(
+                    item_id
+                )
+            ]
+            if impossible_major_duplicates:
+                counts["duplicate_completed_major_state"] += 1
+                affected_matches["duplicate_completed_major_state"].add(
+                    match["match_id"]
+                )
+
+        ambiguous_destroyed_by_item = defaultdict(list)
+        for row in transactions:
+            if (
+                row.get("event_type") == "ITEM_DESTROYED"
+                and row.get("reconstruction_status") == "AMBIGUOUS"
+            ):
+                ambiguous_destroyed_by_item[row.get("item_id")].append(row)
+
+        for row in transactions:
+            if row.get("event_type") != "ITEM_PURCHASED":
+                continue
+
+            for component_id in row.get("components_consumed") or []:
+                previous_ambiguous = [
+                    destroyed
+                    for destroyed in ambiguous_destroyed_by_item[
+                        component_id
+                    ]
+                    if (destroyed.get("timestamp") or 0)
+                    < (row.get("timestamp") or 0)
+                ]
+                if previous_ambiguous:
+                    counts[
+                        "component_consumed_after_ignored_destroy"
+                    ] += 1
+                    affected_matches[
+                        "component_consumed_after_ignored_destroy"
+                    ].add(match["match_id"])
+
+        for row in transactions:
+            if (
+                row.get("event_type") != "ITEM_DESTROYED"
+                or row.get("reconstruction_status") != "AMBIGUOUS"
+            ):
+                continue
+
+            context = _destroyed_evidence_context(match, row)
+            if (
+                context["classification"] == "MISSED_TRANSFORMATION"
+                and context["retained_after"]
+            ):
+                counts["retained_after_missed_transformation"] += 1
+                affected_matches[
+                    "retained_after_missed_transformation"
+                ].add(match["match_id"])
+            if (
+                context["classification"] == "LIKELY_REAL_REMOVAL"
+                and context["retained_after"]
+            ):
+                counts["retained_after_likely_real_removal"] += 1
+                affected_matches[
+                    "retained_after_likely_real_removal"
+                ].add(match["match_id"])
+
+    return {
+        "counts": counts,
+        "affected_matches": {
+            key: sorted(values)
+            for key, values in affected_matches.items()
+        },
     }
 
 
 def _summarize_warning_buckets(warning_counts):
     bucket_by_code = {
         "VIEGO_TEMPORARY_ITEM_OR_POSSESSION_POSSIBLE": (
-            "understood_expected_mechanic"
+            "unresolved_temporary_possible"
         ),
         "DESTROYED_NORMAL_NOT_HELD_IGNORED_AS_AMBIGUOUS": (
-            "harmless_riot_representation_limitation"
+            "requires_evidence_audit"
         ),
         "DESTROYED_NORMAL_HELD_IGNORED_AS_AMBIGUOUS": (
-            "unresolved_final_safe_ambiguity"
+            "requires_evidence_audit"
         ),
         "JUNGLE_ITEM_DESTROYED_NOT_HELD": (
             "harmless_riot_representation_limitation"
@@ -2042,7 +2616,7 @@ def _catalog_for_match(match):
 def render_itemization_audit(history, mismatch_limit=12):
     summary = history["summary"]
     lines = [
-        "BUILD / ITEMIZATION ANALYZER V22 - PHASE 1B AUDIT",
+        "BUILD / ITEMIZATION ANALYZER V22 - PHASE 1C AUDIT",
         "",
         "Scope: factual Riot item-event reconstruction only. No build",
         "recommendation, item-quality label, or Win/Loss item judgment is",
@@ -2093,21 +2667,133 @@ def render_itemization_audit(history, mismatch_limit=12):
             f"- remaining audit-only ambiguous/unexplained: {summary['destroyed_audit']['remaining_unexplained']}",
             f"- games affected by remaining destroyed audit: {summary['destroyed_audit']['games_affected']}",
             f"- audit-only classifications: {_format_counts(summary['destroyed_audit']['classification_counts'])}",
-            f"- held ignored: {summary['destroyed_audit']['held_ignored']} | not-held ignored: {summary['destroyed_audit']['not_held_ignored']}",
+            f"- held before destroy: {summary['destroyed_audit']['held_ignored']} | not held before destroy: {summary['destroyed_audit']['not_held_ignored']}",
+            f"- held classifications: {_format_counts(summary['destroyed_audit']['held_classification_counts'])}",
+            f"- not-held classifications: {_format_counts(summary['destroyed_audit']['not_held_classification_counts'])}",
+            f"- Viego classifications: {_format_counts(summary['destroyed_audit']['viego_classification_counts'])}",
+            f"- non-Viego classifications: {_format_counts(summary['destroyed_audit']['non_viego_classification_counts'])}",
             f"- clear permanent-removal evidence: {summary['destroyed_audit']['clear_permanent_removal_evidence']}",
+            f"- missed transformation evidence: {summary['destroyed_audit']['missed_transformation_evidence']}",
+            f"- retained after ambiguous destroy: {summary['destroyed_audit']['retained_after_destroy']}",
             f"- top remaining destroyed items: {_format_item_counts(summary['destroyed_audit']['item_counts'])}",
             "",
             "Viego ITEM_DESTROYED audit:",
             f"- Viego games: {summary['viego_audit']['games']}",
             f"- Viego ITEM_DESTROYED events: {summary['viego_audit']['destroyed_count']}",
             f"- Viego ambiguous destroyed events: {summary['viego_audit']['ambiguous_count']}",
+            f"- Viego held ambiguous destroyed events: {summary['viego_audit']['held_ambiguous_count']}",
+            f"- Viego evidence classifications: {_format_counts(summary['viego_audit']['classification_counts'])}",
             f"- Viego permanent-build item destroyed events ignored as ambiguous: {summary['viego_audit']['permanent_build_item_events']}",
             f"- limitation: {summary['viego_audit']['limitation']}",
             f"- top Viego destroyed items: {_format_item_counts(summary['viego_audit']['item_counts'])}",
             "",
+            "SELL warning audit:",
+            f"- current SELL_ITEM_NOT_RECONSTRUCTED_AS_HELD warnings: {summary['sell_warning_audit']['current_warning_count']}",
+            f"- restored-component later sells: {summary['sell_warning_audit']['restored_component_sell_count']}",
+            "",
+            "Intermediate contradiction audit:",
+            f"- counts: {_format_counts(summary['intermediate_contradictions']['counts'])}",
+            "",
             "Major item milestone audit:",
             f"- completed-major milestones: {summary['major_milestone_audit']['completed_major_milestones']}",
             f"- unusual excluded-category milestones: {summary['major_milestone_audit']['unusual_count']}",
+            "",
+        ]
+    )
+
+    if summary["sell_warning_audit"]["restored_component_sell_samples"]:
+        lines.append("- restored-component sell samples:")
+        for sample in summary["sell_warning_audit"][
+            "restored_component_sell_samples"
+        ]:
+            lines.append(
+                (
+                    f"  {sample['match_id']} | {sample['champion']} | "
+                    f"undo {sample['undo_item_name']} at "
+                    f"{sample['undo_time']} restored "
+                    f"{sample['restored_component_name']} sold at "
+                    f"{sample['sell_time']} | sell warnings: "
+                    f"{sample['sell_warning_codes'] or 'none'}"
+                )
+            )
+
+    if summary["destroyed_audit"]["samples"]:
+        lines.extend(
+            [
+                "",
+                "Destroyed evidence samples:",
+            ]
+        )
+        for sample in summary["destroyed_audit"]["samples"][:8]:
+            evidence = "; ".join(
+                sample.get("classification_evidence") or []
+            )
+            lines.append(
+                (
+                    f"- {sample['match_id']} | {sample['champion']} | "
+                    f"{sample['time']} | {sample['item_name']} "
+                    f"({sample['item_id']}) | "
+                    f"{sample['classification']} | held_before="
+                    f"{sample['held_before']} | retained_after="
+                    f"{sample['retained_after']} | "
+                    f"before={sample['inventory_before']} | "
+                    f"after={sample['inventory_after']} | "
+                    f"evidence={evidence}"
+                )
+            )
+
+    if summary["destroyed_audit"]["records"]:
+        lines.extend(
+            [
+                "",
+                (
+                    "Destroyed evidence records: "
+                    f"{len(summary['destroyed_audit']['records'])}"
+                ),
+            ]
+        )
+
+        for record in summary["destroyed_audit"]["records"]:
+            evidence = "; ".join(
+                record.get("classification_evidence") or []
+            )
+            previous_item = record.get("previous_item_transaction")
+            next_item = record.get("next_item_transaction")
+            transformation = record.get("transformation_purchase")
+            replacement = record.get("later_unobserved_replacement")
+            later_repurchase = record.get("later_repurchase")
+            lines.append(
+                (
+                    f"- {record['match_id']} | {record['champion']} | "
+                    f"{record['time']} | {record['item_name']} "
+                    f"({record['item_id']}) | "
+                    f"class={record['classification']} | "
+                    f"held_before={record['held_before']} | "
+                    f"retained_after={record['retained_after']} | "
+                    f"slots={record['slot_count_before']}->"
+                    f"{record['slot_count_after']} | "
+                    f"same_purchases="
+                    f"{len(record['same_timestamp_purchases'])} | "
+                    f"same_sells="
+                    f"{len(record['same_timestamp_sells'])} | "
+                    f"same_undos="
+                    f"{len(record['same_timestamp_undos'])} | "
+                    f"previous={previous_item} | "
+                    f"next={next_item} | "
+                    f"later_repurchase={later_repurchase} | "
+                    f"transformation={transformation} | "
+                    f"replacement={replacement} | "
+                    f"before={record['inventory_before']} | "
+                    f"after={record['inventory_after']} | "
+                    f"final_riot={record['final_riot_inventory']} | "
+                    f"final_reconstructed="
+                    f"{record['final_reconstructed_inventory']} | "
+                    f"evidence={evidence}"
+                )
+            )
+
+    lines.extend(
+        [
             "",
             "Champion breakdown:",
         ]

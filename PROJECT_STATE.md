@@ -9,7 +9,7 @@
 Frozen means: no retuning/refactor without a demonstrated correctness or integration bug or explicit project review request.
 
 ## In development
-- Build / Itemization Analyzer v22 Phase 1 - implemented, in validation, REVIEW_REQUIRED.
+- Build / Itemization Analyzer v22 Phase 1C - implemented, in validation, REVIEW_REQUIRED.
 - Scope is factual item timeline / inventory reconstruction only; no recommendation logic, item-quality label, or build scoring.
 
 ## Dataset
@@ -89,7 +89,7 @@ Technical fixes / audit support:
 - .gitignore ignores .env, .venv, *.db, __pycache__, and logs/ so local secrets, DBs, and logs are not staged accidentally.
 
 ## Build / Itemization Analyzer v22
-Status: Phase 1B implemented, REVIEW_REQUIRED, not frozen.
+Status: Phase 1C implemented, REVIEW_REQUIRED, not frozen.
 
 Design:
 - New UI-agnostic analyzer reconstructs factual item state from Riot timeline item events.
@@ -102,9 +102,12 @@ Design:
 - Models confirmed non-purchase final grants separately from Riot-observed item transactions.
 - Magical Footwear item 2422 is classified as RUNE_GRANT / MAGICAL_FOOTWEAR only when rune 8304 is present.
 - Derived grant timing is stored as derived/inferred evidence, never as an observed Riot transaction.
+- Destroyed-event audit is evidence-based and records before/after inventory state, same-timestamp events, previous/next item transactions, later repurchase, transformation candidates, final inventories, and classification evidence.
+- Viego-specific handling is isolated to audit context; it does not change normal champion reconstruction.
+- Undo now restores the actual components consumed by the undone purchase when Riot emits ITEM_UNDO after a completed-item purchase.
 
 Latest verification:
-- `python main.py` completed on 2026-08-17 after v22 Phase 1B updates.
+- `python main.py` completed on 2026-08-18 after v22 Phase 1C updates.
 - Full Jungle history: 87 games, 4277 player item events.
 - Event counts: 1536 purchases, 11 sells, 45 undo events, 2685 destroyed events.
 - Final inventory validation: 86 EXACT, 1 EXACT_WITH_EXPLAINED_GRANT, 0 PARTIAL, 0 MISMATCH, 0 UNKNOWN.
@@ -114,19 +117,24 @@ Latest verification:
 - Target match EUW1_7836627546: EXACT_WITH_EXPLAINED_GRANT because rune 8304 Magical Footwear is present and final item 2422 has no Riot purchase/undo/sell event.
 - EUW1_7836627546 derived grant timestamp: 09:45, DERIVED_INFERRED from Magical Footwear base timing and 3 observed takedowns.
 - Non-purchase final grants: 1 match, source RUNE_GRANT, grant type MAGICAL_FOOTWEAR.
-- ITEM_DESTROYED audit: 2685 total, 1085 confidently explained, 1600 remaining audit-only ambiguous/unexplained.
-- Remaining destroyed classifications: 1582 TEMPORARY_OR_NON_PERMANENT_STATE, 18 UNRESOLVED.
-- Warning buckets: 1189 understood expected mechanic, 1085 harmless Riot representation limitation, 515 unresolved final-safe ambiguity, 1 unresolved.
-- Viego audit: 9 games, 1384 ITEM_DESTROYED events, 1189 ambiguous destroyed events, 357 permanent-build item destroyed events ignored as ambiguous.
+- ITEM_DESTROYED audit: 2685 total, 1085 confidently explained, 1600 remaining evidence records.
+- Evidence-based destroyed classifications: 834 CONFIRMED_OR_STRONG_TEMPORARY_STATE, 674 UNRESOLVED_TEMPORARY_POSSIBLE, 79 MISSED_TRANSFORMATION, 13 UNRESOLVED.
+- Held-before-destroy classifications: 512 UNRESOLVED_TEMPORARY_POSSIBLE and 3 MISSED_TRANSFORMATION.
+- Not-held classifications: 834 CONFIRMED_OR_STRONG_TEMPORARY_STATE, 162 UNRESOLVED_TEMPORARY_POSSIBLE, 76 MISSED_TRANSFORMATION, 13 UNRESOLVED.
+- Viego audit: 9 games, 1384 ITEM_DESTROYED events, 1189 ambiguous events; evidence classifications are 674 UNRESOLVED_TEMPORARY_POSSIBLE, 588 CONFIRMED_OR_STRONG_TEMPORARY_STATE, 12 MISSED_TRANSFORMATION.
+- SELL_ITEM_NOT_RECONSTRUCTED_AS_HELD warnings: 0 after undo component-restore fix.
+- Restored-component sell case resolved: EUW1_7839112939 Shyvana, undo Steelcaps at 15:33 restored Cloth Armor, later sold at 25:13.
+- Intermediate contradiction audit: 78 component-consumed-after-ignored-destroy cases and 3 retained-after-missed-transformation cases.
 - Major item milestone audit: 265 completed-major milestones, 0 unusual excluded-category milestones.
 
 Known remaining issues:
-- Phase 1B is technically ready for review but not frozen; freeze decision belongs to project review.
+- Phase 1C remains REVIEW_REQUIRED and not frozen; freeze decision belongs to project review.
 - Normal ITEM_DESTROYED events are preserved as auditable AMBIGUOUS cases unless explained by same-timestamp component completion, consumable removal, jungle-item removal, or trinket-use handling.
-- Viego produces many normal destroyed-item events consistent with temporary copied/possession inventory state; these are not treated as permanent deletion.
+- Viego produces many normal destroyed-item events consistent with temporary copied/possession inventory state, but champion identity alone is not used as proof.
 - Viego temporary possession inventory remains TEMPORARY_POSSESSION_INVENTORY_UNRELIABLE.
-- 18 ITEM_DESTROYED cases and 1 sell warning remain unresolved in audit output, with no final inventory mismatch.
-- The analyzer is not frozen until project review accepts the non-purchase grant policy and ambiguous normal ITEM_DESTROYED semantics.
+- 79 MISSED_TRANSFORMATION records and 13 UNRESOLVED records remain audit findings, with no final inventory mismatch.
+- No LIKELY_REAL_REMOVAL evidence was found in the Phase 1C audit.
+- The analyzer is not frozen until project review accepts the non-purchase grant policy and evidence-based destroyed-event uncertainty semantics.
 
 ## Architecture
 - main.py remains a dev/integration harness.
