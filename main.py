@@ -129,7 +129,7 @@ from analysis.reset_statistics import (
 )
 
 from analysis.itemization_analyzer import (
-    TARGET_MATCH_ID as ITEMIZATION_TARGET_MATCH_ID,
+    TARGET_MATCH_IDS as ITEMIZATION_TARGET_MATCH_IDS,
     build_itemization_history,
     render_itemization_audit,
     render_match_itemization_report,
@@ -1978,13 +1978,13 @@ def main():
 
 
     # ========================================================
-    # BUILD / ITEMIZATION ANALYZER V22 - PHASE 1
+    # BUILD / ITEMIZATION ANALYZER V22 - PHASE 1B
     # ========================================================
 
     print()
     print()
     print("==============================")
-    print("BUILD / ITEMIZATION ANALYZER V22 - PHASE 1")
+    print("BUILD / ITEMIZATION ANALYZER V22 - PHASE 1B")
     print("==============================")
 
     itemization_history = build_itemization_history(
@@ -2000,14 +2000,15 @@ def main():
         )
     )
 
-    print()
-    print()
-    print(
-        render_match_itemization_report(
-            itemization_history,
-            ITEMIZATION_TARGET_MATCH_ID,
+    for itemization_target_match_id in ITEMIZATION_TARGET_MATCH_IDS:
+        print()
+        print()
+        print(
+            render_match_itemization_report(
+                itemization_history,
+                itemization_target_match_id,
+            )
         )
-    )
 
 
 # ============================================================

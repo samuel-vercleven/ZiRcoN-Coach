@@ -25,6 +25,21 @@ ITEM_EVENT_TYPES = {
 
 DEFAULT_TRINKET_ID = 3340
 TARGET_MATCH_ID = "EUW1_7951911875"
+GRANT_TARGET_MATCH_ID = "EUW1_7836627546"
+TARGET_MATCH_IDS = (
+    TARGET_MATCH_ID,
+    GRANT_TARGET_MATCH_ID,
+)
+
+MAGICAL_FOOTWEAR_PERK_ID = 8304
+SLIGHTLY_MAGICAL_BOOTS_ITEM_ID = 2422
+MAGICAL_FOOTWEAR_BASE_GRANT_MS = 12 * 60 * 1000
+MAGICAL_FOOTWEAR_TAKEDOWN_REDUCTION_MS = 45 * 1000
+
+EXACT_FINAL_STATUSES = {
+    "EXACT",
+    "EXACT_WITH_EXPLAINED_GRANT",
+}
 
 KNOWN_TRINKET_IDS = {
     3340,
@@ -413,6 +428,48 @@ def _position_of(player):
     )
 
 
+def _extract_perk_selections(player):
+    selections = []
+    perks = player.get("perks") or {}
+
+    for style in perks.get("styles", []) or []:
+        style_id = style.get("style")
+        style_description = style.get("description")
+
+        for selection in style.get("selections", []) or []:
+            perk_id = selection.get("perk")
+            if perk_id is None:
+                continue
+
+            selections.append(
+                {
+                    "style": style_id,
+                    "style_description": style_description,
+                    "perk": perk_id,
+                    "var1": selection.get("var1"),
+                    "var2": selection.get("var2"),
+                    "var3": selection.get("var3"),
+                }
+            )
+
+    return selections
+
+
+def _has_perk(meta, perk_id):
+    return any(
+        selection.get("perk") == perk_id
+        for selection in meta.get("perk_selections", [])
+    )
+
+
+def _perk_selection(meta, perk_id):
+    for selection in meta.get("perk_selections", []):
+        if selection.get("perk") == perk_id:
+            return selection
+
+    return None
+
+
 def _build_match_meta(row, puuid, requested_position):
     (
         match_id,
@@ -501,6 +558,7 @@ def _build_match_meta(row, puuid, requested_position):
             item5,
         ],
         "final_trinket": item6,
+        "perk_selections": _extract_perk_selections(my_player),
         "players": players,
     }
 
@@ -649,6 +707,61 @@ def _load_item_events(metas):
         )
 
     return events_by_match
+
+
+def _load_takedown_timestamps(metas):
+    match_ids = [meta["match_id"] for meta in metas]
+    participant_by_match = {
+        meta["match_id"]: meta["my_participant_id"]
+        for meta in metas
+    }
+    takedowns_by_match = defaultdict(list)
+
+    if not match_ids:
+        return takedowns_by_match
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    for chunk in _chunks(match_ids):
+        placeholders = ",".join("?" for _ in chunk)
+
+        cursor.execute(
+            f"""
+            SELECT
+                match_id,
+                timestamp,
+                killer_id,
+                assisting_ids_json
+            FROM timeline_events
+            WHERE match_id IN ({placeholders})
+              AND event_type = 'CHAMPION_KILL'
+            ORDER BY
+                match_id,
+                timestamp,
+                frame_index,
+                event_index
+            """,
+            tuple(chunk),
+        )
+
+        for match_id, timestamp, killer_id, assists_json in cursor.fetchall():
+            participant_id = participant_by_match.get(match_id)
+            if participant_id is None:
+                continue
+
+            assists = []
+            if assists_json:
+                try:
+                    assists = json.loads(assists_json)
+                except Exception:
+                    assists = []
+
+            if killer_id == participant_id or participant_id in assists:
+                takedowns_by_match[match_id].append(timestamp or 0)
+
+    connection.close()
+    return takedowns_by_match
 
 
 def _assign_shop_visits(events):
@@ -1186,6 +1299,8 @@ def reconstruct_item_timeline(meta, events, catalog):
         "champion": meta["champion"],
         "opponent_champion": meta.get("opponent_champion"),
         "win": meta["win"],
+        "perk_selections": meta.get("perk_selections", []),
+        "takedown_timestamps": meta.get("takedown_timestamps", []),
         "transactions": transactions,
         "event_type_counts": event_type_counts,
         "special_case_counts": special_case_counts,
@@ -1210,6 +1325,150 @@ def _normalize_final_counter(counter, catalog):
     return normalized
 
 
+def _derive_magical_footwear_timestamp(takedown_timestamps):
+    if takedown_timestamps is None:
+        return {
+            "derived_timestamp": None,
+            "derived_time": "UNKNOWN",
+            "derived_status": "UNKNOWN",
+            "takedowns_used": None,
+            "rule": (
+                "Magical Footwear base grant at 12:00, reduced by "
+                "45s per takedown; no Riot item event is observed."
+            ),
+        }
+
+    takedowns = sorted(
+        timestamp
+        for timestamp in takedown_timestamps
+        if timestamp is not None
+    )
+    grant_timestamp = MAGICAL_FOOTWEAR_BASE_GRANT_MS
+
+    for _ in range(len(takedowns) + 2):
+        takedowns_before_grant = sum(
+            timestamp <= grant_timestamp
+            for timestamp in takedowns
+        )
+        next_timestamp = (
+            MAGICAL_FOOTWEAR_BASE_GRANT_MS
+            - (
+                takedowns_before_grant
+                * MAGICAL_FOOTWEAR_TAKEDOWN_REDUCTION_MS
+            )
+        )
+
+        if next_timestamp == grant_timestamp:
+            return {
+                "derived_timestamp": grant_timestamp,
+                "derived_time": _format_time(grant_timestamp),
+                "derived_status": "DERIVED_INFERRED",
+                "takedowns_used": takedowns_before_grant,
+                "rule": (
+                    "Magical Footwear base grant at 12:00, reduced by "
+                    "45s per takedown; no Riot item event is observed."
+                ),
+            }
+
+        grant_timestamp = next_timestamp
+
+    return {
+        "derived_timestamp": None,
+        "derived_time": "UNKNOWN",
+        "derived_status": "UNKNOWN",
+        "takedowns_used": None,
+        "rule": (
+            "Magical Footwear timing could not be derived to a stable "
+            "timestamp from the observed takedown list."
+        ),
+    }
+
+
+def _grant_for_missing_final_item(meta, item_id, catalog):
+    item_meta = catalog.meta(item_id)
+
+    if (
+        item_id == SLIGHTLY_MAGICAL_BOOTS_ITEM_ID
+        and _has_perk(meta, MAGICAL_FOOTWEAR_PERK_ID)
+    ):
+        timing = _derive_magical_footwear_timestamp(
+            meta.get("takedown_timestamps")
+        )
+        perk = _perk_selection(meta, MAGICAL_FOOTWEAR_PERK_ID)
+
+        return {
+            "item_id": item_id,
+            "item_name": catalog.name(item_id),
+            "source": "RUNE_GRANT",
+            "grant_type": "MAGICAL_FOOTWEAR",
+            "purchase_event": "NONE",
+            "observed_timestamp": None,
+            "observed_time": "NONE",
+            "derived_timestamp": timing["derived_timestamp"],
+            "derived_time": timing["derived_time"],
+            "derived_status": timing["derived_status"],
+            "confidence": "HIGH_RUNE_CONFIRMED",
+            "evidence": [
+                f"perk {MAGICAL_FOOTWEAR_PERK_ID} present",
+                f"final item {item_id} present",
+                "no ITEM_PURCHASED/ITEM_UNDO event for this item",
+                timing["rule"],
+            ],
+            "perk_selection": perk,
+            "takedowns_used": timing["takedowns_used"],
+        }
+
+    if item_meta and item_meta.purchasable is False:
+        return {
+            "item_id": item_id,
+            "item_name": catalog.name(item_id),
+            "source": "UNKNOWN_GRANT",
+            "grant_type": "NON_PURCHASABLE_FINAL_ITEM",
+            "purchase_event": "NONE",
+            "observed_timestamp": None,
+            "observed_time": "NONE",
+            "derived_timestamp": None,
+            "derived_time": "UNKNOWN",
+            "derived_status": "UNKNOWN",
+            "confidence": "UNRESOLVED",
+            "evidence": [
+                "final item is not purchasable in Data Dragon",
+                "no matching reconstructed transaction explained it",
+            ],
+            "perk_selection": None,
+            "takedowns_used": None,
+        }
+
+    return None
+
+
+def _explain_missing_final_grants(meta, missing, catalog):
+    grants = []
+
+    for item_id, count in missing.items():
+        for _ in range(count):
+            grant = _grant_for_missing_final_item(
+                meta,
+                item_id,
+                catalog,
+            )
+            if grant:
+                grants.append(grant)
+
+    return grants
+
+
+def _grant_counter(grants, explained_only=False):
+    counter = Counter()
+
+    for grant in grants:
+        if explained_only and grant.get("source") == "UNKNOWN_GRANT":
+            continue
+        counter[grant["item_id"]] += 1
+
+    return counter
+
+
 def _validate_final_inventory(meta, final_state, catalog):
     riot_counter = _counter_from_items(meta.get("final_items") or [])
     reconstructed_counter = _normalize_final_counter(
@@ -1226,6 +1485,25 @@ def _validate_final_inventory(meta, final_state, catalog):
 
     missing = riot_counter - reconstructed_counter
     extra = reconstructed_counter - riot_counter
+    grants = _explain_missing_final_grants(
+        meta,
+        missing,
+        catalog,
+    )
+    explained_grant_counter = _grant_counter(
+        grants,
+        explained_only=True,
+    )
+    unexplained_grants = [
+        grant
+        for grant in grants
+        if grant.get("source") == "UNKNOWN_GRANT"
+    ]
+    effective_reconstructed_counter = (
+        reconstructed_counter
+        + explained_grant_counter
+    )
+    missing_after_grants = riot_counter - effective_reconstructed_counter
     overlap = _counter_overlap(reconstructed_counter, riot_counter)
     smaller_size = min(
         sum(reconstructed_counter.values()),
@@ -1234,9 +1512,15 @@ def _validate_final_inventory(meta, final_state, catalog):
 
     causes = []
 
-    if missing:
+    if grants:
+        causes.append("NON_PURCHASE_FINAL_ITEM_GRANT")
+        for grant in grants:
+            causes.append(grant["source"])
+            causes.append(grant["grant_type"])
+
+    if missing_after_grants:
         causes.append("FINAL_ITEMS_MISSING_FROM_RECONSTRUCTION")
-        for item_id in missing:
+        for item_id in missing_after_grants:
             item_meta = catalog.meta(item_id)
             if item_meta and item_meta.purchasable is False:
                 causes.append(
@@ -1249,6 +1533,14 @@ def _validate_final_inventory(meta, final_state, catalog):
 
     if normal_exact and trinket_exact:
         status = "EXACT"
+    elif (
+        effective_reconstructed_counter == riot_counter
+        and trinket_exact
+        and not extra
+        and explained_grant_counter
+        and not unexplained_grants
+    ):
+        status = "EXACT_WITH_EXPLAINED_GRANT"
     elif normal_exact or (
         smaller_size > 0
         and overlap >= max(1, smaller_size // 2)
@@ -1263,18 +1555,32 @@ def _validate_final_inventory(meta, final_state, catalog):
         "status": status,
         "definition": (
             "EXACT = reconstructed six-slot multiset and trinket match "
-            "Riot final inventory; PARTIAL = normal inventory matches or "
-            "meaningful overlap remains; MISMATCH = material disagreement; "
-            "UNKNOWN = final reference cannot be exploited."
+            "Riot final inventory from observed item transactions; "
+            "EXACT_WITH_EXPLAINED_GRANT = remaining final difference is "
+            "explained by a non-purchase grant such as a confirmed rune "
+            "grant, without fabricating a Riot event; PARTIAL = normal "
+            "inventory matches or meaningful overlap remains; MISMATCH = "
+            "material disagreement; UNKNOWN = final reference cannot be "
+            "exploited."
         ),
         "normal_exact": normal_exact,
         "trinket_exact": trinket_exact,
         "riot_final_counter": riot_counter,
         "reconstructed_final_counter": reconstructed_counter,
+        "effective_reconstructed_final_counter": (
+            effective_reconstructed_counter
+        ),
         "riot_trinket": riot_trinket,
         "reconstructed_trinket": reconstructed_trinket,
         "missing_counter": missing,
+        "missing_after_grants_counter": missing_after_grants,
         "extra_counter": extra,
+        "explained_grants": [
+            grant
+            for grant in grants
+            if grant.get("source") != "UNKNOWN_GRANT"
+        ],
+        "unexplained_grants": unexplained_grants,
         "causes": causes,
     }
 
@@ -1290,12 +1596,17 @@ def build_itemization_history(
         queue_id=queue_id,
     )
     events_by_match = _load_item_events(metas)
+    takedowns_by_match = _load_takedown_timestamps(metas)
     provider = DataDragonCatalogProvider()
     matches = []
     transactions = []
     load_warnings = []
 
     for meta in metas:
+        meta["takedown_timestamps"] = takedowns_by_match.get(
+            meta["match_id"],
+            [],
+        )
         catalog = provider.for_game_version(meta.get("game_version"))
         if catalog.warnings:
             load_warnings.extend(
@@ -1331,6 +1642,10 @@ def _summarize_history(matches, transactions):
     cause_counts = Counter()
     special_case_counts = Counter()
     champion_status = defaultdict(Counter)
+    grant_source_counts = Counter()
+    grant_type_counts = Counter()
+    grant_derived_status_counts = Counter()
+    grant_match_count = 0
 
     for row in matches:
         validation = row["final_validation"]
@@ -1343,10 +1658,23 @@ def _summarize_history(matches, transactions):
         for cause in validation["causes"]:
             cause_counts[cause] += 1
 
+        grants = (
+            validation.get("explained_grants", [])
+            + validation.get("unexplained_grants", [])
+        )
+        if grants:
+            grant_match_count += 1
+
+        for grant in grants:
+            grant_source_counts[grant["source"]] += 1
+            grant_type_counts[grant["grant_type"]] += 1
+            grant_derived_status_counts[grant["derived_status"]] += 1
+
         for warning in row["invariant_warnings"]:
             warning_counts[warning["code"]] += 1
 
     exact = status_counts["EXACT"]
+    explained_exact = status_counts["EXACT_WITH_EXPLAINED_GRANT"]
     total = len(matches)
 
     return {
@@ -1359,6 +1687,19 @@ def _summarize_history(matches, transactions):
         "special_case_counts": special_case_counts,
         "champion_status": champion_status,
         "exact_match_rate": exact / total if total else None,
+        "exact_or_explained_rate": (
+            (exact + explained_exact) / total
+            if total
+            else None
+        ),
+        "grant_match_count": grant_match_count,
+        "grant_source_counts": grant_source_counts,
+        "grant_type_counts": grant_type_counts,
+        "grant_derived_status_counts": grant_derived_status_counts,
+        "destroyed_audit": _summarize_destroyed_audit(matches),
+        "viego_audit": _summarize_viego_audit(matches),
+        "warning_buckets": _summarize_warning_buckets(warning_counts),
+        "major_milestone_audit": _summarize_major_milestones(matches),
     }
 
 
@@ -1377,6 +1718,267 @@ def _format_counter(counter, catalog=None):
     return ", ".join(parts)
 
 
+def _warning_codes(row):
+    return {
+        warning["code"]
+        for warning in row.get("reconstruction_warnings", [])
+    }
+
+
+def _same_timestamp_item_events(match, row):
+    timestamp = row.get("timestamp")
+    return [
+        transaction
+        for transaction in match["transactions"]
+        if transaction is not row
+        and transaction.get("timestamp") == timestamp
+        and transaction.get("event_type", "").startswith("ITEM_")
+    ]
+
+
+def _later_item_transactions(match, row):
+    item_id = row.get("item_id")
+    timestamp = row.get("timestamp") or 0
+    later = []
+
+    for transaction in match["transactions"]:
+        if (transaction.get("timestamp") or 0) <= timestamp:
+            continue
+
+        if transaction.get("item_id") == item_id:
+            later.append(transaction)
+            continue
+
+        raw = transaction.get("raw_event") or {}
+        if item_id in (
+            raw.get("itemId"),
+            raw.get("beforeId"),
+            raw.get("afterId"),
+        ):
+            later.append(transaction)
+
+    return later
+
+
+def _classify_unexplained_destroyed(match, row):
+    codes = _warning_codes(row)
+    item_id = row.get("item_id")
+    final_counter = match["final_validation"]["riot_final_counter"]
+    final_status = match["final_validation"]["status"]
+
+    if str(match.get("champion", "")).lower() == "viego":
+        return "TEMPORARY_OR_NON_PERMANENT_STATE"
+
+    if "DESTROYED_NORMAL_NOT_HELD_IGNORED_AS_AMBIGUOUS" in codes:
+        return "TEMPORARY_OR_NON_PERMANENT_STATE"
+
+    if (
+        "DESTROYED_NORMAL_HELD_IGNORED_AS_AMBIGUOUS" in codes
+        and item_id in final_counter
+        and final_status in EXACT_FINAL_STATUSES
+    ):
+        return "TEMPORARY_OR_NON_PERMANENT_STATE"
+
+    if _same_timestamp_item_events(match, row):
+        return "UNRESOLVED"
+
+    if _later_item_transactions(match, row):
+        return "UNRESOLVED"
+
+    return "UNRESOLVED"
+
+
+def _summarize_destroyed_audit(matches):
+    confident_interpretations = {
+        "COMPONENT_CONSUMED_BY_PURCHASE",
+        "REMOVED_FROM_HELD_INVENTORY",
+        "TRINKET_USE_EVENT_IGNORED_FOR_INVENTORY",
+    }
+    total_destroyed = 0
+    confidently_explained = 0
+    remaining = []
+    classification_counts = Counter()
+    champion_counts = Counter()
+    item_counts = Counter()
+    games = set()
+    held_ignored = 0
+    not_held_ignored = 0
+    final_safe = 0
+    clear_permanent_removal_evidence = 0
+
+    for match in matches:
+        for row in match["transactions"]:
+            if row.get("event_type") != "ITEM_DESTROYED":
+                continue
+
+            total_destroyed += 1
+            interpretation = row.get("destroyed_interpretation")
+
+            if interpretation in confident_interpretations:
+                confidently_explained += 1
+                continue
+
+            classification = _classify_unexplained_destroyed(match, row)
+            classification_counts[classification] += 1
+            champion_counts[match["champion"]] += 1
+            item_counts[(row.get("item_id"), row.get("item_name"))] += 1
+            games.add(match["match_id"])
+
+            codes = _warning_codes(row)
+            if "DESTROYED_NORMAL_HELD_IGNORED_AS_AMBIGUOUS" in codes:
+                held_ignored += 1
+            if "DESTROYED_NORMAL_NOT_HELD_IGNORED_AS_AMBIGUOUS" in codes:
+                not_held_ignored += 1
+
+            if match["final_validation"]["status"] in EXACT_FINAL_STATUSES:
+                final_safe += 1
+
+            if classification == "LIKELY_REAL_REMOVAL":
+                clear_permanent_removal_evidence += 1
+
+            remaining.append(
+                {
+                    "match_id": match["match_id"],
+                    "champion": match["champion"],
+                    "time": row["time"],
+                    "item_id": row.get("item_id"),
+                    "item_name": row.get("item_name"),
+                    "classification": classification,
+                    "held": (
+                        "DESTROYED_NORMAL_HELD_IGNORED_AS_AMBIGUOUS"
+                        in codes
+                    ),
+                    "same_timestamp_events": len(
+                        _same_timestamp_item_events(match, row)
+                    ),
+                    "later_transactions": len(
+                        _later_item_transactions(match, row)
+                    ),
+                }
+            )
+
+    return {
+        "total_destroyed": total_destroyed,
+        "confidently_explained": confidently_explained,
+        "remaining_unexplained": len(remaining),
+        "games_affected": len(games),
+        "classification_counts": classification_counts,
+        "champion_counts": champion_counts,
+        "item_counts": item_counts,
+        "held_ignored": held_ignored,
+        "not_held_ignored": not_held_ignored,
+        "final_safe": final_safe,
+        "clear_permanent_removal_evidence": clear_permanent_removal_evidence,
+        "samples": remaining[:12],
+    }
+
+
+def _summarize_viego_audit(matches):
+    viego_matches = [
+        match
+        for match in matches
+        if str(match.get("champion", "")).lower() == "viego"
+    ]
+    destroyed_count = 0
+    ambiguous_count = 0
+    item_counts = Counter()
+    permanent_build_item_events = 0
+
+    for match in viego_matches:
+        final_counter = match["final_validation"]["riot_final_counter"]
+
+        for row in match["transactions"]:
+            if row.get("event_type") != "ITEM_DESTROYED":
+                continue
+
+            destroyed_count += 1
+            item_counts[(row.get("item_id"), row.get("item_name"))] += 1
+
+            if row.get("reconstruction_status") == "AMBIGUOUS":
+                ambiguous_count += 1
+
+            if row.get("item_id") in final_counter:
+                permanent_build_item_events += 1
+
+    return {
+        "games": len(viego_matches),
+        "destroyed_count": destroyed_count,
+        "ambiguous_count": ambiguous_count,
+        "item_counts": item_counts,
+        "permanent_build_item_events": permanent_build_item_events,
+        "limitation": "TEMPORARY_POSSESSION_INVENTORY_UNRELIABLE",
+    }
+
+
+def _summarize_warning_buckets(warning_counts):
+    bucket_by_code = {
+        "VIEGO_TEMPORARY_ITEM_OR_POSSESSION_POSSIBLE": (
+            "understood_expected_mechanic"
+        ),
+        "DESTROYED_NORMAL_NOT_HELD_IGNORED_AS_AMBIGUOUS": (
+            "harmless_riot_representation_limitation"
+        ),
+        "DESTROYED_NORMAL_HELD_IGNORED_AS_AMBIGUOUS": (
+            "unresolved_final_safe_ambiguity"
+        ),
+        "JUNGLE_ITEM_DESTROYED_NOT_HELD": (
+            "harmless_riot_representation_limitation"
+        ),
+        "CONSUMABLE_DESTROYED_NOT_HELD": (
+            "harmless_riot_representation_limitation"
+        ),
+        "SELL_ITEM_NOT_RECONSTRUCTED_AS_HELD": "unresolved",
+        "INVENTORY_CAPACITY_EXCEEDED": "genuine_reconstruction_bug",
+        "UNKNOWN_ITEM_METADATA": "unresolved",
+        "UNDO_BEFORE_ITEM_NOT_RECONSTRUCTED_AS_HELD": "unresolved",
+        "UNDO_WITHOUT_BEFORE_OR_AFTER_ITEM": "unresolved",
+    }
+    buckets = Counter()
+
+    for code, count in warning_counts.items():
+        bucket = bucket_by_code.get(code, "unresolved")
+        buckets[bucket] += count
+
+    return buckets
+
+
+def _summarize_major_milestones(matches):
+    excluded_categories = {
+        "CONSUMABLE",
+        "TRINKET",
+        "JUNGLE_ITEM",
+        "BOOTS",
+        "BOOTS_UPGRADE",
+        "SPECIAL",
+        "UNKNOWN",
+    }
+    total = 0
+    unusual = []
+
+    for match in matches:
+        catalog = _catalog_for_match(match)
+        for milestone in match["milestones"]["completed_major_items"]:
+            total += 1
+            category = catalog.category(milestone["item_id"])
+            if category in excluded_categories:
+                unusual.append(
+                    {
+                        "match_id": match["match_id"],
+                        "champion": match["champion"],
+                        "item_id": milestone["item_id"],
+                        "item_name": milestone["item_name"],
+                        "category": category,
+                        "time": milestone["time"],
+                    }
+                )
+
+    return {
+        "completed_major_milestones": total,
+        "unusual_count": len(unusual),
+        "unusual_samples": unusual[:10],
+    }
+
+
 def _format_counts(counter):
     if not counter:
         return "none"
@@ -1388,6 +1990,20 @@ def _format_counts(counter):
             key=lambda item: (-item[1], str(item[0])),
         )
     )
+
+
+def _format_item_counts(counter, limit=8):
+    if not counter:
+        return "none"
+
+    parts = []
+    for (item_id, item_name), count in sorted(
+        counter.items(),
+        key=lambda item: (-item[1], str(item[0])),
+    )[:limit]:
+        parts.append(f"{item_name} ({item_id}): {count}")
+
+    return ", ".join(parts)
 
 
 def _catalog_for_match(match):
@@ -1426,14 +2042,15 @@ def _catalog_for_match(match):
 def render_itemization_audit(history, mismatch_limit=12):
     summary = history["summary"]
     lines = [
-        "BUILD / ITEMIZATION ANALYZER V22 - PHASE 1 AUDIT",
+        "BUILD / ITEMIZATION ANALYZER V22 - PHASE 1B AUDIT",
         "",
         "Scope: factual Riot item-event reconstruction only. No build",
         "recommendation, item-quality label, or Win/Loss item judgment is",
         "computed here.",
         "",
         "Validation definitions:",
-        "- EXACT: reconstructed six-slot multiset and trinket match Riot final inventory.",
+        "- EXACT: observed item transactions reconstruct Riot final inventory.",
+        "- EXACT_WITH_EXPLAINED_GRANT: final difference is explained by a confirmed non-purchase grant.",
         "- PARTIAL: normal inventory matches or there is still meaningful overlap.",
         "- MISMATCH: material disagreement remains.",
         "- UNKNOWN: final reference cannot be exploited.",
@@ -1446,15 +2063,51 @@ def render_itemization_audit(history, mismatch_limit=12):
 
     exact_rate = summary["exact_match_rate"]
     if exact_rate is None:
-        lines.append("Exact final inventory rate: N/A")
+        lines.append("Observed exact final inventory rate: N/A")
     else:
-        lines.append(f"Exact final inventory rate: {exact_rate:.1%}")
+        lines.append(f"Observed exact final inventory rate: {exact_rate:.1%}")
+
+    exact_or_explained_rate = summary["exact_or_explained_rate"]
+    if exact_or_explained_rate is None:
+        lines.append("Observed or explained final inventory rate: N/A")
+    else:
+        lines.append(
+            "Observed or explained final inventory rate: "
+            f"{exact_or_explained_rate:.1%}"
+        )
 
     lines.extend(
         [
             f"Invariant / reconstruction warnings: {_format_counts(summary['warning_counts'])}",
+            f"Warning buckets: {_format_counts(summary['warning_buckets'])}",
             f"Mismatch causes: {_format_counts(summary['cause_counts'])}",
             f"Special item cases: {_format_counts(summary['special_case_counts'])}",
+            f"Non-purchase grant matches: {summary['grant_match_count']}",
+            f"Grant sources: {_format_counts(summary['grant_source_counts'])}",
+            f"Grant types: {_format_counts(summary['grant_type_counts'])}",
+            f"Grant derived timestamp states: {_format_counts(summary['grant_derived_status_counts'])}",
+            "",
+            "ITEM_DESTROYED audit:",
+            f"- total ITEM_DESTROYED: {summary['destroyed_audit']['total_destroyed']}",
+            f"- confidently explained: {summary['destroyed_audit']['confidently_explained']}",
+            f"- remaining audit-only ambiguous/unexplained: {summary['destroyed_audit']['remaining_unexplained']}",
+            f"- games affected by remaining destroyed audit: {summary['destroyed_audit']['games_affected']}",
+            f"- audit-only classifications: {_format_counts(summary['destroyed_audit']['classification_counts'])}",
+            f"- held ignored: {summary['destroyed_audit']['held_ignored']} | not-held ignored: {summary['destroyed_audit']['not_held_ignored']}",
+            f"- clear permanent-removal evidence: {summary['destroyed_audit']['clear_permanent_removal_evidence']}",
+            f"- top remaining destroyed items: {_format_item_counts(summary['destroyed_audit']['item_counts'])}",
+            "",
+            "Viego ITEM_DESTROYED audit:",
+            f"- Viego games: {summary['viego_audit']['games']}",
+            f"- Viego ITEM_DESTROYED events: {summary['viego_audit']['destroyed_count']}",
+            f"- Viego ambiguous destroyed events: {summary['viego_audit']['ambiguous_count']}",
+            f"- Viego permanent-build item destroyed events ignored as ambiguous: {summary['viego_audit']['permanent_build_item_events']}",
+            f"- limitation: {summary['viego_audit']['limitation']}",
+            f"- top Viego destroyed items: {_format_item_counts(summary['viego_audit']['item_counts'])}",
+            "",
+            "Major item milestone audit:",
+            f"- completed-major milestones: {summary['major_milestone_audit']['completed_major_milestones']}",
+            f"- unusual excluded-category milestones: {summary['major_milestone_audit']['unusual_count']}",
             "",
             "Champion breakdown:",
         ]
@@ -1469,13 +2122,13 @@ def render_itemization_audit(history, mismatch_limit=12):
     non_exact = [
         match
         for match in history["matches"]
-        if match["final_validation"]["status"] != "EXACT"
+        if match["final_validation"]["status"] not in EXACT_FINAL_STATUSES
     ]
 
     lines.extend(
         [
             "",
-            f"Non-EXACT games inspected: {len(non_exact)}",
+            f"Non-exact-or-explained games inspected: {len(non_exact)}",
         ]
     )
 
@@ -1520,6 +2173,40 @@ def render_itemization_audit(history, mismatch_limit=12):
                 + _format_counts(warning_codes)
             )
 
+    grant_matches = [
+        match
+        for match in history["matches"]
+        if (
+            match["final_validation"].get("explained_grants")
+            or match["final_validation"].get("unexplained_grants")
+        )
+    ]
+
+    lines.extend(
+        [
+            "",
+            f"Non-purchase final grants inspected: {len(grant_matches)}",
+        ]
+    )
+
+    for match in grant_matches[:mismatch_limit]:
+        validation = match["final_validation"]
+        for grant in (
+            validation.get("explained_grants", [])
+            + validation.get("unexplained_grants", [])
+        ):
+            lines.append(
+                (
+                    f"- {match['match_id']} | {match['champion']} | "
+                    f"{grant['item_name']} ({grant['item_id']}) | "
+                    f"source={grant['source']} | "
+                    f"grant_type={grant['grant_type']} | "
+                    f"observed={grant['observed_time']} | "
+                    f"derived={grant['derived_time']} "
+                    f"({grant['derived_status']})"
+                )
+            )
+
     if len(non_exact) > mismatch_limit:
         lines.append(
             f"- {len(non_exact) - mismatch_limit} additional non-EXACT games omitted from this console summary."
@@ -1550,6 +2237,17 @@ def _format_milestone(milestone):
     )
 
 
+def _format_perk_ids(match):
+    selections = match.get("perk_selections") or []
+    if not selections:
+        return "UNKNOWN"
+
+    return ", ".join(
+        str(selection.get("perk"))
+        for selection in selections
+    )
+
+
 def render_match_itemization_report(history, match_id=TARGET_MATCH_ID):
     match = None
 
@@ -1572,6 +2270,7 @@ def render_match_itemization_report(history, match_id=TARGET_MATCH_ID):
             f"result: {'WIN' if match['win'] else 'LOSS'}"
         ),
         f"Game version: {match['game_version']} | Data Dragon: {match['ddragon_version']}",
+        f"Selected rune/perk IDs: {_format_perk_ids(match)}",
         f"Final validation: {validation['status']}",
         (
             "Riot final: "
@@ -1588,6 +2287,54 @@ def render_match_itemization_report(history, match_id=TARGET_MATCH_ID):
             + " | trinket "
             + catalog.name(validation["reconstructed_trinket"])
         ),
+        (
+            "Effective reconstructed final including explained grants: "
+            + _format_counter(
+                validation["effective_reconstructed_final_counter"],
+                catalog,
+            )
+            + " | trinket "
+            + catalog.name(validation["reconstructed_trinket"])
+        ),
+    ]
+
+    grants = (
+        validation.get("explained_grants", [])
+        + validation.get("unexplained_grants", [])
+    )
+
+    if grants:
+        lines.extend(
+            [
+                "",
+                "Non-purchase grant audit:",
+            ]
+        )
+
+        for grant in grants:
+            evidence = "; ".join(grant.get("evidence") or [])
+            lines.append(
+                (
+                    f"- {grant['item_name']} ({grant['item_id']}) | "
+                    f"source={grant['source']} | "
+                    f"grant_type={grant['grant_type']} | "
+                    f"purchase_event={grant['purchase_event']} | "
+                    f"observed_timestamp={grant['observed_time']} | "
+                    f"derived_timestamp={grant['derived_time']} "
+                    f"({grant['derived_status']}) | "
+                    f"confidence={grant['confidence']} | "
+                    f"takedowns_used={grant['takedowns_used']} | "
+                    f"evidence={evidence}"
+                )
+            )
+
+            if grant.get("perk_selection"):
+                lines.append(
+                    f"  perk_selection={grant['perk_selection']}"
+                )
+
+    lines.extend(
+        [
         "",
         "Milestones:",
         (
@@ -1599,7 +2346,8 @@ def render_match_itemization_report(history, match_id=TARGET_MATCH_ID):
         "- boots purchase: " + _format_milestone(milestones["boots_purchase"]),
         "- boots upgrade: " + _format_milestone(milestones["boots_upgrade"]),
         "- completed major items:",
-    ]
+        ]
+    )
 
     if milestones["completed_major_items"]:
         for index, milestone in enumerate(
@@ -1673,8 +2421,9 @@ def main():
         queue_id=420,
     )
     print(render_itemization_audit(history))
-    print()
-    print(render_match_itemization_report(history, TARGET_MATCH_ID))
+    for match_id in TARGET_MATCH_IDS:
+        print()
+        print(render_match_itemization_report(history, match_id))
 
 
 if __name__ == "__main__":

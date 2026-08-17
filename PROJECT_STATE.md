@@ -89,7 +89,7 @@ Technical fixes / audit support:
 - .gitignore ignores .env, .venv, *.db, __pycache__, and logs/ so local secrets, DBs, and logs are not staged accidentally.
 
 ## Build / Itemization Analyzer v22
-Status: Phase 1 implemented, REVIEW_REQUIRED, not frozen.
+Status: Phase 1B implemented, REVIEW_REQUIRED, not frozen.
 
 Design:
 - New UI-agnostic analyzer reconstructs factual item state from Riot timeline item events.
@@ -99,20 +99,34 @@ Design:
 - Treats Data Dragon `consumeOnFull` consumables, such as elixirs, as consumed on purchase.
 - Tracks a six-slot item multiset plus trinket state; exact slot ordering is not fabricated.
 - Associates purchase events with frozen Recall / Reset v21 shop/reset proxy visit IDs for factual context only.
+- Models confirmed non-purchase final grants separately from Riot-observed item transactions.
+- Magical Footwear item 2422 is classified as RUNE_GRANT / MAGICAL_FOOTWEAR only when rune 8304 is present.
+- Derived grant timing is stored as derived/inferred evidence, never as an observed Riot transaction.
 
 Latest verification:
-- `python main.py` completed on 2026-08-17 after v22 integration.
+- `python main.py` completed on 2026-08-17 after v22 Phase 1B updates.
 - Full Jungle history: 87 games, 4277 player item events.
 - Event counts: 1536 purchases, 11 sells, 45 undo events, 2685 destroyed events.
-- Final inventory validation: 86 EXACT, 1 PARTIAL, 0 MISMATCH, 0 UNKNOWN.
-- Exact final inventory rate: 98.9%.
+- Final inventory validation: 86 EXACT, 1 EXACT_WITH_EXPLAINED_GRANT, 0 PARTIAL, 0 MISMATCH, 0 UNKNOWN.
+- Observed exact final inventory rate: 98.9%.
+- Observed or explained final inventory rate: 100.0%.
 - Target match EUW1_7951911875: EXACT final inventory reconstruction.
+- Target match EUW1_7836627546: EXACT_WITH_EXPLAINED_GRANT because rune 8304 Magical Footwear is present and final item 2422 has no Riot purchase/undo/sell event.
+- EUW1_7836627546 derived grant timestamp: 09:45, DERIVED_INFERRED from Magical Footwear base timing and 3 observed takedowns.
+- Non-purchase final grants: 1 match, source RUNE_GRANT, grant type MAGICAL_FOOTWEAR.
+- ITEM_DESTROYED audit: 2685 total, 1085 confidently explained, 1600 remaining audit-only ambiguous/unexplained.
+- Remaining destroyed classifications: 1582 TEMPORARY_OR_NON_PERMANENT_STATE, 18 UNRESOLVED.
+- Warning buckets: 1189 understood expected mechanic, 1085 harmless Riot representation limitation, 515 unresolved final-safe ambiguity, 1 unresolved.
+- Viego audit: 9 games, 1384 ITEM_DESTROYED events, 1189 ambiguous destroyed events, 357 permanent-build item destroyed events ignored as ambiguous.
+- Major item milestone audit: 265 completed-major milestones, 0 unusual excluded-category milestones.
 
 Known remaining issues:
-- EUW1_7836627546 remains PARTIAL because Riot final inventory includes 2422 / Magical Footwear but the stored timeline has no player transaction event exposing that grant.
+- Phase 1B is technically ready for review but not frozen; freeze decision belongs to project review.
 - Normal ITEM_DESTROYED events are preserved as auditable AMBIGUOUS cases unless explained by same-timestamp component completion, consumable removal, jungle-item removal, or trinket-use handling.
 - Viego produces many normal destroyed-item events consistent with temporary copied/possession inventory state; these are not treated as permanent deletion.
-- The analyzer is not freeze-ready until project review decides how to handle unobserved non-purchasable item grants and ambiguous normal ITEM_DESTROYED semantics.
+- Viego temporary possession inventory remains TEMPORARY_POSSESSION_INVENTORY_UNRELIABLE.
+- 18 ITEM_DESTROYED cases and 1 sell warning remain unresolved in audit output, with no final inventory mismatch.
+- The analyzer is not frozen until project review accepts the non-purchase grant policy and ambiguous normal ITEM_DESTROYED semantics.
 
 ## Architecture
 - main.py remains a dev/integration harness.

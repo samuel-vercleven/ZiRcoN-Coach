@@ -1,631 +1,424 @@
 # ZiRcoN Coach — TODO
 
 ## Current task
-Build / Itemization Analyzer v22 — Phase 1:
-Reliable item timeline and inventory reconstruction.
+Build / Itemization Analyzer v22 — Phase 1B:
+Final factual inventory audit and non-purchase item grants before freeze.
 
 Status: COMPLETED by Codex on 2026-08-17.
-Outcome: REVIEW_REQUIRED before freeze / Phase 2 because one real-history non-purchasable item grant remains unobserved in Riot item events and normal ITEM_DESTROYED semantics remain ambiguous.
+Outcome: REVIEW_REQUIRED. Phase 1B audit implemented and tested; no Phase 2 or recommendation logic added.
 
-## Long-term objective
+## Important scope
 
-The final ZiRcoN Coach itemization system must eventually recommend a contextual build for the current match using:
+This task is still ONLY factual item reconstruction.
 
-- player's champion;
-- allied team composition;
+Do NOT yet evaluate item quality against:
+- enemy champion;
 - enemy team composition;
-- AP / AD / true-damage profile;
-- burst vs sustained DPS;
-- tanks / squishies;
-- armor / magic resistance;
-- healing / sustain / shielding;
-- crowd control;
-- auto-attack / crit / on-hit threats;
-- assassins / burst threats;
-- frontline needs;
-- allied damage profile;
-- allied missing roles or weaknesses;
-- current game state;
-- items already purchased;
-- later, validated personal historical tendencies when useful.
+- allied team composition;
+- AP/AD damage profile;
+- burst/DPS;
+- CC;
+- armor/MR;
+- healing;
+- tanks;
+- assassins.
 
-The eventual output should be able to recommend and explain:
-
-- starting item;
-- boots;
-- first major item;
-- second major item;
-- third major item;
-- later situational items;
-- defensive adaptations;
-- penetration;
-- anti-heal;
-- anti-tank choices;
-- survivability choices.
-
-Example future reasoning:
-
-Enemy team:
-- heavy magic damage;
-- important CC;
-- durable frontline;
-- sustained fights expected.
-
-Allied team:
-- already high AP damage;
-- limited frontline.
-
-Possible contextual explanation:
-- Mercury's Treads prioritized because of magic threats + CC.
-- Tank-shred / sustained-damage item prioritized because fights are expected to last.
-- Another pure AP item may have lower priority because allied damage is already heavily magic-based.
-
-IMPORTANT:
-This long-term goal is context only.
-
-DO NOT implement build recommendations in Phase 1.
-
-Phase 1 must establish a reliable factual item-history layer first.
+The analyzer may store champion/team information for future use,
+but Phase 1 must not use it to recommend or judge items.
 
 ---
 
-# Phase 1 goal
+# Current verified state
 
-Reconstruct, as reliably and auditably as possible, the player's item state throughout every historical match.
+Phase 1 currently reconstructs:
 
-The system should eventually be able to answer:
+- 87 Jungle games;
+- 4277 player item events;
+- 1536 purchases;
+- 11 sells;
+- 45 undo events;
+- 2685 ITEM_DESTROYED events.
 
-"At 17:42 in this match, what items/components did ZiRcoN actually have?"
+Final inventory validation:
 
-This factual foundation must be validated before any item-quality or build recommendation logic is added.
+- 86 EXACT;
+- 1 PARTIAL;
+- 0 MISMATCH;
+- 0 UNKNOWN;
+- 98.9% exact final reconstruction.
+
+Target match:
+EUW1_7951911875 = EXACT.
+
+Remaining PARTIAL:
+EUW1_7836627546.
+
+Riot final inventory contains:
+2422 / Slightly Magical Boots
+
+but no normal ITEM_PURCHASED event exposes that item.
+
+This is expected to be related to the Magical Footwear rune.
 
 ---
 
-## Part A — Riot item-event extraction
+# Part A — Magical Footwear / granted item support
 
-Use the Riot timeline events relevant to inventory changes, including where available:
+Inspect the participant perks/runes stored in the Riot match raw data for:
 
-- ITEM_PURCHASED
-- ITEM_SOLD
-- ITEM_UNDO
-- ITEM_DESTROYED
+EUW1_7836627546
 
-Investigate other Riot item-related event types if they occur in the stored history.
+Determine whether the player selected:
 
-For every transaction preserve:
+Magical Footwear
 
-- match_id;
-- game_creation;
+If yes:
+
+classify item 2422 as:
+
+source = RUNE_GRANT
+grant_type = MAGICAL_FOOTWEAR
+purchase_event = NONE
+
+Do NOT treat the absence of ITEM_PURCHASED as a reconstruction error.
+
+Do NOT fabricate an exact Riot item event.
+
+## Acquisition timestamp
+
+If the rune is confirmed, it is acceptable to compute a separate:
+
+derived_grant_timestamp
+
+using the known Magical Footwear rule and observable takedown history,
+provided the implementation clearly labels the value as DERIVED / INFERRED.
+
+Never present a derived timestamp as a Riot-observed event.
+
+Keep fields conceptually separated:
+
+- observed_timestamp
+- derived_timestamp
+- source
+- confidence / evidence
+
+If the exact grant timing cannot be derived reliably:
+keep timestamp UNKNOWN.
+
+---
+
+# Part B — Generic non-purchase grants
+
+Search all 87 games for final items which:
+
+- appear in Riot final inventory;
+- were not reconstructed through normal item transactions;
+- are non-purchasable or likely granted by game mechanics.
+
+Report all such cases.
+
+Create an explicit factual source classification where justified:
+
+- PURCHASE
+- RUNE_GRANT
+- AUTOMATIC_TRANSFORMATION
+- GAME_MECHANIC_GRANT
+- UNKNOWN_GRANT
+
+Do not hardcode arbitrary final items into earlier inventories.
+
+A final-item observation must not be used to invent a historical acquisition time.
+
+---
+
+# Part C — ITEM_DESTROYED audit
+
+Audit every ITEM_DESTROYED not already explained confidently as:
+
+- component consumed by completed-item purchase;
+- consumable removal;
+- jungle item progression/removal;
+- trinket-use handling;
+- another validated deterministic transformation.
+
+For remaining events report:
+
+- total count;
+- games affected;
 - champion;
-- timestamp;
-- minute;
-- event type;
-- item ID;
-- item name;
-- Riot/Data Dragon metadata;
-- event index/frame context where available.
+- item ID/name;
+- whether item was reconstructed as held;
+- inventory before event;
+- same-timestamp item events;
+- later transactions involving the item;
+- final Riot inventory;
+- whether ignoring the destroy is required for final correctness.
 
-Keep raw event information auditable.
+Audit-only classification:
 
-Do not discard events merely because they are unusual.
+- TEMPORARY_OR_NON_PERMANENT_STATE
+- LIKELY_REAL_REMOVAL
+- MISSED_TRANSFORMATION
+- UNRESOLVED
 
----
-
-## Part B — Data Dragon item metadata
-
-Reuse the existing Data Dragon integration.
-
-Resolve item IDs to item metadata where possible.
-
-At minimum expose:
-
-- item ID;
-- item name;
-- total Gold cost;
-- base Gold cost if useful;
-- purchasable status;
-- item tags;
-- `from` components;
-- `into` upgrades;
-- description/plaintext if useful for debugging;
-- boots / consumable / trinket / jungle-item characteristics where available.
-
-Do not hardcode normal item names when Data Dragon provides them.
-
-If Riot uses special IDs not represented correctly in Data Dragon, document them explicitly.
+Do not globally interpret ITEM_DESTROYED as permanent deletion.
 
 ---
 
-## Part C — Inventory reconstruction
+# Part D — Viego special audit
 
-Build a deterministic chronological inventory reconstruction for the player.
+Audit Viego separately.
 
-Maintain the inferred inventory after every item transaction.
-
-Correctly handle:
-
-- normal purchases;
-- components;
-- completed items;
-- boots;
-- consumables;
-- wards/trinkets;
-- jungle pets/items;
-- sells;
-- undo transactions;
-- item transformations;
-- upgrades;
-- automatic replacements when Riot represents them through item events;
-- temporary/special items where applicable.
-
-Do NOT assume:
-
-`ITEM_PURCHASED = permanent new inventory slot`
-
-Some items transform, combine, disappear, upgrade, or are consumed.
-
-If reconstruction cannot be determined safely, use explicit states such as:
-
-- UNKNOWN;
-- AMBIGUOUS;
-- RECONSTRUCTION_WARNING.
-
-Never silently invent an inventory state.
-
----
-
-## Part D — Inventory slots
-
-Where technically practical, represent a reconstructed six-slot inventory plus trinket/special state.
-
-However, do not fabricate exact slot positions if Riot data only supports the set/multiset of held items.
-
-Separate:
-
-- factual held-item multiset;
-- exact slot ordering if actually knowable.
-
-The factual inventory content matters more than cosmetic slot ordering.
-
----
-
-## Part E — Component / completed-item distinction
-
-Build a reliable distinction between:
-
-- components;
-- completed major items;
-- boots;
-- consumables;
-- trinkets;
-- jungle-specific progression;
-- special items.
-
-Use Data Dragon's item graph (`from` / `into`) where useful.
-
-Do not classify an item as a "major completed item" only because of price.
-
-Document special cases.
-
----
-
-## Part F — Item completion milestones
-
-For every match derive itemization milestones such as:
-
-- first meaningful purchase;
-- boots purchase;
-- boots upgrade;
-- first completed major item;
-- second completed major item;
-- third completed major item;
-- fourth+ completed major items;
-- approximate completion timestamp;
-- approximate cumulative known Gold invested.
-
-Keep components visible.
-
-Example:
-
-12:03
-- Blasting Wand
-- Amplifying Tome
-- Boots
-
-15:41
-- completed major item X
-
-Do not hide the component path.
-
----
-
-## Part G — Purchase-visit integration
-
-Reuse Recall / Reset Analyzer v21 only as a frozen dependency/context source if useful.
-
-Do NOT modify Reset Analyzer v21.
-
-Where possible, associate item transactions with existing SHOP/RESET proxy clusters.
-
-This could later allow ZiRcoN Coach to understand:
-
-- what was purchased on each base/shop visit;
-- which item spike was completed;
-- how much Gold was converted into items.
-
-For Phase 1 this remains factual reconstruction only.
-
-Do not judge whether the purchase was good or bad.
-
----
-
-## Part H — Final inventory validation
-
-For every exploitable historical game:
-
-compare the reconstructed final inventory with Riot's final participant inventory from match data.
+Because Viego can temporarily use another champion's state/items,
+ITEM_DESTROYED events may reflect temporary possession state rather than
+ZiRcoN's permanent inventory.
 
 Report:
 
-- EXACT;
-- PARTIAL;
-- MISMATCH;
-- UNKNOWN.
+- Viego games;
+- Viego ITEM_DESTROYED count;
+- normal ambiguous destroyed count;
+- items involved;
+- whether those items belong to ZiRcoN's permanent reconstructed build;
+- whether events are compatible with temporary possession states.
 
-Define these categories explicitly.
+If temporary possession inventory cannot be reconstructed reliably,
+document:
 
-For every mismatch provide detailed diagnostics:
+TEMPORARY_POSSESSION_INVENTORY_UNRELIABLE
 
-- match ID;
-- champion;
-- reconstructed final items;
-- Riot final items;
-- complete relevant transaction sequence;
-- sells;
-- undo operations;
-- destroyed/transformed items;
-- jungle/trinket/special-item involvement;
-- probable reason for mismatch;
-- unresolved ambiguity.
+Future item coaching must ignore temporary possession inventory
+when evaluating Viego's permanent build.
 
-The target is very high reconstruction reliability.
-
-Do not simply report an accuracy percentage and move on.
-
-Inspect real mismatches.
+Do not create champion-specific inventory logic unless evidence requires it.
 
 ---
 
-## Part I — Intermediate-state validation
+# Part E — Held-item ITEM_DESTROYED risk
 
-Final inventory matching alone is insufficient.
+Inspect every:
 
-Add sanity/invariant checks throughout the transaction timeline.
+DESTROYED_NORMAL_HELD_IGNORED_AS_AMBIGUOUS
 
-Examples:
+For each case determine whether production currently leaves an item in inventory
+that should clearly have disappeared.
 
-- inventory should not exceed legal capacity unless an explicitly modeled special case explains it;
-- selling an item should normally require it to be reconstructably held;
-- undo should reverse the relevant shop transaction when Riot data supports it;
-- component consumption into a completed item should be explainable;
-- Gold/inventory transitions should remain internally coherent where data allows verification;
-- item transformations should not create impossible duplicate states.
+Check:
 
-Report invariant violations separately.
+- subsequent sell;
+- subsequent upgrade;
+- repeated purchase;
+- inventory capacity;
+- final inventory;
+- same-timestamp transformations.
 
-Do not auto-correct suspicious states silently.
+If clear evidence shows a real permanent removal is being ignored:
+apply the smallest evidence-backed fix and rerun all 87 games.
 
----
-
-## Part J — Historical itemization dataset
-
-Create a reusable UI-agnostic dataset for later phases.
-
-Suggested fields include:
-
-- match_id
-- game_creation
-- champion
-- opponent_champion
-- win
-- timestamp
-- minute
-- event_type
-- item_id
-- item_name
-- item_category
-- item_cost
-- inventory_after
-- major_items_after
-- components_after
-- boots_after
-- trinket_after
-- jungle_item_after
-- known_inventory_gold
-- shop/reset proxy id if available
-- reconstruction_status
-- reconstruction_warnings
-
-The exact schema may evolve if a better representation is justified.
-
-Keep raw factual data separate from future coaching labels.
+Otherwise leave the event explicitly ambiguous.
 
 ---
 
-## Part K — Full-history audit
+# Part F — Intermediate inventory invariants
 
-Run the reconstruction across the full available Jungle history.
+Audit the reconstructed timeline for:
 
-Report at minimum:
+- >6 permanent inventory slots;
+- item sold but never held;
+- impossible duplicate completed items;
+- component upgrade without plausible ingredients;
+- ignored destroyed item creating an impossible long-lived state;
+- undo inconsistent with current inventory;
+- unknown item metadata;
+- contradictory later transactions.
 
-- number of games processed;
-- number of item events processed;
-- total purchases;
-- total sells;
-- total undo events;
-- item-destroyed / transformation cases;
-- EXACT final inventories;
-- PARTIAL final inventories;
-- MISMATCH inventories;
-- UNKNOWN inventories;
-- exact-match percentage;
-- invariant violations;
-- most common mismatch causes;
-- most common special-item cases;
-- champion breakdown.
+Report all warning codes and counts.
 
-Inspect mismatch categories individually.
+Separate warnings into:
+
+- understood expected mechanic;
+- harmless Riot representation limitation;
+- genuine reconstruction bug;
+- unresolved.
+
+Zero warnings is NOT required.
+
+Every important warning family must be understood.
 
 ---
 
-## Part L — Target match audit
+# Part G — Major item milestone audit
 
-Provide a detailed reconstruction for:
+Validate completed-major classification.
 
-`EUW1_7951911875`
+Ensure ordinary cases such as:
 
-Show chronologically:
+- trinkets;
+- potions/elixirs;
+- jungle starter/pet items;
+- ordinary components;
+- granted boots;
+- non-major special items
 
-- purchase timestamp;
-- item bought/sold/undone;
-- inventory after transaction;
-- detected shop/reset visit when available;
-- completed-item milestones;
-- final reconstructed inventory;
+are not incorrectly counted as completed major-item milestones.
+
+Report unusual COMPLETED_MAJOR classifications.
+
+Do not redesign the item category system without concrete evidence.
+
+---
+
+# Part H — Target matches
+
+## EUW1_7951911875
+
+Confirm:
+
+- EXACT reconstruction;
+- chronological inventory remains coherent;
+- Kraken Slayer completion;
+- Collector completion;
+- Immortal Shieldbow completion;
+- no unexplained ITEM_DESTROYED changes the conclusion.
+
+## EUW1_7836627546
+
+Show:
+
+- selected runes;
+- Magical Footwear presence or absence;
+- item 2422 source;
+- observed vs derived timestamp status;
+- reconstructed final inventory;
 - Riot final inventory;
-- validation result.
+- final validation classification.
 
-This target-match report must be readable enough for manual verification.
+If Magical Footwear explains the missing item,
+do not classify this case as a normal reconstruction failure.
 
 ---
 
-# Architecture
+# Part I — Final validation policy
 
-Prefer new dedicated modules such as:
+Introduce/clarify validation states if useful:
 
-- `analysis/itemization_analyzer.py`
-- `analysis/itemization_statistics.py` only if actually needed at this phase
+- EXACT_OBSERVED
+- EXACT_WITH_EXPLAINED_GRANT
+- PARTIAL
+- MISMATCH
+- UNKNOWN
 
-A dedicated reader/helper may be added if technically justified.
+For example:
 
-Do not overload `main.py` with business logic.
+A game whose only difference is a confirmed Magical Footwear rune grant
+may become:
 
-`main.py` may integrate/report the analyzer as part of the development harness.
+EXACT_WITH_EXPLAINED_GRANT
 
-Keep analysis logic UI-agnostic.
+rather than forcing a fake ITEM_PURCHASED event.
+
+Do not merge observed and inferred facts silently.
+
+---
+
+# Freeze criteria
+
+Phase 1 can be freeze-ready if:
+
+- normal purchases/sells/undo/component reconstruction remains reliable;
+- non-purchase grants are explicitly modeled rather than fabricated;
+- Magical Footwear case is explained correctly if rune evidence supports it;
+- ITEM_DESTROYED does not hide a systemic permanent-inventory bug;
+- Viego temporary state limitations are documented;
+- intermediate inventory invariants show no systemic corruption;
+- major-item milestones remain credible;
+- target match remains exact;
+- no frozen analyzer was modified.
+
+100% observed transaction reconstruction is NOT required when Riot itself
+does not expose a grant as a transaction.
+
+Correct uncertainty is preferable to invented precision.
 
 ---
 
 # Frozen modules
 
-The following are FROZEN and must not be modified:
+Do NOT modify:
 
 - Death Analyzer v11
-- Jungle Tempo / Pathing Analyzer v17
+- Jungle Tempo / Pathing v17
 - Objective Analyzer v20
 - Recall / Reset Analyzer v21
 
-They may be consumed as dependencies/context.
-
-Do not duplicate or redefine their concepts unnecessarily.
-
-If a genuine integration bug forces a frozen-module change:
-- make the smallest possible change;
-- mark REVIEW_REQUIRED;
-- document it.
-
 ---
 
-# Methodology restrictions
+# Do NOT implement yet
 
-Phase 1 is factual measurement/reconstruction only.
+Do NOT implement:
 
-DO NOT yet:
+- enemy champion item counter logic;
+- allied/enemy composition analysis;
+- item recommendations;
+- boots recommendations;
+- anti-heal logic;
+- armor/MR reasoning;
+- anti-tank logic;
+- AP/AD composition logic;
+- GOOD/BAD labels;
+- Itemization Score;
+- ML.
 
-- classify an item as GOOD/BAD;
-- recommend an item;
-- recommend boots;
-- recommend a full build;
-- compare the player's build to a theoretical optimal build;
-- use Win/Loss to define item quality;
-- infer AP/AD composition;
-- infer burst/DPS profile;
-- infer enemy healing;
-- infer armor/MR needs;
-- infer anti-heal needs;
-- infer penetration needs;
-- infer anti-tank needs;
-- build an Itemization Score;
-- introduce machine learning;
-- use popularity/meta builds as ground truth.
-
-Those belong to later phases after reconstruction is validated.
-
----
-
-# Future phases — DO NOT IMPLEMENT YET
-
-These are architectural context only.
-
-## Phase 2 — Champion/item semantic knowledge
-
-Build factual item/champion characteristics needed for reasoning.
-
-Examples:
-- AP/AD;
-- armor/MR;
-- health;
-- penetration;
-- anti-heal;
-- anti-shield;
-- attack speed;
-- crit;
-- on-hit;
-- sustain;
-- burst/sustained synergy;
-- tank-shred characteristics.
-
-## Phase 3 — Team composition analyzer
-
-Analyze BOTH teams.
-
-Enemy:
-- physical/magic/true damage;
-- burst vs sustained;
-- CC;
-- frontline;
-- healing/shielding;
-- armor/MR;
-- assassins;
-- auto attackers;
-- tanks;
-- squishies.
-
-Allies:
-- team damage split;
-- existing frontline;
-- engage;
-- CC;
-- burst/DPS balance;
-- damage redundancy;
-- missing defensive/offensive needs.
-
-## Phase 4 — Contextual build reasoning
-
-Combine:
-- champion;
-- allied composition;
-- enemy composition;
-- game state;
-- current items;
-- current Gold/shop opportunity;
-- validated analyzer context.
-
-Generate item priorities with explanations.
-
-## Phase 5 — Build recommendation
-
-Eventually output:
-
-- starting item;
-- boots;
-- item 1;
-- item 2;
-- item 3;
-- item 4;
-- item 5;
-- situational alternatives;
-- explanation for each decision.
-
-The final system must recommend a build for THAT match, not merely reproduce the most popular public build.
-
-Again: DO NOT IMPLEMENT Phases 2–5 in the current task.
+These belong to later phases.
 
 ---
 
 # Testing
 
-Perform:
+Run:
 
-1. compile modified Python files;
-2. focused synthetic tests for:
-   - purchase;
-   - sell;
-   - undo;
-   - component completion;
-   - special/jungle/trinket cases where possible;
-3. full historical reconstruction audit;
-4. inspect all meaningful mismatches;
-5. run `python main.py` if integrated into the normal harness.
-
-Do not claim reconstruction is reliable from synthetic tests alone.
-
-Real-history validation is mandatory.
-
----
-
-# Success criteria
-
-Phase 1 is potentially freeze-ready only if:
-
-- reconstruction semantics are clear;
-- final inventory agreement is very high;
-- remaining mismatch cases are understood;
-- sells/undo/component transformations are handled coherently;
-- special jungle/trinket cases are documented;
-- intermediate invariants do not reveal systemic errors;
-- target match reconstruction is plausible;
-- no frozen analyzer was altered unnecessarily.
-
-If significant correctness problems remain:
-
-`REVIEW_REQUIRED`
-
-Do not automatically continue to Phase 2.
+- compile checks;
+- existing synthetic itemization checks;
+- focused rune/grant checks;
+- focused ITEM_DESTROYED audit;
+- full 87-game reconstruction audit;
+- python main.py if production code changes.
 
 ---
 
 # Reporting
 
-At completion update:
+Update:
 
-- `LAST_RUN.md`
-- `PROJECT_STATE.md`
-- `TODO.md` → mark current task completed only
+- LAST_RUN.md
+- PROJECT_STATE.md
+- TODO.md → completed only
 
-`LAST_RUN.md` must include:
+LAST_RUN must include:
 
-- tests;
-- runtime status;
-- games/events processed;
-- exact/partial/mismatch/unknown counts;
-- major mismatch causes;
-- special item cases;
+- final inventory validation counts;
+- Magical Footwear conclusion;
+- non-purchase grant counts;
+- ITEM_DESTROYED audit counts;
+- Viego results;
+- warning-code counts;
+- intermediate invariant violations;
+- major-item milestone findings;
 - target-match result;
-- suspicious findings;
-- remaining issues;
-- whether REVIEW_REQUIRED is needed.
+- freeze-readiness recommendation.
 
-Do not invent the next major task.
+Finish with:
+
+REVIEW_REQUIRED
+
+Do not freeze Phase 1 yourself.
 
 ---
 
 # Git
 
-Verify secrets before commit.
-
-Allowed League match-analysis metadata may be committed according to AGENTS.md.
-
-Never commit:
-- `.env`
-- Riot API keys
-- credentials
-- `.venv`
-- SQLite DB files
-- secrets
-
 Commit and push tested work.
 
 Suggested commit:
 
-`Add itemization timeline reconstruction`
+Audit item grants and destroyed events

@@ -54,6 +54,12 @@ RAW_ITEMS = {
         "gold": {"total": 0, "base": 0, "purchasable": False},
         "tags": ["Trinket"],
     },
+    "2422": {
+        "name": "Slightly Magical Boots",
+        "gold": {"total": 300, "base": 300, "purchasable": False},
+        "tags": ["Boots"],
+        "into": ["3001"],
+    },
     "3364": {
         "name": "Oracle Lens",
         "gold": {"total": 0, "base": 0, "purchasable": False},
@@ -90,7 +96,13 @@ def _event(timestamp, event_type, item_id=None, **raw):
     return payload
 
 
-def _meta(final_items=None, final_trinket=3340, champion="Synthetic"):
+def _meta(
+    final_items=None,
+    final_trinket=3340,
+    champion="Synthetic",
+    perk_selections=None,
+    takedown_timestamps=None,
+):
     return {
         "match_id": "SYNTHETIC",
         "game_creation": 1,
@@ -102,6 +114,8 @@ def _meta(final_items=None, final_trinket=3340, champion="Synthetic"):
         "my_participant_id": 1,
         "final_items": final_items or [],
         "final_trinket": final_trinket,
+        "perk_selections": perk_selections or [],
+        "takedown_timestamps": takedown_timestamps or [],
     }
 
 
@@ -203,6 +217,53 @@ def test_consume_on_purchase_elixir():
     assert result["final_validation"]["status"] == "EXACT"
 
 
+def test_magical_footwear_rune_grant():
+    catalog = ItemCatalog.from_raw_items(RAW_ITEMS)
+    result = reconstruct_item_timeline(
+        _meta(
+            final_items=[2422],
+            perk_selections=[
+                {
+                    "style": 8300,
+                    "style_description": "subStyle",
+                    "perk": 8304,
+                    "var1": 9,
+                    "var2": 4,
+                    "var3": 5,
+                }
+            ],
+            takedown_timestamps=[
+                180_000,
+                360_000,
+                390_000,
+                590_000,
+            ],
+        ),
+        [],
+        catalog,
+    )
+    validation = result["final_validation"]
+    assert _final_ids(result) == []
+    assert validation["status"] == "EXACT_WITH_EXPLAINED_GRANT"
+    assert validation["explained_grants"][0]["source"] == "RUNE_GRANT"
+    assert validation["explained_grants"][0]["purchase_event"] == "NONE"
+    assert (
+        validation["explained_grants"][0]["derived_status"]
+        == "DERIVED_INFERRED"
+    )
+
+
+def test_missing_magical_boots_without_rune_stays_unexplained():
+    catalog = ItemCatalog.from_raw_items(RAW_ITEMS)
+    result = reconstruct_item_timeline(
+        _meta(final_items=[2422]),
+        [],
+        catalog,
+    )
+    assert result["final_validation"]["status"] != "EXACT_WITH_EXPLAINED_GRANT"
+    assert not result["final_validation"]["explained_grants"]
+
+
 def main():
     test_purchase()
     test_sell()
@@ -210,6 +271,8 @@ def main():
     test_component_completion()
     test_special_jungle_trinket_consumable()
     test_consume_on_purchase_elixir()
+    test_magical_footwear_rune_grant()
+    test_missing_magical_boots_without_rune_stays_unexplained()
     print("Synthetic itemization checks passed.")
 
 
