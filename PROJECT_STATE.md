@@ -5,12 +5,13 @@
 - Jungle Tempo / Pathing Analyzer: v17 - FROZEN.
 - Objective Analyzer: v20 - FROZEN.
 - Recall / Reset Analyzer: v21 - FROZEN.
+- Build / Itemization Analyzer: v22 Phase 1 - FROZEN.
 
 Frozen means: no retuning/refactor without a demonstrated correctness or integration bug or explicit project review request.
 
 ## In development
-- Build / Itemization Analyzer v22 Phase 1D - implemented, in validation, REVIEW_REQUIRED.
-- Scope is factual item timeline / inventory reconstruction only; no recommendation logic, item-quality label, or build scoring.
+- No active analyzer currently assigned in this file.
+- Next major task remains for project review / TODO.md.
 
 ## Dataset
 - Main historical validation set: 87 Jungle games with exploitable timelines.
@@ -89,7 +90,7 @@ Technical fixes / audit support:
 - .gitignore ignores .env, .venv, *.db, __pycache__, and logs/ so local secrets, DBs, and logs are not staged accidentally.
 
 ## Build / Itemization Analyzer v22
-Status: Phase 1D implemented, REVIEW_REQUIRED, not frozen.
+Status: Phase 1 factual reconstruction - FROZEN by project review after Phase 1D.
 
 Design:
 - New UI-agnostic analyzer reconstructs factual item state from Riot timeline item events.
@@ -107,9 +108,10 @@ Design:
 - Undo now restores the actual components consumed by the undone purchase when Riot emits ITEM_UNDO after a completed-item purchase.
 - Phase 1D adds generic inventory reliability states for future consumers: RELIABLE, AMBIGUOUS_TEMPORARY_STATE, UNRESOLVED_TRANSFORMATION.
 - Unreliable intervals are marked explicitly instead of fabricating corrected item events.
+- Future consumers must ignore or explicitly handle inventory states that are not RELIABLE.
 
-Latest verification:
-- `python main.py` completed on 2026-08-18 after v22 Phase 1D updates.
+Freeze baseline:
+- `python main.py` completed on 2026-08-18 after v22 Phase 1D updates; this is the validated freeze baseline.
 - Full Jungle history: 87 games, 4277 player item events.
 - Event counts: 1536 purchases, 11 sells, 45 undo events, 2685 destroyed events.
 - Final inventory validation: 86 EXACT, 1 EXACT_WITH_EXPLAINED_GRANT, 0 PARTIAL, 0 MISMATCH, 0 UNKNOWN.
@@ -134,15 +136,15 @@ Latest verification:
 - Affected transaction states: 2635 RELIABLE, 1396 AMBIGUOUS_TEMPORARY_STATE, 246 UNRESOLVED_TRANSFORMATION.
 - Major item milestone audit: 265 completed-major milestones, 0 unusual excluded-category milestones.
 
-Known remaining issues:
-- Phase 1D remains REVIEW_REQUIRED and not frozen; freeze decision belongs to project review.
+Permanent Phase 1 limitations:
+- ITEM_DESTROYED does not globally imply permanent item removal.
 - Normal ITEM_DESTROYED events are preserved as auditable AMBIGUOUS cases unless explained by same-timestamp component completion, consumable removal, jungle-item removal, or trinket-use handling.
-- Viego produces many normal destroyed-item events consistent with temporary copied/possession inventory state, but champion identity alone is not used as proof.
-- Viego temporary possession inventory remains TEMPORARY_POSSESSION_INVENTORY_UNRELIABLE.
-- One REAL_MISSED_TRANSFORMATION non-Viego interval remains marked UNRESOLVED_TRANSFORMATION instead of being force-corrected.
-- Plain UNRESOLVED destroyed records are now 0; the previous 13-case family was explained as consumable Riot representation, and the full current count is 45 consumable not-held representations.
+- AMBIGUOUS_TEMPORARY_STATE intervals remain unreliable for factual item reasoning unless a future consumer explicitly handles them.
+- UNRESOLVED_TRANSFORMATION intervals remain unreliable; one non-Viego REAL_MISSED_TRANSFORMATION interval is intentionally not materialized as a fabricated item event.
+- Viego possession / copied inventory remains TEMPORARY_POSSESSION_INVENTORY_UNRELIABLE and uses the same generic reliability mechanism.
+- Magical Footwear item 2422 is a RUNE_GRANT only when rune 8304 is present; its timestamp remains DERIVED_INFERRED and must not be presented as a Riot-observed ITEM event.
+- Plain UNRESOLVED destroyed records are 0 in the Phase 1D baseline; the previous 13-case family was explained as consumable Riot representation, and the full current count is 45 consumable not-held representations.
 - No LIKELY_REAL_REMOVAL evidence was found in the Phase 1D audit.
-- The analyzer is not frozen until project review accepts the non-purchase grant policy, evidence-based destroyed-event uncertainty semantics, and inventory reliability interval semantics.
 
 ## Architecture
 - main.py remains a dev/integration harness.

@@ -62,17 +62,46 @@ Rules:
 - Do not convert current Gold, objective proximity, or low Reentry Score into automatic fault labels.
 - Keep raw reset components auditable alongside any explanatory composite.
 
-## Build / Itemization Analyzer v22 - Phase 1D reliability policy
+## Build / Itemization Analyzer v22 Phase 1 - FROZEN
 Decision:
-Do not fabricate corrected inventory events when Riot item chronology is ambiguous. Mark affected intervals with generic inventory reliability states instead.
+Freeze Build / Itemization Analyzer v22 Phase 1 as factual item/inventory reconstruction.
+
+Scope:
+- Riot timeline item-event reconstruction;
+- Data Dragon item metadata usage;
+- purchase, sell, undo, component, trinket, consumable, jungle-item, and final-inventory validation behavior;
+- Magical Footwear grant handling;
+- generic inventory reliability intervals.
+
+Out of scope:
+- item semantic quality;
+- champion matchup knowledge;
+- allied/enemy composition analysis;
+- contextual build reasoning;
+- item recommendations;
+- ML.
+
+Reasons:
+- project review accepted Phase 1D as the freeze baseline;
+- 87-game Jungle validation completed with 86 EXACT and 1 EXACT_WITH_EXPLAINED_GRANT final inventories;
+- observed-or-explained final inventory agreement reached 100.0%;
+- no PARTIAL, MISMATCH, or UNKNOWN final inventory remained;
+- no LIKELY_REAL_REMOVAL evidence was found;
+- Phase 1D resolved plain UNRESOLVED destroyed records as consumable Riot representation;
+- remaining ambiguity is explicitly surfaced through reliability intervals instead of hidden or overclaimed.
 
 Rules:
 - RELIABLE means the reconstructed durable inventory can be used by future consumers.
 - AMBIGUOUS_TEMPORARY_STATE means a temporary/possession-like mechanic may make the observed inventory unreliable for that interval.
 - UNRESOLVED_TRANSFORMATION means Riot/Data Dragon chronology indicates a transformation or grant-related interval that cannot be safely materialized as an observed item event.
+- Do not fabricate corrected inventory events when Riot item chronology is ambiguous.
 - Viego-specific uncertainty must use the generic reliability mechanism and remain isolated from normal champion reconstruction.
+- Viego possession inventory is not reliably reconstructible from the current Riot data.
+- ITEM_DESTROYED must not be treated globally as permanent item removal.
+- The non-Viego REAL_MISSED_TRANSFORMATION interval remains UNRESOLVED_TRANSFORMATION rather than a fabricated item event.
 - Magical Footwear derived timing remains DERIVED / INFERRED unless Riot emits an observed item event.
-- Build recommendations must ignore or explicitly handle unreliable intervals.
+- Future consumers, including build recommendations, must ignore or explicitly handle inventory intervals that are not RELIABLE.
+- Do not modify Phase 1 production reconstruction unless a demonstrated correctness bug is found, a later phase requires a strictly necessary compatibility change, or project review explicitly reopens it.
 
 Status:
-This is a Phase 1D implementation policy under REVIEW_REQUIRED, not a freeze decision.
+FROZEN.

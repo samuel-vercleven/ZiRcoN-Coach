@@ -1,324 +1,171 @@
 # ZiRcoN Coach — TODO
 
 ## Current task
-Status: COMPLETED / REVIEW_REQUIRED.
+COMPLETED - Freeze Build / Itemization Analyzer v22 — Phase 1.
 
-Completion summary:
-- 79 MISSED_TRANSFORMATION records grouped by root cause.
-- 3 retained_after_missed_transformation cases inspected and marked with reliability intervals.
-- component_consumed_after_ignored_destroy audit fixed to ignore stale destroys followed by clear reacquisition.
-- plain UNRESOLVED destroyed records resolved as consumable Riot representations.
-- generic inventory reliability states added for future consumers.
-- full 87-game audit and `python main.py` passed.
-- v22 is not frozen; project review must decide next.
+Status:
+- Documentation freeze completed by Codex.
+- Build / Itemization Analyzer v22 Phase 1 is documented as FROZEN.
+- No Python file was modified.
+- No Phase 2 task is defined here.
+- Next major task remains for project review.
 
-Build / Itemization Analyzer v22 — Phase 1D:
-Resolve remaining generic intermediate inventory transformations before freeze.
+## Decision
 
-## Context
+Project review accepts Phase 1D as the freeze baseline.
 
-Phase 1C currently has:
+Build / Itemization Analyzer v22 — Phase 1 is now approved for FROZEN status.
+
+This freeze covers factual item/inventory reconstruction only.
+
+It does NOT freeze future:
+- item semantic knowledge;
+- champion semantic knowledge;
+- composition analysis;
+- contextual item reasoning;
+- build recommendations;
+- ML.
+
+Those belong to later phases.
+
+---
+
+## Freeze evidence
+
+Historical validation:
 
 - 87 Jungle games
 - 4277 player item events
-- 86 EXACT final inventories
+- 1536 purchases
+- 11 sells
+- 45 undo events
+- 2685 destroyed events
+
+Final inventory:
+
+- 86 EXACT
 - 1 EXACT_WITH_EXPLAINED_GRANT
 - 0 PARTIAL
 - 0 MISMATCH
 - 0 UNKNOWN
-- 100% observed-or-explained final inventory agreement
+- 98.9% observed exact
+- 100.0% observed-or-explained
 
-Accepted:
-- Magical Footwear grant handling
-- purchase reconstruction
-- sell reconstruction
-- undo reconstruction, including restoration of consumed components
-- component trees
-- final inventory validation
-- Viego-specific uncertainty remains isolated from generic reconstruction
+Accepted features:
 
-Remaining audit findings:
+- ITEM_PURCHASED reconstruction
+- ITEM_SOLD reconstruction
+- ITEM_UNDO reconstruction
+- restoration of components after undone completed-item purchase
+- transitive component consumption
+- boots / consumables / trinkets / jungle-item handling
+- completed-major milestones
+- six-slot multiset + separate trinket
+- Data Dragon patch-aware item catalog
+- factual shop/reset proxy association
+- final Riot inventory validation
+- Magical Footwear rune grant handling
+- generic inventory reliability intervals
 
-- 79 MISSED_TRANSFORMATION records
-- 13 plain UNRESOLVED destroyed records
-- 78 component_consumed_after_ignored_destroy contradictions
-- 3 retained_after_missed_transformation contradictions
-- 0 LIKELY_REAL_REMOVAL
-- 0 SELL_ITEM_NOT_RECONSTRUCTED_AS_HELD after the Phase 1C fix
+Accepted reliability states:
 
-This task must focus on generic intermediate inventory correctness.
-
-Do NOT redesign the analyzer and do NOT start recommendation logic.
-
----
-
-# Part A — Audit the 79 MISSED_TRANSFORMATION records
-
-Inspect all 79 records individually/programmatically and group them by root cause.
-
-For each group report:
-
-- champion
-- item destroyed
-- timestamp
-- inventory before
-- inventory after
-- associated purchase/transformation
-- time difference
-- Data Dragon from/into relationship
-- whether the source item was actually held
-- whether the target item appeared through ITEM_PURCHASED
-- whether current production already consumes the source through purchase logic
-- whether ignoring ITEM_DESTROYED creates an actually incorrect inventory state
-
-Group into categories such as:
-
-- EVENT_ORDER_DUPLICATE
-- ALREADY_HANDLED_BY_PURCHASE_COMPONENT_CONSUMPTION
-- REAL_MISSED_TRANSFORMATION
-- TEMPORARY_MECHANIC
-- VIEGO_TEMPORARY_POSSIBLE
-- UNRESOLVED
-
-Do not treat an audit classification as a production bug until the inventory chronology demonstrates one.
-
----
-
-# Part B — Resolve the 3 retained-after-missed-transformation cases
-
-These are highest priority.
-
-For each of the 3 cases show:
-
-- match
-- champion
-- timestamp
-- source item
-- target/replacement item
-- inventory immediately before
-- current inventory immediately after
-- expected inventory if transformation is applied
-- subsequent item transactions
-- final inventory
-
-Determine whether the source item genuinely remains incorrectly held.
-
-If yes:
-- implement the smallest generic evidence-based correction;
-- add regression coverage;
-- rerun all 87 games.
-
-If no:
-- explain why the audit is a false positive and fix the audit classification only.
-
-No champion-specific fix unless the mechanic itself is genuinely champion-specific.
-
----
-
-# Part C — Investigate the 78 component-consumed-after-ignored-destroy cases
-
-Do NOT assume all 78 are errors.
-
-Determine whether they mainly follow this Riot pattern:
-
-ITEM_DESTROYED(component)
-...
-ITEM_PURCHASED(completed item)
-
-while the production model intentionally keeps the component until the
-purchase event consumes it.
-
-For every root-cause family determine:
-
-- whether the inferred inventory between destroy and purchase is materially wrong;
-- typical time gap;
-- whether both events are effectively part of one shop/item-combination operation;
-- whether Riot ordering explains the apparent contradiction;
-- whether any case leaves an impossible inventory for a meaningful duration.
-
-Report:
-
-- harmless representation cases
-- genuine intermediate reconstruction errors
-- unresolved cases
-
-If a deterministic, generic rule can safely resolve genuine cases, implement it.
-
-Do not globally apply every ITEM_DESTROYED event as permanent removal.
-
----
-
-# Part D — Audit the 13 plain UNRESOLVED events
-
-Inspect all 13.
-
-For each determine whether it can now be explained through:
-
-- item graph
-- transaction ordering
-- component combination
-- automatic transformation
-- granted item
-- consumable/trinket/jungle progression
-- temporary mechanic
-
-If Riot data remains insufficient, preserve UNRESOLVED.
-
-Uncertainty is acceptable.
-
-Future consumers must be able to know an interval is unreliable.
-
----
-
-# Part E — Reliability intervals
-
-Add or formalize a generic way for future code to know whether the reconstructed inventory is reliable at a given point.
-
-Suggested concept:
-
-inventory_reliability =
 - RELIABLE
 - AMBIGUOUS_TEMPORARY_STATE
 - UNRESOLVED_TRANSFORMATION
 
-or equivalent.
-
-Do not fabricate corrected inventory inside unresolved intervals.
-
-This is important because future build coaching must not reason from an inventory
-state known to be unreliable.
-
-Viego possession uncertainty should use the same generic reliability mechanism,
-not force the entire analyzer to become Viego-specific.
+Future consumers MUST NOT silently treat unreliable intervals as factual inventory.
 
 ---
 
-# Part F — Champion-agnostic requirement
+## Permanent limitations
 
-The production Itemization Analyzer must remain generic.
+Document explicitly:
 
-Do NOT optimize around Viego.
+1. Riot ITEM_DESTROYED semantics are not always equivalent to permanent item removal.
 
-Viego is only an exceptional mechanic used to test reliability.
+2. Some temporary or transformation states cannot be reconstructed exactly from Riot timeline data.
 
-Any generic purchase/sell/undo/component/transformation logic must work for:
-- Shyvana
-- Bel'Veth
-- Mundo
-- Viego
-- any other champion
+3. Viego possession inventory is not reliably reconstructible.
+   Use the generic reliability mechanism.
+   Do not specialize the main analyzer around Viego.
 
-Champion-specific handling is allowed only when Riot exposes a genuinely
-champion-specific temporary mechanic, and it must remain isolated.
+4. One observed non-Viego REAL_MISSED_TRANSFORMATION interval cannot be safely materialized.
+   It remains UNRESOLVED_TRANSFORMATION instead of inventing an item event.
 
----
+5. Remaining component-destroy / later-consumption ambiguity is represented through reliability intervals.
 
-# Part G — Regression validation
+6. Magical Footwear item 2422 can be identified as:
+   source = RUNE_GRANT
+   perk = 8304
+   purchase_event = NONE
 
-After any production fix, rerun the full 87-game history.
+7. Magical Footwear derived timing remains DERIVED_INFERRED and must never be presented as a Riot-observed ITEM event.
 
-Required results:
+8. Exact slot ordering is not reconstructed; inventory is a six-slot multiset plus trinket.
 
-- final inventory validation counts
-- intermediate contradiction counts before vs after
-- MISSED_TRANSFORMATION count before vs after
-- retained-after-missed-transformation count before vs after
-- component-consumed-after-ignored-destroy count before vs after
-- unresolved count
-- warning counts
-- target EUW1_7951911875
-- Magical Footwear target EUW1_7836627546
-
-Final inventory correctness must not regress.
+Correct uncertainty is part of the frozen methodology.
 
 ---
 
-# Freeze criteria
+## Documentation changes
 
-Phase 1 is freeze-ready if:
+Update PROJECT_STATE.md:
 
-- final 87-game inventory validation remains fully explained;
-- the 3 retained-after-missed-transformation cases are resolved or demonstrated false positives;
-- no systematic generic intermediate inventory corruption remains;
-- the 78 component cases are understood and any genuine generic bug is fixed;
-- remaining unresolved cases are explicitly marked unreliable;
-- future code can distinguish reliable vs ambiguous inventory intervals;
-- Viego uncertainty remains isolated;
-- no frozen analyzer is modified.
+Build / Itemization Analyzer v22 — Phase 1: FROZEN.
 
-Do not demand zero ambiguity when Riot data cannot provide it.
+Move it out of "In development" and into the frozen analyzers list.
 
-Correct uncertainty is acceptable.
+Preserve the final Phase 1D metrics and permanent limitations.
+
+Update DECISIONS.md with the formal freeze decision and rationale.
+
+The existing Phase 1D reliability policy becomes part of the frozen methodology.
+
+Update TODO.md to COMPLETED.
+
+Update LAST_RUN.md with a documentation-only freeze record.
 
 ---
 
-# Restrictions
+## Frozen boundary
 
-Do NOT modify:
+After this commit, do not modify Phase 1 production reconstruction unless:
+
+- a demonstrated correctness bug is found;
+- integration with a later phase requires a strictly necessary compatibility change;
+- project review explicitly reopens it.
+
+Do not retune behavior merely to reduce warning or ambiguity counts.
+
+---
+
+## Existing frozen analyzers
+
+Remain untouched:
 
 - Death Analyzer v11
 - Jungle Tempo / Pathing v17
 - Objective Analyzer v20
 - Recall / Reset Analyzer v21
 
-Do NOT implement:
+---
 
-- champion matchup analysis
-- allied/enemy composition analysis
-- item recommendations
-- boots recommendations
-- GOOD/BAD build labels
-- Itemization Score
-- ML
+## Python
+
+Do NOT modify production Python for this task.
+
+No full historical rerun is required because this is a documentation-only freeze
+and the Phase 1D full run has already passed.
+
+If Python changes unexpectedly become necessary:
+stop and return REVIEW_REQUIRED instead of silently modifying the frozen baseline.
 
 ---
 
-# Testing
+## Git
 
-Run:
-
-- compile checks
-- synthetic itemization checks
-- focused transformation regression tests
-- focused 79-case audit
-- full 87-game historical audit
-- python main.py if production code changes
-
----
-
-# Reporting
-
-Update:
-
-- LAST_RUN.md
-- PROJECT_STATE.md
-- TODO.md → completed only
-
-LAST_RUN must clearly report:
-
-- root causes of the 79 MISSED_TRANSFORMATION records
-- detailed resolution of the 3 retained cases
-- analysis of the 78 component cases
-- status of the 13 unresolved cases
-- production code changes
-- reliability-state implementation if added
-- before/after contradiction counts
-- final inventory validation
-- target-match results
-- whether Phase 1 is now freeze-ready
-
-Finish with:
-
-REVIEW_REQUIRED
-
-Do not freeze v22 yourself.
-
----
-
-# Git
-
-Commit and push tested work.
+Commit and push.
 
 Suggested commit:
 
-Resolve itemization intermediate transformations
+Freeze itemization reconstruction phase 1
