@@ -1,166 +1,104 @@
 # ZiRcoN Coach — TODO
 
 ## Current task
-COMPLETED - Final threshold-independent clustering audit for Recall / Reset Analyzer v21.
+COMPLETED - Finalize and freeze Recall / Reset Analyzer v21.
 
 Completion note:
 - Completed by Codex on 2026-08-17.
-- Production reset clustering threshold remains unchanged at 20s.
-- No frozen analyzer was modified.
-- Final result is REVIEW_REQUIRED for project review; no new major task is defined here.
+- Recall / Reset Analyzer v21 is now documented as FROZEN.
+- Production clustering remains SHOP_CLUSTER_GAP_SECONDS = 20.
+- No Python code, frozen analyzer, threshold, weight, or validation rule was modified.
+- No new major task is defined here.
 
-## Why
-The previous pre-freeze audit found:
+## Project review decision
 
-- 24 shop-cluster gaps with 20s < gap <=45s
-- 10 LIKELY_SAME_SHOP_VISIT
-- 14 LIKELY_SEPARATE_VISITS
-- 30s sensitivity merges exactly 10 pairs
-- 45s sensitivity merges all 24
+Recall / Reset Analyzer v21 is approved as FROZEN.
 
-However, the audit heuristic currently contains:
+Production clustering remains:
 
-`if gap <= 30: LIKELY_SAME_SHOP_VISIT`
+SHOP_CLUSTER_GAP_SECONDS = 20
 
-This makes the evidence for choosing 30s partially circular.
+Do NOT change the threshold.
 
-The goal of this task is to remove that circularity before the final freeze decision.
+Reason:
+- final threshold-independent audit found:
+  - 13 SEPARATE_VISITS
+  - 11 UNRESOLVED
+  - 0 SAME_VISIT_CANDIDATE
+- raising the threshold would merge some independently supported separate visits;
+- unresolved same-frame Riot cases are insufficient evidence for merging;
+- the conservative 20s threshold is therefore retained.
 
-## Part A — Make the audit classification threshold-independent
+## Required changes
 
-Modify ONLY the audit logic in `analysis/reset_audit.py`.
+### PROJECT_STATE.md
 
-Do NOT modify production `reset_analyzer.py` yet.
+Move:
 
-The SAME / SEPARATE classification must NOT use:
-- 20s
-- 30s
-- 45s
-- any other gap cutoff
+Recall / Reset Analyzer v21
 
-The gap must be descriptive evidence only.
+from IN DEVELOPMENT to FROZEN.
 
-Use observable evidence instead.
+Document:
+- 20s clustering threshold retained;
+- threshold-independent audit results;
+- Riot same-frame limitation;
+- SHOP/RESET remains a proxy;
+- current Gold remains exploratory only;
+- objective proximity remains context only;
+- Reentry Score measures post-reset production, not causal recall quality.
 
-### Strong evidence for SEPARATE_VISITS
+### DECISIONS.md
 
-Examples:
-- player kill between clusters
-- player assist between clusters
-- player death between clusters
-- major objective activity involving observable game progression
-- positive XP gain between genuinely distinct observable frames
-- positive Jungle CS gain between genuinely distinct observable frames
-- meaningful Gold gain consistent with gameplay between genuinely distinct frames
-- clear movement/state progression when the available Riot frames actually distinguish the two moments
+Add final freeze decision:
 
-### SAME_VISIT_CANDIDATE
+Recall / Reset Analyzer v21 — FROZEN
 
-Use only when:
-- there is no observable player gameplay activity between clusters;
-- no observable resource progression supports a separate visit;
-- available frame evidence is compatible with staying in the same shop/base visit.
+Reasons:
+- voluntary vs post-death separation validated;
+- historical-only Reentry Score;
+- real-history validation passed;
+- threshold-independent clustering audit completed;
+- 20s threshold retained conservatively;
+- no independent evidence justified increasing the threshold;
+- objective-near reset audit found no extraction/order bug;
+- target match remained stable.
 
-This is still a candidate, not ground truth.
+Permanent limitations:
+- Riot does not expose perfect recall lifecycle;
+- purchase clusters are SHOP/RESET proxies;
+- same-frame gaps may remain unresolved;
+- current Gold is exploratory;
+- objective proximity != player mistake;
+- Reentry Score != causal recall quality.
 
-### UNRESOLVED
+### LAST_RUN.md
 
-Use when Riot frame granularity cannot distinguish the two possibilities.
+Record this as a project-review freeze decision.
 
-Do NOT turn missing evidence into evidence that the visits are the same.
+No need to rerun full analysis unless code is modified.
 
-## Part B — Explicitly audit frame resolution
+### TODO.md
 
-For all 24 pairs report:
+Mark the freeze finalization complete.
 
-- gap seconds
-- frame timestamp used at cluster 1 end
-- frame timestamp used at cluster 2 start
-- whether both states come from the SAME Riot frame
-- XP delta
-- Jungle CS delta
-- total Gold delta
-- position delta
-- K/A/D between
-- objective/event evidence between
-- final threshold-independent classification
-
-This is critical because two clusters 20–45s apart may map to the same ~1-minute Riot frame.
-
-If both sides use the same frame, resource delta = 0 must NOT be treated as strong evidence of one shop visit.
-
-## Part C — Results by gap, without using gap for classification
-
-After classification, only then summarize results by:
-
-- 20–25s
-- 25–30s
-- 30–35s
-- 35–40s
-- 40–45s
-
-Report for each bin:
-- SAME_VISIT_CANDIDATE
-- SEPARATE_VISITS
-- UNRESOLVED
-
-This allows project review to see whether a natural threshold emerges from independent evidence.
-
-## Part D — Sensitivity
-
-Keep the existing audit-only 20 / 30 / 45 sensitivity comparison.
-
-Report:
-- total sequences
-- voluntary
-- post-death
-- scored/unscored
-- tight-objective sequences
-- target match split
-
-Do not change production threshold.
-
-## Part E — Objective <=5s cases
-
-Review the 6 voluntary sequences whose next objective occurs <=5s later.
-
-Determine only whether:
-- objective timing is correctly measured from cluster end;
-- objective occurs after the complete purchase cluster;
-- there is any extraction/order bug.
-
-If timing is technically correct, keep them as valid CONTEXT.
-
-Do not call them player mistakes.
+Do not invent the next major analyzer.
 
 ## Restrictions
 
 Do NOT modify:
-- Death Analyzer v11
-- Jungle Tempo / Pathing v17
-- Objective Analyzer v20
-- production SHOP_CLUSTER_GAP_SECONDS
-- Reentry Score weights
-- historical reference minimums
-- validation thresholds
-- FDR families
+- reset_analyzer.py production logic;
+- Death Analyzer v11;
+- Tempo / Pathing v17;
+- Objective Analyzer v20;
+- thresholds;
+- weights;
+- validation methodology.
 
-This task is audit-only.
+## Git
 
-## Required output
+Commit and push the documentation freeze.
 
-Run:
-- compile checks
-- focused reset audit
-- python main.py if required for regression verification
+Suggested commit:
 
-Update:
-- LAST_RUN.md
-- PROJECT_STATE.md
-- TODO.md → completed only
-
-LAST_RUN must include the final threshold-independent 24-pair summary.
-
-Finish with REVIEW_REQUIRED.
-
-Do not freeze v21 and do not change the production threshold.
+Freeze Recall Reset Analyzer v21

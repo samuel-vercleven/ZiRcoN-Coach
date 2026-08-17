@@ -1,88 +1,62 @@
 # LAST RUN
 
 ## Status
-REVIEW_REQUIRED
+PASS
 
 ## Date
-2026-08-17 18:04 local
+2026-08-17 22:34 local
 
 ## Command
-.\.venv\Scripts\python.exe main.py
+Documentation-only freeze finalization; python main.py not rerun.
 
 ## Runtime
 - completed
-- approximate duration: 71s
-- full main.py output saved to logs/latest_full_run.txt
-- focused audit output saved to logs/reset_v21_threshold_independent_audit.txt
+- no runtime execution required because no Python code was modified
+- previous full runtime verification remains logs/latest_full_run.txt from the v21 audit run
 
 ## Files changed
-- analysis/reset_audit.py
-- LAST_RUN.md
 - PROJECT_STATE.md
+- DECISIONS.md
+- LAST_RUN.md
 - TODO.md
 
 ## Tests executed
-- .\.venv\Scripts\python.exe -m compileall analysis\reset_audit.py
-- .\.venv\Scripts\python.exe -m compileall analysis\reset_audit.py analysis\reset_analyzer.py analysis\reset_statistics.py main.py database
-- .\.venv\Scripts\python.exe -m analysis.reset_audit
-- .\.venv\Scripts\python.exe main.py
+- No Python tests or full analysis run executed; task was documentation-only and explicitly did not require rerun when no code changed.
+- Git diff/secret checks performed before commit.
 
 ## Errors encountered
-- Initial sandboxed compile could not access the venv's external Python target; the same compile was rerun with approved escalation and passed.
-- No code/runtime errors after the audit changes.
+- none
 
 ## Main analyzer results
 ### Death Analyzer
-- v11 not modified.
-- Full run still built 491 exploitable death rows.
+- v11 not modified; remains FROZEN.
 
 ### Tempo / Pathing
-- v17 not modified.
-- Full run still built 2,604 tempo intervals.
+- v17 not modified; remains FROZEN.
 
 ### Objective Analyzer
-- v20 not modified.
-- Full run still built 628 objective sequences.
+- v20 not modified; remains FROZEN.
 
 ### Current analyzer
-- Recall / Reset Analyzer v21 production logic was not modified.
+- Recall / Reset Analyzer v21 is now documented as FROZEN by project review decision.
 - Production SHOP_CLUSTER_GAP_SECONDS remains 20.
-- Full run completed with 891 shop/reset proxy sequences.
-- Production split remains 509 VOLUNTARY_RESET_PROXY and 382 POST_DEATH_SHOP.
-- Historical references remain: 339 CHAMPION_PHASE_ORIGIN_TIME, 282 PHASE_ORIGIN_TIME, 32 CHAMPION_PHASE_ORIGIN, 11 PHASE_ORIGIN, 227 WARMUP.
-- Final threshold-independent audit inspected all 24 consecutive player shop-cluster pairs with 20s < gap <= 45s.
-- Final audit classification: 13 SEPARATE_VISITS, 11 UNRESOLVED, 0 SAME_VISIT_CANDIDATE.
-- Riot frame resolution: 13 pairs used the same Riot frame, 11 used distinct frames.
-- Classification reasons: 11 same-frame UNRESOLVED, 6 player K/A/D between clusters, 3 major objective/building events on distinct frames, 3 observable OUTSIDE_BASE intermediate frames, 1 resource progression on distinct frames.
-- Gap-bin summary after classification:
-  - 20-25s: total 7, SAME 0, SEPARATE 1, UNRESOLVED 6
-  - 25-30s: total 3, SAME 0, SEPARATE 1, UNRESOLVED 2
-  - 30-35s: total 5, SAME 0, SEPARATE 4, UNRESOLVED 1
-  - 35-40s: total 3, SAME 0, SEPARATE 2, UNRESOLVED 1
-  - 40-45s: total 6, SAME 0, SEPARATE 5, UNRESOLVED 1
-- Sensitivity unchanged: 20s = 891 total / 509 voluntary / 382 post-death; 30s = 881 / 509 / 372; 45s = 867 / 508 / 359.
-- Scored/unscored sensitivity: 20s = 628 scored / 263 unscored; 30s = 617 / 264; 45s = 605 / 262.
-- Tight voluntary objective sequences: 20s = 54, 30s = 54, 45s = 56.
-- Target match EUW1_7951911875 remains 7 sequences: 4 voluntary, 3 post-death, 0 near-threshold pairs, 2 tight-pre-objective proxies.
-- Objective <=5s technical check: 6/6 timing values are measured from cluster end, 6/6 objectives occur after the complete purchase cluster, 6/6 extraction/order checks passed.
+- No threshold, weight, validation rule, or production analyzer logic was changed.
+- Freeze rationale recorded: final threshold-independent audit found 13 SEPARATE_VISITS, 11 UNRESOLVED, and 0 SAME_VISIT_CANDIDATE.
+- 20s threshold retained because raising it would merge some independently supported separate visits, while unresolved same-frame Riot cases are insufficient evidence for merging.
+- Objective <=5s audit had 6/6 timing/order checks OK.
+- Target match EUW1_7951911875 remained stable.
 
 ## Suspicious findings
-- No SAME_VISIT_CANDIDATE remains under the stricter threshold-independent audit.
-- 11/24 pairs remain UNRESOLVED because both clusters map to the same Riot frame; zero XP/JCS/Gold delta on those rows was not used as evidence of one shop visit.
-- The lower gap bins are mostly unresolved once gap is removed from classification, so the audit no longer provides independent support for choosing 30s solely from gap behavior.
+- none for this documentation-only freeze finalization
 
 ## Methodological concerns
-- SHOP_CLUSTER_GAP_SECONDS was not changed.
-- Reentry weights, historical-reference minimums, validation thresholds, and FDR families were not changed.
-- Near-objective reset remains context only. No reset is labeled a mistake because an objective follows.
-- Any production threshold change or v21 freeze decision remains a project-review decision.
+- none introduced by Codex; this turn only records the project-review freeze decision.
 
 ## Remaining issues
-- Project review must decide whether the current 20s clustering threshold should stay, whether more audit evidence is needed, or whether a production threshold change is justified.
-- If the production threshold changes, v21 validation should be rerun before any freeze decision.
+- none for the freeze finalization task
 
 ## Codex technical recommendation
-- Use the threshold-independent 24-pair audit, especially the 11 same-frame UNRESOLVED cases, as the review basis before changing production clustering.
+- Treat Recall / Reset Analyzer v21 as FROZEN going forward; future changes require explicit project review or a demonstrated correctness/integration bug.
 
 ## Review request
-- REVIEW_REQUIRED because the final audit affects the interpretation of clustering-threshold readiness, but changing the production threshold or freezing v21 is reserved for project review.
+- NONE
