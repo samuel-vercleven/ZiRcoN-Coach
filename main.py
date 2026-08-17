@@ -1978,13 +1978,13 @@ def main():
 
 
     # ========================================================
-    # BUILD / ITEMIZATION ANALYZER V22 - PHASE 1C
+    # BUILD / ITEMIZATION ANALYZER V22 - PHASE 1D
     # ========================================================
 
     print()
     print()
     print("==============================")
-    print("BUILD / ITEMIZATION ANALYZER V22 - PHASE 1C")
+    print("BUILD / ITEMIZATION ANALYZER V22 - PHASE 1D")
     print("==============================")
 
     itemization_history = build_itemization_history(

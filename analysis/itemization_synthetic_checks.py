@@ -1,6 +1,7 @@
 from analysis.itemization_analyzer import (
     ItemCatalog,
     _summarize_destroyed_audit,
+    _summarize_intermediate_contradictions,
     reconstruct_item_timeline,
 )
 
@@ -44,6 +45,14 @@ RAW_ITEMS = {
         "consumed": True,
         "consumeOnFull": True,
     },
+    "2055": {
+        "name": "Control Ward",
+        "gold": {"total": 75, "base": 75, "purchasable": True},
+        "tags": ["Consumable"],
+        "consumed": True,
+        "consumeOnFull": True,
+        "stacks": 2,
+    },
     "3000": {
         "name": "Synthetic Major",
         "gold": {"total": 1200, "base": 600, "purchasable": True},
@@ -61,6 +70,26 @@ RAW_ITEMS = {
         "gold": {"total": 1000, "base": 400, "purchasable": True},
         "tags": ["Boots"],
         "from": ["1001", "1029"],
+    },
+    "4000": {
+        "name": "Synthetic Charged Component",
+        "gold": {"total": 900, "base": 550, "purchasable": True},
+        "tags": ["Damage"],
+        "from": ["1036"],
+        "into": ["5000"],
+    },
+    "4001": {
+        "name": "Synthetic Transformed Component",
+        "gold": {"total": 900, "base": 550, "purchasable": False},
+        "tags": ["Damage"],
+        "from": ["1036"],
+        "into": ["5000"],
+    },
+    "5000": {
+        "name": "Synthetic Transformation Major",
+        "gold": {"total": 1600, "base": 700, "purchasable": True},
+        "tags": ["Damage"],
+        "from": ["4000", "4001"],
     },
     "3340": {
         "name": "Warding Totem",
@@ -333,6 +362,26 @@ def test_destroyed_audit_final_inventory_is_not_temporary_proof():
     assert _destroyed_classifications(result)["UNRESOLVED"] == 1
 
 
+def test_consumable_destroyed_not_held_is_riot_representation():
+    catalog = ItemCatalog.from_raw_items(RAW_ITEMS)
+    result = reconstruct_item_timeline(
+        _meta(final_items=[]),
+        [
+            _event(10_000, "ITEM_PURCHASED", 2055),
+            _event(20_000, "ITEM_DESTROYED", 2055),
+        ],
+        catalog,
+    )
+    classifications = _destroyed_classifications(result)
+    assert (
+        classifications[
+            "CONSUMABLE_DESTROYED_NOT_HELD_RIOT_REPRESENTATION"
+        ]
+        == 1
+    )
+    assert classifications["UNRESOLVED"] == 0
+
+
 def test_destroyed_audit_detects_missed_transformation():
     catalog = ItemCatalog.from_raw_items(RAW_ITEMS)
     result = reconstruct_item_timeline(
@@ -344,6 +393,48 @@ def test_destroyed_audit_detects_missed_transformation():
         catalog,
     )
     assert _destroyed_classifications(result)["MISSED_TRANSFORMATION"] == 1
+
+
+def test_retained_missed_transformation_marks_unreliable_interval():
+    catalog = ItemCatalog.from_raw_items(RAW_ITEMS)
+    result = reconstruct_item_timeline(
+        _meta(final_items=[5000]),
+        [
+            _event(10_000, "ITEM_PURCHASED", 4000),
+            _event(20_000, "ITEM_DESTROYED", 4000),
+            _event(30_000, "ITEM_DESTROYED", 4001),
+            _event(30_000, "ITEM_PURCHASED", 5000),
+        ],
+        catalog,
+    )
+    audit = _summarize_destroyed_audit([result])
+    assert audit["missed_transformation_root_cause_counts"][
+        "REAL_MISSED_TRANSFORMATION"
+    ] == 1
+    assert result["inventory_reliability"]["interval_counts"][
+        "UNRESOLVED_TRANSFORMATION"
+    ] == 1
+
+
+def test_component_contradiction_ignores_destroy_before_reacquisition():
+    catalog = ItemCatalog.from_raw_items(RAW_ITEMS)
+    result = reconstruct_item_timeline(
+        _meta(final_items=[3000]),
+        [
+            _event(10_000, "ITEM_DESTROYED", 1036),
+            _event(20_000, "ITEM_PURCHASED", 1036),
+            _event(21_000, "ITEM_PURCHASED", 1042),
+            _event(30_000, "ITEM_PURCHASED", 3000),
+        ],
+        catalog,
+    )
+    contradictions = _summarize_intermediate_contradictions([result])
+    assert (
+        contradictions["counts"][
+            "component_consumed_after_ignored_destroy"
+        ]
+        == 0
+    )
 
 
 def test_destroyed_audit_detects_likely_real_removal():
@@ -376,6 +467,9 @@ def test_viego_destroyed_audit_does_not_use_champion_only():
         ]
         == 1
     )
+    assert result["inventory_reliability"]["interval_counts"][
+        "AMBIGUOUS_TEMPORARY_STATE"
+    ] == 1
 
 
 def main():
@@ -390,7 +484,10 @@ def main():
     test_undo_restores_consumed_components_for_later_sell()
     test_destroyed_audit_strong_temporary_requires_no_acquisition()
     test_destroyed_audit_final_inventory_is_not_temporary_proof()
+    test_consumable_destroyed_not_held_is_riot_representation()
     test_destroyed_audit_detects_missed_transformation()
+    test_retained_missed_transformation_marks_unreliable_interval()
+    test_component_contradiction_ignores_destroy_before_reacquisition()
     test_destroyed_audit_detects_likely_real_removal()
     test_viego_destroyed_audit_does_not_use_champion_only()
     print("Synthetic itemization checks passed.")

@@ -41,6 +41,10 @@ EXACT_FINAL_STATUSES = {
     "EXACT_WITH_EXPLAINED_GRANT",
 }
 
+INVENTORY_RELIABLE = "RELIABLE"
+INVENTORY_AMBIGUOUS_TEMPORARY_STATE = "AMBIGUOUS_TEMPORARY_STATE"
+INVENTORY_UNRESOLVED_TRANSFORMATION = "UNRESOLVED_TRANSFORMATION"
+
 KNOWN_TRINKET_IDS = {
     3340,
     3363,
@@ -1340,7 +1344,7 @@ def reconstruct_item_timeline(meta, events, catalog):
                 }
             )
 
-    return {
+    result = {
         "match_id": meta["match_id"],
         "game_creation": meta["game_creation"],
         "game_duration": meta["game_duration"],
@@ -1361,6 +1365,8 @@ def reconstruct_item_timeline(meta, events, catalog):
         "catalog_warnings": catalog.warnings,
         "catalog": catalog,
     }
+    _annotate_inventory_reliability(result)
+    return result
 
 
 def _normalize_final_counter(counter, catalog):
@@ -1752,6 +1758,9 @@ def _summarize_history(matches, transactions):
         "intermediate_contradictions": (
             _summarize_intermediate_contradictions(matches)
         ),
+        "inventory_reliability_audit": (
+            _summarize_inventory_reliability(matches)
+        ),
         "warning_buckets": _summarize_warning_buckets(warning_counts),
         "major_milestone_audit": _summarize_major_milestones(matches),
     }
@@ -1981,6 +1990,87 @@ def _find_later_repurchase(match, row):
     return None
 
 
+def _has_previous_same_item_destroyed(match, row):
+    item_id = row.get("item_id")
+    timestamp = row.get("timestamp") or 0
+
+    for transaction in match["transactions"]:
+        if transaction is row:
+            break
+        if (transaction.get("timestamp") or 0) >= timestamp:
+            continue
+        if transaction.get("event_type") != "ITEM_DESTROYED":
+            continue
+        if transaction.get("item_id") == item_id:
+            return True
+
+    return False
+
+
+def _purchase_consumes_related_component(catalog, purchase, item_id):
+    if not purchase:
+        return False
+
+    consumed_components = purchase.get("components_consumed") or []
+    for component_id in consumed_components:
+        if component_id == item_id:
+            return True
+        if _same_item_family(catalog, component_id, item_id):
+            return True
+        if _component_or_upgrade_relation(catalog, component_id, item_id):
+            return True
+        if _component_or_upgrade_relation(catalog, item_id, component_id):
+            return True
+
+    return False
+
+
+def _classify_destroyed_root_cause(
+    match,
+    row,
+    catalog,
+    classification,
+    transformation_purchase,
+    later_replacement,
+    held_before,
+    retained_after,
+    is_viego,
+    magical_footwear_context,
+):
+    if classification == "CONSUMABLE_DESTROYED_NOT_HELD_RIOT_REPRESENTATION":
+        return "TEMPORARY_MECHANIC"
+
+    if classification != "MISSED_TRANSFORMATION":
+        if is_viego and classification == "UNRESOLVED_TEMPORARY_POSSIBLE":
+            return "VIEGO_TEMPORARY_POSSIBLE"
+        if classification == "CONFIRMED_OR_STRONG_TEMPORARY_STATE":
+            return "TEMPORARY_MECHANIC"
+        return "UNRESOLVED"
+
+    if magical_footwear_context:
+        if _has_previous_same_item_destroyed(match, row):
+            return "EVENT_ORDER_DUPLICATE"
+        return "TEMPORARY_MECHANIC"
+
+    if is_viego:
+        return "VIEGO_TEMPORARY_POSSIBLE"
+
+    if held_before and retained_after:
+        return "REAL_MISSED_TRANSFORMATION"
+
+    if _purchase_consumes_related_component(
+        catalog,
+        transformation_purchase,
+        row.get("item_id"),
+    ):
+        return "ALREADY_HANDLED_BY_PURCHASE_COMPONENT_CONSUMPTION"
+
+    if transformation_purchase or later_replacement:
+        return "EVENT_ORDER_DUPLICATE"
+
+    return "UNRESOLVED"
+
+
 def _final_effective_counter(match):
     return match["final_validation"].get(
         "effective_reconstructed_final_counter",
@@ -2040,7 +2130,15 @@ def _destroyed_evidence_context(match, row):
     evidence = []
     classification = "UNRESOLVED"
 
-    if transformation_purchase:
+    if (
+        item_category == "CONSUMABLE"
+        and "CONSUMABLE_DESTROYED_NOT_HELD" in codes
+    ):
+        classification = "CONSUMABLE_DESTROYED_NOT_HELD_RIOT_REPRESENTATION"
+        evidence.append(
+            "consumable destroy/use event was observed after a consumed-on-purchase item was not kept in the durable slot model"
+        )
+    elif transformation_purchase:
         classification = "MISSED_TRANSFORMATION"
         evidence.append(
             "nearby purchase is connected by Data Dragon component/upgrade graph"
@@ -2094,6 +2192,19 @@ def _destroyed_evidence_context(match, row):
             "item appears in effective final inventory, used only as context"
         )
 
+    root_cause = _classify_destroyed_root_cause(
+        match=match,
+        row=row,
+        catalog=catalog,
+        classification=classification,
+        transformation_purchase=transformation_purchase,
+        later_replacement=later_replacement,
+        held_before=held_before,
+        retained_after=retained_after,
+        is_viego=is_viego,
+        magical_footwear_context=magical_footwear_context,
+    )
+
     return {
         "match_id": match["match_id"],
         "champion": match["champion"],
@@ -2103,6 +2214,7 @@ def _destroyed_evidence_context(match, row):
         "item_name": row.get("item_name"),
         "item_category": item_category,
         "classification": classification,
+        "root_cause": root_cause,
         "classification_evidence": evidence,
         "warning_codes": sorted(codes),
         "held_before": held_before,
@@ -2171,6 +2283,8 @@ def _summarize_destroyed_audit(matches):
     confidently_explained = 0
     remaining = []
     classification_counts = Counter()
+    root_cause_counts = Counter()
+    missed_transformation_root_cause_counts = Counter()
     champion_counts = Counter()
     item_counts = Counter()
     held_classification_counts = Counter()
@@ -2200,6 +2314,11 @@ def _summarize_destroyed_audit(matches):
             context = _destroyed_evidence_context(match, row)
             classification = context["classification"]
             classification_counts[classification] += 1
+            root_cause_counts[context["root_cause"]] += 1
+            if classification == "MISSED_TRANSFORMATION":
+                missed_transformation_root_cause_counts[
+                    context["root_cause"]
+                ] += 1
             champion_counts[match["champion"]] += 1
             item_counts[(row.get("item_id"), row.get("item_name"))] += 1
             games.add(match["match_id"])
@@ -2235,6 +2354,10 @@ def _summarize_destroyed_audit(matches):
         "remaining_unexplained": len(remaining),
         "games_affected": len(games),
         "classification_counts": classification_counts,
+        "root_cause_counts": root_cause_counts,
+        "missed_transformation_root_cause_counts": (
+            missed_transformation_root_cause_counts
+        ),
         "champion_counts": champion_counts,
         "item_counts": item_counts,
         "held_classification_counts": held_classification_counts,
@@ -2378,9 +2501,45 @@ def _summarize_sell_warning_audit(matches):
     }
 
 
+def _relevant_prior_ambiguous_component_destroy(
+    match,
+    purchase_index,
+    component_id,
+):
+    transactions = match["transactions"]
+    purchase = transactions[purchase_index]
+    purchase_timestamp = purchase.get("timestamp") or 0
+
+    for previous in reversed(transactions[:purchase_index]):
+        if (previous.get("timestamp") or 0) >= purchase_timestamp:
+            continue
+
+        if _is_acquisition_transaction(previous, component_id):
+            return None
+
+        if (
+            previous.get("event_type") in {"ITEM_SOLD", "ITEM_UNDO"}
+            and _transaction_mentions_item(previous, component_id)
+        ):
+            return None
+
+        if (
+            previous.get("event_type") == "ITEM_DESTROYED"
+            and previous.get("item_id") == component_id
+            and previous.get("reconstruction_status") == "AMBIGUOUS"
+        ):
+            context = _destroyed_evidence_context(match, previous)
+            if context["retained_after"]:
+                return previous, context
+            return None
+
+    return None
+
+
 def _summarize_intermediate_contradictions(matches):
     counts = Counter()
     affected_matches = defaultdict(set)
+    samples = defaultdict(list)
 
     for match in matches:
         transactions = match["transactions"]
@@ -2421,34 +2580,62 @@ def _summarize_intermediate_contradictions(matches):
                     match["match_id"]
                 )
 
-        ambiguous_destroyed_by_item = defaultdict(list)
-        for row in transactions:
-            if (
-                row.get("event_type") == "ITEM_DESTROYED"
-                and row.get("reconstruction_status") == "AMBIGUOUS"
-            ):
-                ambiguous_destroyed_by_item[row.get("item_id")].append(row)
-
-        for row in transactions:
+        for index, row in enumerate(transactions):
             if row.get("event_type") != "ITEM_PURCHASED":
                 continue
 
             for component_id in row.get("components_consumed") or []:
-                previous_ambiguous = [
-                    destroyed
-                    for destroyed in ambiguous_destroyed_by_item[
-                        component_id
-                    ]
-                    if (destroyed.get("timestamp") or 0)
-                    < (row.get("timestamp") or 0)
-                ]
+                previous_ambiguous = (
+                    _relevant_prior_ambiguous_component_destroy(
+                        match,
+                        index,
+                        component_id,
+                    )
+                )
                 if previous_ambiguous:
+                    destroyed, context = previous_ambiguous
                     counts[
                         "component_consumed_after_ignored_destroy"
                     ] += 1
                     affected_matches[
                         "component_consumed_after_ignored_destroy"
                     ].add(match["match_id"])
+                    if len(
+                        samples["component_consumed_after_ignored_destroy"]
+                    ) < 12:
+                        samples[
+                            "component_consumed_after_ignored_destroy"
+                        ].append(
+                            {
+                                "match_id": match["match_id"],
+                                "champion": match["champion"],
+                                "destroy_time": destroyed["time"],
+                                "purchase_time": row["time"],
+                                "component_id": component_id,
+                                "component_name": _catalog_for_match(
+                                    match
+                                ).name(component_id),
+                                "purchase_item_id": row.get("item_id"),
+                                "purchase_item_name": row.get(
+                                    "item_name"
+                                ),
+                                "destroy_classification": context[
+                                    "classification"
+                                ],
+                                "root_cause": context["root_cause"],
+                                "gap_seconds": round(
+                                    (
+                                        (row.get("timestamp") or 0)
+                                        - (
+                                            destroyed.get("timestamp")
+                                            or 0
+                                        )
+                                    )
+                                    / 1000,
+                                    1,
+                                ),
+                            }
+                        )
 
         for row in transactions:
             if (
@@ -2466,6 +2653,24 @@ def _summarize_intermediate_contradictions(matches):
                 affected_matches[
                     "retained_after_missed_transformation"
                 ].add(match["match_id"])
+                if len(
+                    samples["retained_after_missed_transformation"]
+                ) < 12:
+                    samples[
+                        "retained_after_missed_transformation"
+                    ].append(
+                        {
+                            "match_id": match["match_id"],
+                            "champion": match["champion"],
+                            "time": row["time"],
+                            "item_id": row.get("item_id"),
+                            "item_name": row.get("item_name"),
+                            "root_cause": context["root_cause"],
+                            "later_unobserved_replacement": context[
+                                "later_unobserved_replacement"
+                            ],
+                        }
+                    )
             if (
                 context["classification"] == "LIKELY_REAL_REMOVAL"
                 and context["retained_after"]
@@ -2481,6 +2686,346 @@ def _summarize_intermediate_contradictions(matches):
             key: sorted(values)
             for key, values in affected_matches.items()
         },
+        "samples": dict(samples),
+    }
+
+
+def _inventory_reliability_rank(status):
+    ranks = {
+        INVENTORY_RELIABLE: 0,
+        INVENTORY_AMBIGUOUS_TEMPORARY_STATE: 1,
+        INVENTORY_UNRESOLVED_TRANSFORMATION: 2,
+    }
+    return ranks.get(status, 0)
+
+
+def _interval_end_timestamp_for_destroy(match, row, context):
+    item_id = row.get("item_id")
+    start = row.get("timestamp") or 0
+    candidates = []
+
+    replacement = context.get("later_unobserved_replacement")
+    if replacement:
+        candidates.append(replacement.get("timestamp") or 0)
+
+    for transaction in match["transactions"]:
+        timestamp = transaction.get("timestamp") or 0
+        if timestamp <= start:
+            continue
+
+        if _transaction_mentions_item(transaction, item_id):
+            candidates.append(timestamp)
+
+        if (
+            transaction.get("event_type") == "ITEM_PURCHASED"
+            and item_id in (transaction.get("components_consumed") or [])
+        ):
+            candidates.append(timestamp)
+
+    valid_candidates = [
+        timestamp
+        for timestamp in candidates
+        if timestamp > start
+    ]
+    if valid_candidates:
+        return min(valid_candidates)
+
+    duration_ms = int((match.get("game_duration") or 0) * 1000)
+    if duration_ms > start:
+        return duration_ms
+
+    return None
+
+
+def _add_reliability_interval(
+    intervals,
+    *,
+    match,
+    status,
+    reason,
+    root_cause,
+    item_id,
+    item_name,
+    start_timestamp,
+    end_timestamp,
+    source_event_time,
+    resolution_time,
+):
+    if end_timestamp is not None and end_timestamp <= start_timestamp:
+        return
+
+    interval = {
+        "match_id": match["match_id"],
+        "champion": match["champion"],
+        "status": status,
+        "reason": reason,
+        "root_cause": root_cause,
+        "item_id": item_id,
+        "item_name": item_name,
+        "start_timestamp": start_timestamp,
+        "start_time": _format_time(start_timestamp),
+        "end_timestamp": end_timestamp,
+        "end_time": (
+            _format_time(end_timestamp)
+            if end_timestamp is not None
+            else "END_OF_GAME_OR_UNKNOWN"
+        ),
+        "source_event_time": source_event_time,
+        "resolution_time": resolution_time,
+    }
+    intervals.append(interval)
+
+
+def _build_inventory_reliability_intervals(match):
+    intervals = []
+
+    for row in match["transactions"]:
+        if (
+            row.get("event_type") != "ITEM_DESTROYED"
+            or row.get("reconstruction_status") != "AMBIGUOUS"
+        ):
+            continue
+
+        context = _destroyed_evidence_context(match, row)
+        root_cause = context["root_cause"]
+
+        if (
+            context["classification"] == "MISSED_TRANSFORMATION"
+            and root_cause == "TEMPORARY_MECHANIC"
+            and row.get("item_id") == SLIGHTLY_MAGICAL_BOOTS_ITEM_ID
+            and _has_perk(match, MAGICAL_FOOTWEAR_PERK_ID)
+        ):
+            timing = _derive_magical_footwear_timestamp(
+                match.get("takedown_timestamps")
+            )
+            start_timestamp = timing.get("derived_timestamp")
+            end_timestamp = row.get("timestamp") or 0
+            if start_timestamp is not None and start_timestamp < end_timestamp:
+                _add_reliability_interval(
+                    intervals,
+                    match=match,
+                    status=INVENTORY_UNRESOLVED_TRANSFORMATION,
+                    reason=(
+                        "DERIVED_RUNE_GRANT_NOT_MATERIALIZED_AS_RIOT_EVENT"
+                    ),
+                    root_cause=root_cause,
+                    item_id=row.get("item_id"),
+                    item_name=row.get("item_name"),
+                    start_timestamp=start_timestamp,
+                    end_timestamp=end_timestamp,
+                    source_event_time=row["time"],
+                    resolution_time=row["time"],
+                )
+
+        if (
+            context["classification"] == "MISSED_TRANSFORMATION"
+            and context["retained_after"]
+        ):
+            status = INVENTORY_UNRESOLVED_TRANSFORMATION
+            if root_cause == "VIEGO_TEMPORARY_POSSIBLE":
+                status = INVENTORY_AMBIGUOUS_TEMPORARY_STATE
+
+            end_timestamp = _interval_end_timestamp_for_destroy(
+                match,
+                row,
+                context,
+            )
+            _add_reliability_interval(
+                intervals,
+                match=match,
+                status=status,
+                reason="RETAINED_AFTER_MISSED_TRANSFORMATION",
+                root_cause=root_cause,
+                item_id=row.get("item_id"),
+                item_name=row.get("item_name"),
+                start_timestamp=row.get("timestamp") or 0,
+                end_timestamp=end_timestamp,
+                source_event_time=row["time"],
+                resolution_time=(
+                    _format_time(end_timestamp)
+                    if end_timestamp is not None
+                    else "END_OF_GAME_OR_UNKNOWN"
+                ),
+            )
+
+        elif (
+            context["classification"] == "UNRESOLVED_TEMPORARY_POSSIBLE"
+            and context["retained_after"]
+        ):
+            end_timestamp = _interval_end_timestamp_for_destroy(
+                match,
+                row,
+                context,
+            )
+            _add_reliability_interval(
+                intervals,
+                match=match,
+                status=INVENTORY_AMBIGUOUS_TEMPORARY_STATE,
+                reason="RETAINED_TEMPORARY_STATE_POSSIBLE",
+                root_cause=root_cause,
+                item_id=row.get("item_id"),
+                item_name=row.get("item_name"),
+                start_timestamp=row.get("timestamp") or 0,
+                end_timestamp=end_timestamp,
+                source_event_time=row["time"],
+                resolution_time=(
+                    _format_time(end_timestamp)
+                    if end_timestamp is not None
+                    else "END_OF_GAME_OR_UNKNOWN"
+                ),
+            )
+
+    for index, row in enumerate(match["transactions"]):
+        if row.get("event_type") != "ITEM_PURCHASED":
+            continue
+
+        for component_id in row.get("components_consumed") or []:
+            previous = _relevant_prior_ambiguous_component_destroy(
+                match,
+                index,
+                component_id,
+            )
+            if not previous:
+                continue
+
+            destroyed, context = previous
+            status = INVENTORY_UNRESOLVED_TRANSFORMATION
+            if context["root_cause"] == "VIEGO_TEMPORARY_POSSIBLE":
+                status = INVENTORY_AMBIGUOUS_TEMPORARY_STATE
+
+            _add_reliability_interval(
+                intervals,
+                match=match,
+                status=status,
+                reason="COMPONENT_CONSUMED_AFTER_IGNORED_DESTROY",
+                root_cause=context["root_cause"],
+                item_id=component_id,
+                item_name=_catalog_for_match(match).name(component_id),
+                start_timestamp=destroyed.get("timestamp") or 0,
+                end_timestamp=row.get("timestamp") or 0,
+                source_event_time=destroyed["time"],
+                resolution_time=row["time"],
+            )
+
+    deduped_by_key = {}
+    for interval in intervals:
+        key = (
+            interval["status"],
+            interval["root_cause"],
+            interval["item_id"],
+            interval["start_timestamp"],
+            interval["end_timestamp"],
+        )
+        if key in deduped_by_key:
+            existing = deduped_by_key[key]
+            reasons = set(existing.get("reasons") or [existing["reason"]])
+            reasons.add(interval["reason"])
+            existing["reasons"] = sorted(reasons)
+            existing["reason"] = " + ".join(existing["reasons"])
+            continue
+
+        interval["reasons"] = [interval["reason"]]
+        deduped_by_key[key] = interval
+
+    deduped = list(deduped_by_key.values())
+
+    deduped.sort(
+        key=lambda interval: (
+            interval["start_timestamp"],
+            interval["end_timestamp"] or 0,
+            interval["item_id"] or 0,
+        )
+    )
+    return deduped
+
+
+def _annotate_inventory_reliability(match):
+    intervals = _build_inventory_reliability_intervals(match)
+
+    for row in match["transactions"]:
+        timestamp = row.get("timestamp") or 0
+        active = [
+            interval
+            for interval in intervals
+            if interval["start_timestamp"] <= timestamp
+            and (
+                interval["end_timestamp"] is None
+                or timestamp < interval["end_timestamp"]
+            )
+        ]
+        status = INVENTORY_RELIABLE
+        if active:
+            status = max(
+                (interval["status"] for interval in active),
+                key=_inventory_reliability_rank,
+            )
+
+        row["inventory_reliability_after"] = status
+        row["inventory_reliability_reasons"] = sorted(
+            {
+                reason
+                for interval in active
+                for reason in (
+                    interval.get("reasons") or [interval["reason"]]
+                )
+                if interval["status"] == status
+            }
+        )
+
+    match["inventory_reliability"] = {
+        "intervals": intervals,
+        "interval_counts": Counter(
+            interval["status"]
+            for interval in intervals
+        ),
+        "reason_counts": Counter(
+            reason
+            for interval in intervals
+            for reason in (interval.get("reasons") or [interval["reason"]])
+        ),
+        "root_cause_counts": Counter(
+            interval["root_cause"]
+            for interval in intervals
+        ),
+        "affected_transaction_counts": Counter(
+            row.get("inventory_reliability_after", INVENTORY_RELIABLE)
+            for row in match["transactions"]
+        ),
+    }
+
+
+def _summarize_inventory_reliability(matches):
+    interval_counts = Counter()
+    reason_counts = Counter()
+    root_cause_counts = Counter()
+    affected_transaction_counts = Counter()
+    affected_matches = defaultdict(set)
+    samples = []
+
+    for match in matches:
+        reliability = match.get("inventory_reliability") or {}
+        interval_counts.update(reliability.get("interval_counts") or {})
+        reason_counts.update(reliability.get("reason_counts") or {})
+        root_cause_counts.update(reliability.get("root_cause_counts") or {})
+        affected_transaction_counts.update(
+            reliability.get("affected_transaction_counts") or {}
+        )
+
+        for interval in reliability.get("intervals") or []:
+            affected_matches[interval["status"]].add(match["match_id"])
+            if len(samples) < 12:
+                samples.append(interval)
+
+    return {
+        "interval_counts": interval_counts,
+        "reason_counts": reason_counts,
+        "root_cause_counts": root_cause_counts,
+        "affected_transaction_counts": affected_transaction_counts,
+        "affected_matches": {
+            key: sorted(values)
+            for key, values in affected_matches.items()
+        },
+        "samples": samples,
     }
 
 
@@ -2616,7 +3161,7 @@ def _catalog_for_match(match):
 def render_itemization_audit(history, mismatch_limit=12):
     summary = history["summary"]
     lines = [
-        "BUILD / ITEMIZATION ANALYZER V22 - PHASE 1C AUDIT",
+        "BUILD / ITEMIZATION ANALYZER V22 - PHASE 1D AUDIT",
         "",
         "Scope: factual Riot item-event reconstruction only. No build",
         "recommendation, item-quality label, or Win/Loss item judgment is",
@@ -2667,6 +3212,8 @@ def render_itemization_audit(history, mismatch_limit=12):
             f"- remaining audit-only ambiguous/unexplained: {summary['destroyed_audit']['remaining_unexplained']}",
             f"- games affected by remaining destroyed audit: {summary['destroyed_audit']['games_affected']}",
             f"- audit-only classifications: {_format_counts(summary['destroyed_audit']['classification_counts'])}",
+            f"- audit root causes: {_format_counts(summary['destroyed_audit']['root_cause_counts'])}",
+            f"- MISSED_TRANSFORMATION root causes: {_format_counts(summary['destroyed_audit']['missed_transformation_root_cause_counts'])}",
             f"- held before destroy: {summary['destroyed_audit']['held_ignored']} | not held before destroy: {summary['destroyed_audit']['not_held_ignored']}",
             f"- held classifications: {_format_counts(summary['destroyed_audit']['held_classification_counts'])}",
             f"- not-held classifications: {_format_counts(summary['destroyed_audit']['not_held_classification_counts'])}",
@@ -2694,6 +3241,12 @@ def render_itemization_audit(history, mismatch_limit=12):
             "Intermediate contradiction audit:",
             f"- counts: {_format_counts(summary['intermediate_contradictions']['counts'])}",
             "",
+            "Inventory reliability audit:",
+            f"- interval counts: {_format_counts(summary['inventory_reliability_audit']['interval_counts'])}",
+            f"- reason counts: {_format_counts(summary['inventory_reliability_audit']['reason_counts'])}",
+            f"- root-cause counts: {_format_counts(summary['inventory_reliability_audit']['root_cause_counts'])}",
+            f"- affected transaction states: {_format_counts(summary['inventory_reliability_audit']['affected_transaction_counts'])}",
+            "",
             "Major item milestone audit:",
             f"- completed-major milestones: {summary['major_milestone_audit']['completed_major_milestones']}",
             f"- unusual excluded-category milestones: {summary['major_milestone_audit']['unusual_count']}",
@@ -2717,14 +3270,49 @@ def render_itemization_audit(history, mismatch_limit=12):
                 )
             )
 
-    if summary["destroyed_audit"]["samples"]:
+    contradiction_samples = summary["intermediate_contradictions"].get(
+        "samples",
+        {},
+    )
+    if contradiction_samples:
         lines.extend(
             [
                 "",
-                "Destroyed evidence samples:",
+                "Focused intermediate samples:",
             ]
         )
-        for sample in summary["destroyed_audit"]["samples"][:8]:
+        for kind in (
+            "retained_after_missed_transformation",
+            "component_consumed_after_ignored_destroy",
+        ):
+            for sample in contradiction_samples.get(kind, [])[:6]:
+                lines.append(f"- {kind}: {sample}")
+
+    focused_records = [
+        record
+        for record in summary["destroyed_audit"]["records"]
+        if record["classification"]
+        in {
+            "MISSED_TRANSFORMATION",
+            "UNRESOLVED",
+            "CONSUMABLE_DESTROYED_NOT_HELD_RIOT_REPRESENTATION",
+        }
+        or record["root_cause"]
+        in {
+            "REAL_MISSED_TRANSFORMATION",
+            "EVENT_ORDER_DUPLICATE",
+            "ALREADY_HANDLED_BY_PURCHASE_COMPONENT_CONSUMPTION",
+            "VIEGO_TEMPORARY_POSSIBLE",
+        }
+    ]
+    if focused_records:
+        lines.extend(
+            [
+                "",
+                "Focused destroyed evidence samples:",
+            ]
+        )
+        for sample in focused_records[:12]:
             evidence = "; ".join(
                 sample.get("classification_evidence") or []
             )
@@ -2733,7 +3321,8 @@ def render_itemization_audit(history, mismatch_limit=12):
                     f"- {sample['match_id']} | {sample['champion']} | "
                     f"{sample['time']} | {sample['item_name']} "
                     f"({sample['item_id']}) | "
-                    f"{sample['classification']} | held_before="
+                    f"{sample['classification']} | root_cause="
+                    f"{sample['root_cause']} | held_before="
                     f"{sample['held_before']} | retained_after="
                     f"{sample['retained_after']} | "
                     f"before={sample['inventory_before']} | "
@@ -2742,53 +3331,21 @@ def render_itemization_audit(history, mismatch_limit=12):
                 )
             )
 
-    if summary["destroyed_audit"]["records"]:
+    if summary["inventory_reliability_audit"]["samples"]:
         lines.extend(
             [
                 "",
-                (
-                    "Destroyed evidence records: "
-                    f"{len(summary['destroyed_audit']['records'])}"
-                ),
+                "Inventory reliability interval samples:",
             ]
         )
-
-        for record in summary["destroyed_audit"]["records"]:
-            evidence = "; ".join(
-                record.get("classification_evidence") or []
-            )
-            previous_item = record.get("previous_item_transaction")
-            next_item = record.get("next_item_transaction")
-            transformation = record.get("transformation_purchase")
-            replacement = record.get("later_unobserved_replacement")
-            later_repurchase = record.get("later_repurchase")
+        for interval in summary["inventory_reliability_audit"]["samples"]:
             lines.append(
                 (
-                    f"- {record['match_id']} | {record['champion']} | "
-                    f"{record['time']} | {record['item_name']} "
-                    f"({record['item_id']}) | "
-                    f"class={record['classification']} | "
-                    f"held_before={record['held_before']} | "
-                    f"retained_after={record['retained_after']} | "
-                    f"slots={record['slot_count_before']}->"
-                    f"{record['slot_count_after']} | "
-                    f"same_purchases="
-                    f"{len(record['same_timestamp_purchases'])} | "
-                    f"same_sells="
-                    f"{len(record['same_timestamp_sells'])} | "
-                    f"same_undos="
-                    f"{len(record['same_timestamp_undos'])} | "
-                    f"previous={previous_item} | "
-                    f"next={next_item} | "
-                    f"later_repurchase={later_repurchase} | "
-                    f"transformation={transformation} | "
-                    f"replacement={replacement} | "
-                    f"before={record['inventory_before']} | "
-                    f"after={record['inventory_after']} | "
-                    f"final_riot={record['final_riot_inventory']} | "
-                    f"final_reconstructed="
-                    f"{record['final_reconstructed_inventory']} | "
-                    f"evidence={evidence}"
+                    f"- {interval['match_id']} | {interval['champion']} | "
+                    f"{interval['item_name']} ({interval['item_id']}) | "
+                    f"{interval['status']} | {interval['reason']} | "
+                    f"root_cause={interval['root_cause']} | "
+                    f"{interval['start_time']}->{interval['end_time']}"
                 )
             )
 
@@ -2982,6 +3539,15 @@ def render_match_itemization_report(history, match_id=TARGET_MATCH_ID):
             + " | trinket "
             + catalog.name(validation["reconstructed_trinket"])
         ),
+        (
+            "Inventory reliability intervals: "
+            + _format_counts(
+                match.get("inventory_reliability", {}).get(
+                    "interval_counts",
+                    Counter(),
+                )
+            )
+        ),
     ]
 
     grants = (
@@ -3083,6 +3649,8 @@ def render_match_itemization_report(history, match_id=TARGET_MATCH_ID):
                 f"inventory: {transaction['slot_items']} | "
                 f"trinket: {transaction['trinket']} | "
                 f"status: {transaction['reconstruction_status']}"
+                f" | reliability: "
+                f"{transaction.get('inventory_reliability_after', INVENTORY_RELIABLE)}"
                 f"{warning_text}"
             )
         )

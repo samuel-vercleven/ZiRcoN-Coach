@@ -9,7 +9,7 @@
 Frozen means: no retuning/refactor without a demonstrated correctness or integration bug or explicit project review request.
 
 ## In development
-- Build / Itemization Analyzer v22 Phase 1C - implemented, in validation, REVIEW_REQUIRED.
+- Build / Itemization Analyzer v22 Phase 1D - implemented, in validation, REVIEW_REQUIRED.
 - Scope is factual item timeline / inventory reconstruction only; no recommendation logic, item-quality label, or build scoring.
 
 ## Dataset
@@ -89,7 +89,7 @@ Technical fixes / audit support:
 - .gitignore ignores .env, .venv, *.db, __pycache__, and logs/ so local secrets, DBs, and logs are not staged accidentally.
 
 ## Build / Itemization Analyzer v22
-Status: Phase 1C implemented, REVIEW_REQUIRED, not frozen.
+Status: Phase 1D implemented, REVIEW_REQUIRED, not frozen.
 
 Design:
 - New UI-agnostic analyzer reconstructs factual item state from Riot timeline item events.
@@ -105,9 +105,11 @@ Design:
 - Destroyed-event audit is evidence-based and records before/after inventory state, same-timestamp events, previous/next item transactions, later repurchase, transformation candidates, final inventories, and classification evidence.
 - Viego-specific handling is isolated to audit context; it does not change normal champion reconstruction.
 - Undo now restores the actual components consumed by the undone purchase when Riot emits ITEM_UNDO after a completed-item purchase.
+- Phase 1D adds generic inventory reliability states for future consumers: RELIABLE, AMBIGUOUS_TEMPORARY_STATE, UNRESOLVED_TRANSFORMATION.
+- Unreliable intervals are marked explicitly instead of fabricating corrected item events.
 
 Latest verification:
-- `python main.py` completed on 2026-08-18 after v22 Phase 1C updates.
+- `python main.py` completed on 2026-08-18 after v22 Phase 1D updates.
 - Full Jungle history: 87 games, 4277 player item events.
 - Event counts: 1536 purchases, 11 sells, 45 undo events, 2685 destroyed events.
 - Final inventory validation: 86 EXACT, 1 EXACT_WITH_EXPLAINED_GRANT, 0 PARTIAL, 0 MISMATCH, 0 UNKNOWN.
@@ -118,23 +120,29 @@ Latest verification:
 - EUW1_7836627546 derived grant timestamp: 09:45, DERIVED_INFERRED from Magical Footwear base timing and 3 observed takedowns.
 - Non-purchase final grants: 1 match, source RUNE_GRANT, grant type MAGICAL_FOOTWEAR.
 - ITEM_DESTROYED audit: 2685 total, 1085 confidently explained, 1600 remaining evidence records.
-- Evidence-based destroyed classifications: 834 CONFIRMED_OR_STRONG_TEMPORARY_STATE, 674 UNRESOLVED_TEMPORARY_POSSIBLE, 79 MISSED_TRANSFORMATION, 13 UNRESOLVED.
+- Evidence-based destroyed classifications: 818 CONFIRMED_OR_STRONG_TEMPORARY_STATE, 658 UNRESOLVED_TEMPORARY_POSSIBLE, 79 MISSED_TRANSFORMATION, 45 CONSUMABLE_DESTROYED_NOT_HELD_RIOT_REPRESENTATION, 0 plain UNRESOLVED.
+- MISSED_TRANSFORMATION root causes: 60 TEMPORARY_MECHANIC, 9 EVENT_ORDER_DUPLICATE, 8 VIEGO_TEMPORARY_POSSIBLE, 1 ALREADY_HANDLED_BY_PURCHASE_COMPONENT_CONSUMPTION, 1 REAL_MISSED_TRANSFORMATION.
 - Held-before-destroy classifications: 512 UNRESOLVED_TEMPORARY_POSSIBLE and 3 MISSED_TRANSFORMATION.
-- Not-held classifications: 834 CONFIRMED_OR_STRONG_TEMPORARY_STATE, 162 UNRESOLVED_TEMPORARY_POSSIBLE, 76 MISSED_TRANSFORMATION, 13 UNRESOLVED.
-- Viego audit: 9 games, 1384 ITEM_DESTROYED events, 1189 ambiguous events; evidence classifications are 674 UNRESOLVED_TEMPORARY_POSSIBLE, 588 CONFIRMED_OR_STRONG_TEMPORARY_STATE, 12 MISSED_TRANSFORMATION.
+- Not-held classifications: 818 CONFIRMED_OR_STRONG_TEMPORARY_STATE, 146 UNRESOLVED_TEMPORARY_POSSIBLE, 76 MISSED_TRANSFORMATION, 45 CONSUMABLE_DESTROYED_NOT_HELD_RIOT_REPRESENTATION.
+- Viego audit: 9 games, 1384 ITEM_DESTROYED events, 1189 ambiguous events; evidence classifications are 605 UNRESOLVED_TEMPORARY_POSSIBLE, 572 CONFIRMED_OR_STRONG_TEMPORARY_STATE, 28 CONSUMABLE_DESTROYED_NOT_HELD_RIOT_REPRESENTATION, 12 MISSED_TRANSFORMATION.
 - SELL_ITEM_NOT_RECONSTRUCTED_AS_HELD warnings: 0 after undo component-restore fix.
 - Restored-component sell case resolved: EUW1_7839112939 Shyvana, undo Steelcaps at 15:33 restored Cloth Armor, later sold at 25:13.
-- Intermediate contradiction audit: 78 component-consumed-after-ignored-destroy cases and 3 retained-after-missed-transformation cases.
+- Intermediate contradiction audit: 68 component-consumed-after-ignored-destroy cases and 3 retained-after-missed-transformation cases.
+- Phase 1D retained-after-missed details: 1 real non-Viego transformation interval and 2 Viego temporary-possible intervals.
+- Inventory reliability intervals: 509 AMBIGUOUS_TEMPORARY_STATE and 47 UNRESOLVED_TRANSFORMATION.
+- Reliability reasons: 506 RETAINED_TEMPORARY_STATE_POSSIBLE, 65 COMPONENT_CONSUMED_AFTER_IGNORED_DESTROY, 46 DERIVED_RUNE_GRANT_NOT_MATERIALIZED_AS_RIOT_EVENT, 3 RETAINED_AFTER_MISSED_TRANSFORMATION.
+- Affected transaction states: 2635 RELIABLE, 1396 AMBIGUOUS_TEMPORARY_STATE, 246 UNRESOLVED_TRANSFORMATION.
 - Major item milestone audit: 265 completed-major milestones, 0 unusual excluded-category milestones.
 
 Known remaining issues:
-- Phase 1C remains REVIEW_REQUIRED and not frozen; freeze decision belongs to project review.
+- Phase 1D remains REVIEW_REQUIRED and not frozen; freeze decision belongs to project review.
 - Normal ITEM_DESTROYED events are preserved as auditable AMBIGUOUS cases unless explained by same-timestamp component completion, consumable removal, jungle-item removal, or trinket-use handling.
 - Viego produces many normal destroyed-item events consistent with temporary copied/possession inventory state, but champion identity alone is not used as proof.
 - Viego temporary possession inventory remains TEMPORARY_POSSESSION_INVENTORY_UNRELIABLE.
-- 79 MISSED_TRANSFORMATION records and 13 UNRESOLVED records remain audit findings, with no final inventory mismatch.
-- No LIKELY_REAL_REMOVAL evidence was found in the Phase 1C audit.
-- The analyzer is not frozen until project review accepts the non-purchase grant policy and evidence-based destroyed-event uncertainty semantics.
+- One REAL_MISSED_TRANSFORMATION non-Viego interval remains marked UNRESOLVED_TRANSFORMATION instead of being force-corrected.
+- Plain UNRESOLVED destroyed records are now 0; the previous 13-case family was explained as consumable Riot representation, and the full current count is 45 consumable not-held representations.
+- No LIKELY_REAL_REMOVAL evidence was found in the Phase 1D audit.
+- The analyzer is not frozen until project review accepts the non-purchase grant policy, evidence-based destroyed-event uncertainty semantics, and inventory reliability interval semantics.
 
 ## Architecture
 - main.py remains a dev/integration harness.

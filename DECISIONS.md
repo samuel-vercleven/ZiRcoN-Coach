@@ -61,3 +61,18 @@ Rules:
 - Do not describe reset proxies as exact recalls.
 - Do not convert current Gold, objective proximity, or low Reentry Score into automatic fault labels.
 - Keep raw reset components auditable alongside any explanatory composite.
+
+## Build / Itemization Analyzer v22 - Phase 1D reliability policy
+Decision:
+Do not fabricate corrected inventory events when Riot item chronology is ambiguous. Mark affected intervals with generic inventory reliability states instead.
+
+Rules:
+- RELIABLE means the reconstructed durable inventory can be used by future consumers.
+- AMBIGUOUS_TEMPORARY_STATE means a temporary/possession-like mechanic may make the observed inventory unreliable for that interval.
+- UNRESOLVED_TRANSFORMATION means Riot/Data Dragon chronology indicates a transformation or grant-related interval that cannot be safely materialized as an observed item event.
+- Viego-specific uncertainty must use the generic reliability mechanism and remain isolated from normal champion reconstruction.
+- Magical Footwear derived timing remains DERIVED / INFERRED unless Riot emits an observed item event.
+- Build recommendations must ignore or explicitly handle unreliable intervals.
+
+Status:
+This is a Phase 1D implementation policy under REVIEW_REQUIRED, not a freeze decision.
