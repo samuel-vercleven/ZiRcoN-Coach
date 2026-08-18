@@ -1,6 +1,7 @@
 from knowledge.item_knowledge import (
     PARTIALLY_PARSED_EFFECT_TEXT,
     SEMANTIC_PARSER_UNSUPPORTED_LOCALE,
+    UNPARSED_EFFECT_TEXT,
     build_item_knowledge_catalog,
 )
 
@@ -251,6 +252,45 @@ RAW_ITEMS = {
         "maps": {"11": True},
         "stats": {},
     },
+    "6017": {
+        "name": "Same Sentence Damage And Attack Speed",
+        "description": (
+            "<mainText><stats></stats><br><br>"
+            "<active>Explosion accélérée</active><br>"
+            "Inflige 100 dégâts magiques et vous confère 30% de vitesse d'attaque."
+            "</mainText>"
+        ),
+        "gold": {"base": 1000, "purchasable": True, "total": 1000, "sell": 700},
+        "tags": ["Active"],
+        "maps": {"11": True},
+        "stats": {},
+    },
+    "6018": {
+        "name": "Same Sentence Shield And Slow",
+        "description": (
+            "<mainText><stats></stats><br><br>"
+            "<passive>Mélange</passive><br>"
+            "Vous gagnez un bouclier et votre prochaine attaque ralentit la cible."
+            "</mainText>"
+        ),
+        "gold": {"base": 1000, "purchasable": True, "total": 1000, "sell": 700},
+        "tags": [],
+        "maps": {"11": True},
+        "stats": {},
+    },
+    "6019": {
+        "name": "Completely Unknown Mechanic",
+        "description": (
+            "<mainText><stats></stats><br><br>"
+            "<passive>Inconnu</passive><br>"
+            "Texte mécanique totalement opaque."
+            "</mainText>"
+        ),
+        "gold": {"base": 1000, "purchasable": True, "total": 1000, "sell": 700},
+        "tags": [],
+        "maps": {"11": True},
+        "stats": {},
+    },
     "7000": {
         "name": "Repeated Recipe",
         "description": "<mainText><stats>+20 dégâts d'attaque</stats></mainText>",
@@ -328,6 +368,75 @@ def test_partial_parsing_is_preserved():
     assert record["semantic_parse_summary"]["partially_parsed_sections"] == 1
 
 
+def test_same_sentence_unknown_mechanic_makes_section_partial():
+    record = _catalog()["records"][6017]
+    assert any(
+        effect["effect_type"] == "ACTIVE_DAMAGE"
+        for effect in record["effects"]
+    )
+    assert record["semantic_parse_summary"].get("fully_parsed_sections", 0) == 0
+    assert record["semantic_parse_summary"]["partially_parsed_sections"] == 1
+    assert any(
+        unparsed["kind"] == PARTIALLY_PARSED_EFFECT_TEXT
+        and any(
+            "vitesse d'attaque" in fragment
+            for fragment in unparsed["unparsed_fragments"]
+        )
+        and "Inflige 100 dégâts magiques" in unparsed["text"]
+        for unparsed in record["unparsed_effect_text"]
+    )
+
+
+def test_same_sentence_recognized_effect_does_not_swallow_unknown_clause():
+    record = _catalog()["records"][6018]
+    effects = {effect["effect_type"] for effect in record["effects"]}
+    assert "SLOW" in effects
+    assert "ACTIVE_SHIELD" not in effects
+    assert record["semantic_parse_summary"]["partially_parsed_sections"] == 1
+    assert any(
+        unparsed["kind"] == PARTIALLY_PARSED_EFFECT_TEXT
+        and any("bouclier" in fragment for fragment in unparsed["unparsed_fragments"])
+        for unparsed in record["unparsed_effect_text"]
+    )
+
+
+def test_simple_single_mechanic_can_remain_fully_parsed():
+    record = _catalog()["records"][6006]
+    assert any(
+        effect["effect_type"] == "ACTIVE_DAMAGE"
+        for effect in record["effects"]
+    )
+    assert record["semantic_parse_summary"]["fully_parsed_sections"] == 1
+    assert not record["unparsed_effect_text"]
+
+
+def test_completely_unknown_sentence_preserves_source_text():
+    record = _catalog()["records"][6019]
+    assert not record["effects"]
+    assert record["semantic_parse_summary"]["completely_unparsed_sections"] == 1
+    assert any(
+        unparsed["kind"] == UNPARSED_EFFECT_TEXT
+        and unparsed["text"] == "Texte mécanique totalement opaque."
+        and unparsed["unparsed_fragments"] == ["Texte mécanique totalement opaque."]
+        for unparsed in record["unparsed_effect_text"]
+    )
+
+
+def test_no_source_text_loss_for_incomplete_semantic_sections():
+    catalog = _catalog()
+    for record in catalog["records"].values():
+        for unparsed in record["unparsed_effect_text"]:
+            assert unparsed["text"]
+            if unparsed["kind"] in {
+                PARTIALLY_PARSED_EFFECT_TEXT,
+                UNPARSED_EFFECT_TEXT,
+            }:
+                assert unparsed["unparsed_fragments"]
+        for detail in record["semantic_parse_details"]:
+            assert "text" in detail
+            assert "unresolved_text" in detail
+
+
 def test_recursive_component_multiplicity():
     graph = _catalog()["records"][7000]["item_graph"]
     assert graph["direct_components"] == [1036, 1036, 1042]
@@ -356,6 +465,11 @@ def main():
     test_transformation_precision()
     test_on_hit_damage_requires_damage()
     test_partial_parsing_is_preserved()
+    test_same_sentence_unknown_mechanic_makes_section_partial()
+    test_same_sentence_recognized_effect_does_not_swallow_unknown_clause()
+    test_simple_single_mechanic_can_remain_fully_parsed()
+    test_completely_unknown_sentence_preserves_source_text()
+    test_no_source_text_loss_for_incomplete_semantic_sections()
     test_recursive_component_multiplicity()
     test_unsupported_locale_keeps_raw_data_but_skips_description_semantics()
     print("Item knowledge precision checks passed.")

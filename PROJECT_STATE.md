@@ -10,7 +10,7 @@
 Frozen means: no retuning/refactor without a demonstrated correctness or integration bug or explicit project review request.
 
 ## In development
-- Item Knowledge Base Phase 2A-B: precision pass implemented and awaiting project review.
+- Item Knowledge Base Phase 2A-C: conservative semantic completeness fix implemented and awaiting project review.
 - Status: REVIEW_REQUIRED, not FROZEN.
 - Next major task remains for project review / TODO.md.
 
@@ -147,8 +147,8 @@ Permanent Phase 1 limitations:
 - Plain UNRESOLVED destroyed records are 0 in the Phase 1D baseline; the previous 13-case family was explained as consumable Riot representation, and the full current count is 45 consumable not-held representations.
 - No LIKELY_REAL_REMOVAL evidence was found in the Phase 1D audit.
 
-## Item Knowledge Base Phase 2A-B
-Status: precision pass implemented, REVIEW_REQUIRED, not FROZEN.
+## Item Knowledge Base Phase 2A-C
+Status: conservative completeness fix implemented, REVIEW_REQUIRED, not FROZEN.
 
 Purpose:
 - UI-agnostic, patch-aware factual knowledge layer for all Data Dragon items.
@@ -167,6 +167,10 @@ Implementation:
 - Cleans item HTML descriptions and extracts stats/passive/active/rules sections where exposed.
 - Extracts factual mechanics with evidence and confidence; description-derived effects remain DESCRIPTION_EXPLICIT, not recommendation logic.
 - Phase 2A-B prioritizes semantic precision over recall for high-risk families.
+- Phase 2A-C makes section completeness conservative: a matched phrase inside a sentence is not enough to mark the whole section FULLY_PARSED.
+- Same-sentence clauses split by simple connectors such as commas, "et", "puis", "mais", "ainsi que", and "tout en" must each have matched semantic evidence, otherwise the section is PARTIALLY_PARSED.
+- PARTIALLY_PARSED records preserve original section text, unresolved clauses, matched effects, matched texts, and partial fragment details.
+- Semantic parse details now expose section text and unresolved_text for future consumers.
 - `OnHit` Data Dragon tags no longer imply ON_HIT_DAMAGE without explicit damage evidence.
 - `*DAMAGE` semantic effects require damage action evidence in the same section/clause.
 - EXECUTE excludes quest-completion wording such as "achève une quête".
@@ -182,20 +186,21 @@ Real Data Dragon audit baseline:
 - Command: python -m knowledge.item_knowledge.
 - Locale: fr_FR.
 - Resolved Data Dragon version: 16.16.1.
-- Item knowledge version: item_knowledge_phase2a_b_v1.
+- Item knowledge version: item_knowledge_phase2a_c_v1.
 - Total item records: 868.
 - Purchasable Summoner's Rift items: 254.
 - Items with normalized stats: 655.
 - Items with extracted effects: 414.
 - Items with description-only effects: 357.
-- Items with unparsed effect text: 396.
+- Items with unparsed effect text: 443.
 - Items with UNKNOWN metadata: 0.
 - Items with unknown raw stats preserved: 0.
-- Description effect sections fully parsed: 198.
-- Description effect sections partially parsed: 151.
+- Description effect sections fully parsed: 96.
+- Description effect sections partially parsed: 253.
 - Description effect sections completely unparsed: 384.
 - Semantic parser statuses: SUPPORTED 868.
 - Graph inconsistencies: 0.
+- Same-sentence partial parse fragments with a recognized effect and unresolved clauses: 201.
 - Recipes with repeated direct components: 45.
 - Recipes with repeated recursive components: 170.
 - Duplicate IDs: 0.
@@ -213,18 +218,19 @@ Coverage highlights:
 Known Phase 2A limitations:
 - Description parsing is factual evidence extraction, not validated gameplay advice.
 - DESCRIPTION_EXPLICIT effects remain parser-derived from Data Dragon text and must stay auditable through evidence_text.
-- 396 items still contain UNPARSED_EFFECT_TEXT / PARTIALLY_PARSED_EFFECT_TEXT; future consumers must explicitly handle or ignore those fragments.
+- 443 items still contain UNPARSED_EFFECT_TEXT / PARTIALLY_PARSED_EFFECT_TEXT; future consumers must explicitly handle or ignore those fragments.
+- FULLY_PARSED counts intentionally decreased after Phase 2A-C; this is preferred over silently treating unrecognized same-sentence mechanics as understood.
 - Duplicate item names are preserved because Data Dragon exposes separate item IDs/variants.
 - Semantic parser support is currently explicit for fr_FR only.
 - No champion semantic knowledge, composition analysis, build recommendation, GOOD/BAD label, item score, personal win-rate adjustment, or ML has been started.
-- Phase 2A-B is ready for project review, not freeze.
+- Phase 2A-C is ready for project review, not freeze.
 
 ## Architecture
 - main.py remains a dev/integration harness.
 - Final UI later with PySide6.
 - Analysis modules should remain UI-agnostic.
 - Itemization v22 logic lives in analysis/itemization_analyzer.py; synthetic checks live in analysis/itemization_synthetic_checks.py.
-- Item Knowledge Base Phase 2A-B lives in knowledge/item_knowledge.py; synthetic checks live in knowledge/item_knowledge_synthetic_checks.py and knowledge/item_knowledge_precision_checks.py.
+- Item Knowledge Base Phase 2A-C lives in knowledge/item_knowledge.py; synthetic checks live in knowledge/item_knowledge_synthetic_checks.py and knowledge/item_knowledge_precision_checks.py.
 
 ## Handoff rule
 Codex must update this file after each completed task.

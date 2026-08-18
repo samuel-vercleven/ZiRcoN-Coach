@@ -12,7 +12,7 @@ from riot.data_dragon import (
 )
 
 
-ITEM_KNOWLEDGE_VERSION = "item_knowledge_phase2a_b_v1"
+ITEM_KNOWLEDGE_VERSION = "item_knowledge_phase2a_c_v1"
 DEFAULT_LOCALE = "fr_FR"
 UNKNOWN = "UNKNOWN"
 NOT_EXPOSED = "NOT_EXPOSED"
@@ -746,6 +746,37 @@ def _split_semantic_fragments(text):
     return [_collapse_spaces(fragment) for fragment in fragments if _collapse_spaces(fragment)]
 
 
+def _split_semantic_clauses(fragment):
+    clauses = re.split(
+        r"\s+(?:et|puis|ainsi\s+que|mais|tout\s+en)\s+|,\s*",
+        fragment or "",
+        flags=re.IGNORECASE,
+    )
+    return [_collapse_spaces(clause) for clause in clauses if _collapse_spaces(clause)]
+
+
+def _contains_matched_semantic_text(text, normalized_matched_texts):
+    normalized_text = _normalize_text(text)
+    return any(
+        matched_text in normalized_text for matched_text in normalized_matched_texts
+    )
+
+
+def _unresolved_semantic_clauses(fragment, normalized_matched_texts):
+    if not _contains_matched_semantic_text(fragment, normalized_matched_texts):
+        return [fragment]
+
+    clauses = _split_semantic_clauses(fragment)
+    if len(clauses) <= 1:
+        return []
+
+    return [
+        clause
+        for clause in clauses
+        if not _contains_matched_semantic_text(clause, normalized_matched_texts)
+    ]
+
+
 def _section_partial_parse_record(
     section,
     section_text,
@@ -760,6 +791,9 @@ def _section_partial_parse_record(
         for effect in section_effects
         if effect.get("matched_text")
     ]
+    normalized_matched_texts = [
+        _normalize_text(text) for text in matched_texts if _normalize_text(text)
+    ]
     if not section_effects:
         return (
             {
@@ -767,6 +801,7 @@ def _section_partial_parse_record(
                 "section_type": section.get("section_type", UNKNOWN),
                 "section_name": section.get("name", UNKNOWN),
                 "text": section.get("text"),
+                "unparsed_fragments": [section.get("text")],
                 "source": "DDRAGON_DESCRIPTION",
                 "ddragon_version": ddragon_version,
             },
@@ -774,11 +809,25 @@ def _section_partial_parse_record(
         )
 
     unmatched_fragments = []
+    partial_fragment_details = []
     for fragment in _split_semantic_fragments(section.get("text")):
-        normalized_fragment = _normalize_text(fragment)
-        if any(_normalize_text(text) in normalized_fragment for text in matched_texts):
-            continue
-        unmatched_fragments.append(fragment)
+        matched_in_fragment = _contains_matched_semantic_text(
+            fragment,
+            normalized_matched_texts,
+        )
+        unresolved_clauses = _unresolved_semantic_clauses(
+            fragment,
+            normalized_matched_texts,
+        )
+        if unresolved_clauses:
+            unmatched_fragments.extend(unresolved_clauses)
+            partial_fragment_details.append(
+                {
+                    "fragment": fragment,
+                    "matched_in_fragment": matched_in_fragment,
+                    "unresolved_clauses": unresolved_clauses,
+                }
+            )
 
     if unmatched_fragments:
         return (
@@ -788,6 +837,7 @@ def _section_partial_parse_record(
                 "section_name": section.get("name", UNKNOWN),
                 "text": section.get("text"),
                 "unparsed_fragments": unmatched_fragments,
+                "partial_fragment_details": partial_fragment_details,
                 "matched_effect_types": [
                     effect["effect_type"] for effect in section_effects
                 ],
@@ -842,6 +892,7 @@ def extract_item_effects(
                     "section_type": section.get("section_type", UNKNOWN),
                     "section_name": section.get("name", UNKNOWN),
                     "text": section.get("text"),
+                    "unparsed_fragments": [section.get("text")],
                     "source": "DDRAGON_DESCRIPTION",
                     "ddragon_version": ddragon_version,
                 }
@@ -905,10 +956,14 @@ def extract_item_effects(
             {
                 "section_type": section.get("section_type", UNKNOWN),
                 "section_name": section.get("name", UNKNOWN),
+                "text": section.get("text"),
                 "parse_status": parse_status,
                 "matched_effect_types": [
                     effect["effect_type"] for effect in section_effects
                 ],
+                "unresolved_text": parse_record.get("unparsed_fragments", [])
+                if parse_record
+                else [],
             }
         )
         if parse_record:
@@ -1377,6 +1432,8 @@ def summarize_item_knowledge(records, graph_issues, invalid_item_keys=None):
     section_parse_counts = Counter()
     repeated_direct_component_recipes = []
     repeated_recursive_component_recipes = []
+    same_sentence_partial_parse_samples = []
+    same_sentence_partial_parse_count = 0
 
     for record in records.values():
         normalized_stats = record["normalized_stats"]
@@ -1399,6 +1456,34 @@ def summarize_item_knowledge(records, graph_issues, invalid_item_keys=None):
             record.get("semantic_parser", {}).get("status", UNKNOWN)
         ] += 1
         section_parse_counts.update(record.get("semantic_parse_summary", {}))
+        for unparsed_record in record.get("unparsed_effect_text", []):
+            if unparsed_record.get("kind") != PARTIALLY_PARSED_EFFECT_TEXT:
+                continue
+            for detail in unparsed_record.get("partial_fragment_details", []):
+                if not detail.get("matched_in_fragment"):
+                    continue
+                fragment = detail.get("fragment")
+                if len(_split_semantic_clauses(fragment)) <= 1:
+                    continue
+                same_sentence_partial_parse_count += 1
+                if len(same_sentence_partial_parse_samples) >= 12:
+                    continue
+                same_sentence_partial_parse_samples.append(
+                    {
+                        "item_id": record["item_id"],
+                        "name": record["name"],
+                        "section_name": unparsed_record.get("section_name"),
+                        "matched_effect_types": unparsed_record.get(
+                            "matched_effect_types",
+                            [],
+                        ),
+                        "fragment": fragment,
+                        "unresolved_clauses": detail.get(
+                            "unresolved_clauses",
+                            [],
+                        ),
+                    }
+                )
 
         direct_counts = Counter(record["item_graph"].get("direct_components", []))
         repeated_direct = {
@@ -1474,6 +1559,10 @@ def summarize_item_knowledge(records, graph_issues, invalid_item_keys=None):
         "effect_type_coverage": effect_counts,
         "effect_type_delta_from_phase2a_baseline": effect_delta,
         "effect_confidence_counts": effect_confidence_counts,
+        "same_sentence_partial_parse_count": same_sentence_partial_parse_count,
+        "same_sentence_partial_parse_samples": (
+            same_sentence_partial_parse_samples
+        ),
         "recipes_with_repeated_direct_components": (
             len(repeated_direct_component_recipes)
         ),
@@ -1672,7 +1761,7 @@ def render_item_record_diagnostic(record):
 def render_item_knowledge_audit(catalog):
     summary = catalog["summary"]
     lines = [
-        "ITEM KNOWLEDGE BASE PHASE 2A AUDIT",
+        "ITEM KNOWLEDGE BASE PHASE 2A-C AUDIT",
         "",
         "Scope: factual, patch-aware Data Dragon item knowledge only.",
         "No champion analysis, composition analysis, item recommendation,",
@@ -1774,7 +1863,16 @@ def render_item_knowledge_audit(catalog):
             "Effect confidence coverage: "
             f"{_format_counts(summary['effect_confidence_counts'])}"
         ),
+        (
+            "Same-sentence partial parse fragments: "
+            f"{summary['same_sentence_partial_parse_count']}"
+        ),
     ]
+
+    if summary["same_sentence_partial_parse_samples"]:
+        lines.extend(["", "Same-sentence partial parse samples:"])
+        for sample in summary["same_sentence_partial_parse_samples"]:
+            lines.append(f"- {sample}")
 
     if summary["repeated_direct_component_samples"]:
         lines.extend(["", "Repeated direct component samples:"])

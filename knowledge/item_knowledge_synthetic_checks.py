@@ -268,7 +268,7 @@ def test_renderers_execute():
     catalog = _catalog()
     audit = render_item_knowledge_audit(catalog)
     diagnostics = render_representative_item_diagnostics(catalog)
-    assert "ITEM KNOWLEDGE BASE PHASE 2A AUDIT" in audit
+    assert "ITEM KNOWLEDGE BASE PHASE 2A-C AUDIT" in audit
     assert "REPRESENTATIVE ITEM KNOWLEDGE DIAGNOSTICS" in diagnostics
 
 
