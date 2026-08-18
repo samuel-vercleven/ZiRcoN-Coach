@@ -180,3 +180,62 @@ Rules:
 
 Status:
 FROZEN.
+
+## Champion Knowledge Base Phase 2B1 - FROZEN
+Decision:
+Freeze Champion Knowledge Base Phase 2B1 as the factual, patch-aware champion knowledge layer after project review validated Phase 2B1-C.
+
+Scope:
+- Data Dragon champion catalog loading plus all individual champion detail files;
+- champion identity, Riot metadata, raw individual champion JSON, base stats, growth fields, passive and spell records;
+- cooldowns, costs, ranges, effects, effectBurn, vars, images, tooltips, raw descriptions, cleaned descriptions, semantic evidence, placeholder resolution, formula fragments, and complexity flags;
+- conservative fr_FR semantic parsing with provenance;
+- conservative kit-complexity warnings with evidence.
+
+Out of scope:
+- rune knowledge;
+- level-resolved stat calculation;
+- executable formulas;
+- damage engine;
+- combos;
+- Burst / TTK;
+- composition analysis;
+- champion strength scoring;
+- item recommendations;
+- ML.
+
+Validated baseline:
+- champion knowledge version champion_knowledge_phase2b1_c_v1;
+- Data Dragon version 16.16.1;
+- locale fr_FR;
+- 173 champions;
+- 692 spells;
+- all 20 mapped base/growth stat fields present for all 173 champions;
+- 4479 UNKNOWN_PLACEHOLDER preserved;
+- 692 FORMULA_INCOMPLETE by design;
+- semantic parse completeness: 61 FULLY_PARSED, 1297 PARTIALLY_PARSED, 199 COMPLETELY_UNPARSED;
+- complexity flags: 154 STANDARD_KIT, 19 COMPLEX_KIT_UNDERMODELED, 16 ALTERNATE_FORM_POSSIBLE, 3 COPIED_OR_DYNAMIC_ABILITY.
+
+Core rule:
+- TRANSFORMATION means something is transformed.
+- ALTERNATE_FORM_POSSIBLE requires separate provenance that the champion itself owns or enters a form, posture, or kit state.
+- Future consumers must not treat TRANSFORMATION as proof of champion alternate form without ALTERNATE_FORM_POSSIBLE evidence.
+
+Reasons:
+- project review accepted the Phase 2B1-C correction separating generic transformation semantics from champion form complexity;
+- the layer preserves raw Data Dragon source facts and marks unresolved formula/placeholder content instead of fabricating precision;
+- UNKNOWN_PLACEHOLDER and FORMULA_INCOMPLETE are intentional factual limitations;
+- parser output is auditable through evidence text and provenance;
+- complexity flags are conservative warnings, not exhaustive truth;
+- false negatives caused by Data Dragon wording limitations are accepted in preference to champion-specific hacks.
+
+Rules:
+- Prefer UNKNOWN, PARTIALLY_PARSED, COMPLETELY_UNPARSED, and FORMULA_INCOMPLETE to false certainty.
+- Do not calculate level-resolved stats until a later validated formula/stat layer exists.
+- Do not execute spell formulas from Phase 2B1 data.
+- Do not infer champion strength, matchup advice, build advice, or composition recommendations from Phase 2B1 facts alone.
+- Do not add champion-specific production hacks to improve complexity coverage.
+- Do not modify Phase 2B1 without a demonstrated factual correctness bug, Riot/Data Dragon compatibility need, strictly necessary downstream integration change, or explicit project review request.
+
+Status:
+FROZEN.

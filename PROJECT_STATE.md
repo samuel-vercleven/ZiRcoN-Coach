@@ -7,12 +7,12 @@
 - Recall / Reset Analyzer: v21 - FROZEN.
 - Build / Itemization Analyzer: v22 Phase 1 - FROZEN.
 - Item Knowledge Base: Phase 2A - FROZEN.
+- Champion Knowledge Base: Phase 2B1 - FROZEN.
 
 Frozen means: no retuning/refactor without a demonstrated correctness or integration bug or explicit project review request.
 
 ## In development
-- Champion Knowledge Base Phase 2B1-C: implemented and awaiting project review.
-- Status: REVIEW_REQUIRED, not FROZEN.
+- No active analyzer/knowledge layer is currently under development.
 - Next major task remains for project review / TODO.md.
 
 ## Dataset
@@ -232,8 +232,8 @@ Known Phase 2A limitations:
 - No champion semantic knowledge, composition analysis, build recommendation, GOOD/BAD label, item score, personal win-rate adjustment, or ML has been started.
 - Phase 2A is FROZEN; do not modify it without a demonstrated factual correctness bug, Riot/Data Dragon compatibility need, strictly necessary downstream integration change, or explicit project review request.
 
-## Champion Knowledge Base Phase 2B1-C
-Status: implemented, REVIEW_REQUIRED, not FROZEN.
+## Champion Knowledge Base Phase 2B1
+Status: FROZEN by project review after Phase 2B1-C.
 
 Purpose:
 - UI-agnostic, patch-aware factual knowledge layer for all Data Dragon champions.
@@ -253,7 +253,7 @@ Implementation:
 - Phase 2B1-B evaluates sensitive semantics at clause/fragment level where practical: damage type, percent-health damage, shield, heal, reveal, execute, and damage reduction.
 - Phase 2B1-C separates generic transformation semantics from champion form/kit complexity.
 - TRANSFORMATION means a transformation mechanic is factually described; it must not be interpreted as champion form change by future consumers.
-- ALTERNATE_FORM_POSSIBLE now requires separate subject/state evidence that the champion enters or owns an alternate form, named form, stance, or kit state.
+- ALTERNATE_FORM_POSSIBLE requires separate subject/state evidence that the champion itself enters or owns an alternate form, named form, stance, or kit state.
 - Rejected sensitive matches are preserved in partial/unparsed records so source text is not silently treated as understood.
 - SHIELD now requires grant/create/obtain/apply/absorb/protect evidence, not the word "bouclier" alone.
 - DAMAGE_TYPE_UNRESOLVED now requires outgoing damage action and excludes defensive/reduction/immunity/absorbed-damage contexts.
@@ -261,7 +261,8 @@ Implementation:
 - REVEAL no longer uses generic "vision" wording.
 - Generic "transforme" and generic "forme de" wording no longer create ALTERNATE_FORM_POSSIBLE by themselves.
 - Transformations of damage, targets, marks, resources, effects, terrain, summoned entities, seeds/plants, weapons, or abilities remain possible TRANSFORMATION semantics but are not champion alternate-form evidence.
-- Complexity flags remain generic and champion-agnostic, with per-flag evidence records.
+- Complexity flags are conservative warnings with provenance, not exhaustive truth.
+- No champion-specific production hacks are part of the frozen layer.
 
 Real Data Dragon audit baseline:
 - Command: python -m knowledge.champion_knowledge.
@@ -279,10 +280,10 @@ Real Data Dragon audit baseline:
 - Slot assignment uncertain records: 0.
 - Canonical stat coverage: all 20 mapped base/growth fields present for all 173 champions.
 - Unknown stat fields: 0.
-- Placeholder resolution: 4479 UNKNOWN_PLACEHOLDER, 33 RESOLVED_EFFECT_BURN, 10 UNRESOLVED_VAR.
+- Placeholder resolution: 4479 UNKNOWN_PLACEHOLDER intentionally preserved, 33 RESOLVED_EFFECT_BURN, 10 UNRESOLVED_VAR.
 - UNKNOWN placeholder families: 2902 likely_formula_related_but_unresolved, 1257 formatting_or_display_placeholder, 308 unknown, 12 calculated_or_custom_ddragon_placeholder.
 - Top UNKNOWN keys: spellmodifierdescriptionappend 692, cost 567, abilityresourcename 557, totaldamage 200, slowduration 90.
-- Formula status counts: 692 FORMULA_INCOMPLETE.
+- Formula status counts: 692 FORMULA_INCOMPLETE by design.
 - Formula fragment status counts: 6920 FORMULA_FRAGMENT_STRUCTURED, 4489 FORMULA_INCOMPLETE.
 - Semantic parse completeness: 61 FULLY_PARSED, 1297 PARTIALLY_PARSED, 199 COMPLETELY_UNPARSED.
 - Sensitive semantic counts vs Phase 2B1 baseline: SHIELD 128 -> 41, DAMAGE_TYPE_UNRESOLVED 314 -> 359, PERCENT_MAX_HEALTH_DAMAGE 83 -> 62, PERCENT_CURRENT_HEALTH_DAMAGE 13 -> 13, MISSING_HEALTH_DAMAGE 48 -> 21, REVEAL 68 -> 27, TRANSFORMATION 40 -> 53.
@@ -298,7 +299,7 @@ Real Data Dragon audit baseline:
 - Metadata warnings: 0.
 - Representative diagnostics include required fixed champions plus shield, healing, transformation, copied/dynamic, true damage, percent-health damage, hard CC, and stealth/reveal categories.
 
-Known Phase 2B1-C limitations:
+Permanent Phase 2B1 limitations:
 - Data Dragon champion descriptions are not executable combat formulas.
 - Level-resolved champion stats are not calculated yet.
 - All 692 spells remain FORMULA_INCOMPLETE until a later validated formula/combat layer resolves them.
@@ -306,10 +307,11 @@ Known Phase 2B1-C limitations:
 - Semantic effects are parser-derived factual evidence, not champion strength labels.
 - DAMAGE_TYPE_UNRESOLVED count increased because clause-local parsing now records untyped outgoing damage clauses even when nearby tooltip text exposes typed damage elsewhere; this is evidence granularity, not damage simulation.
 - TRANSFORMATION count remains generic factual transformation evidence and is intentionally separate from champion alternate-form complexity.
-- Some true kit-state cases may remain STANDARD_KIT when Data Dragon wording describes transformed weapons/abilities rather than an explicit champion-owned form/state; this is left for project review rather than broadened by inference.
+- Some true kit-state cases may remain STANDARD_KIT when Data Dragon wording describes transformed weapons/abilities rather than an explicit champion-owned form/state; these Data Dragon false negatives are accepted for the frozen baseline.
 - Tags such as Fighter, Tank, Assassin, Mage, or Support remain Riot metadata only and are not recommendations.
 - Complex kits are flagged generically and intentionally under-modeled rather than solved with champion-specific architecture.
-- Phase 2B1-C appears technically ready for project review, not freeze.
+- Do not add champion-specific hacks to improve complexity coverage.
+- Do not modify Phase 2B1 without a demonstrated factual correctness bug, Riot/Data Dragon compatibility need, strictly necessary downstream integration change, or explicit project review request.
 
 ## Architecture
 - main.py remains a dev/integration harness.
@@ -317,7 +319,7 @@ Known Phase 2B1-C limitations:
 - Analysis modules should remain UI-agnostic.
 - Itemization v22 logic lives in analysis/itemization_analyzer.py; synthetic checks live in analysis/itemization_synthetic_checks.py.
 - Item Knowledge Base Phase 2A lives in knowledge/item_knowledge.py; synthetic checks live in knowledge/item_knowledge_synthetic_checks.py and knowledge/item_knowledge_precision_checks.py.
-- Champion Knowledge Base Phase 2B1-C lives in knowledge/champion_knowledge.py; synthetic checks live in knowledge/champion_knowledge_synthetic_checks.py and knowledge/champion_knowledge_precision_checks.py.
+- Champion Knowledge Base Phase 2B1 lives in knowledge/champion_knowledge.py; synthetic checks live in knowledge/champion_knowledge_synthetic_checks.py and knowledge/champion_knowledge_precision_checks.py.
 
 ## Handoff rule
 Codex must update this file after each completed task.
