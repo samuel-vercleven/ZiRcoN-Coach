@@ -10,7 +10,7 @@ if hasattr(sys.stdout, "reconfigure"):
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent
-CURRENT_PHASE = "Rune Knowledge Phase 2C1-B full-catalog validation"
+CURRENT_PHASE = "Rune Knowledge Phase 2C1-B refined stat semantics full-catalog validation"
 
 
 TEST_COMMANDS = [

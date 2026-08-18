@@ -12,7 +12,7 @@ from database.database import DB_PATH
 from riot.data_dragon import DDRAGON_BASE_URL, get_ddragon_versions
 
 
-RUNE_KNOWLEDGE_VERSION = "rune_knowledge_phase2c1_b_v2"
+RUNE_KNOWLEDGE_VERSION = "rune_knowledge_phase2c1_b_v3"
 DEFAULT_LOCALE = "fr_FR"
 UNKNOWN = "UNKNOWN"
 NOT_EXPOSED = "NOT_EXPOSED"
@@ -96,34 +96,6 @@ SEMANTIC_RULES = (
     ("STACKING", ("cumul", "cumuls", "charge", "charges")),
     ("OMNIVAMP", ("omnivampirisme",)),
     ("LIFE_STEAL", ("vol de vie",)),
-)
-
-STAT_MODIFICATION_RULES = (
-    ("MOVE_SPEED", ("vitesse de deplacement",)),
-    ("ATTACK_SPEED", ("vitesse d'attaque",)),
-    ("ABILITY_HASTE", ("acceleration de competence",)),
-    ("ADAPTIVE_FORCE", ("force adaptative",)),
-    ("MANA", (" mana",)),
-    ("ENERGY", ("energie",)),
-    ("TENACITY", ("tenacite",)),
-)
-
-STAT_MODIFICATION_CONTEXT_PHRASES = (
-    "gagne",
-    "gagnez",
-    "obtient",
-    "obtenez",
-    "octroie",
-    "octroient",
-    "confere",
-    "conferent",
-    "accorde",
-    "accordent",
-    "augmente",
-    "augmentent",
-    "bonus",
-    "supplementaire",
-    "supplementaires",
 )
 
 REPRESENTATIVE_RUNE_IDS = (
@@ -323,12 +295,6 @@ def _has_gold_context(normalized_text):
         or re.search(r"(^|[^a-z0-9])po($|[^a-z0-9])", normalized_text) is not None
         or re.search(r"(^|[^a-z0-9])gold($|[^a-z0-9])", normalized_text) is not None
     )
-
-
-def _has_stat_modification_context(normalized_text, stat_phrases):
-    if not _contains_any(normalized_text, stat_phrases):
-        return False
-    return _contains_any(normalized_text, STAT_MODIFICATION_CONTEXT_PHRASES)
 
 
 def _condition_records(text, source_field, ddragon_version):
@@ -602,6 +568,219 @@ def _defense_stat_sentence_effects(text, source_field, ddragon_version):
     return effects
 
 
+def _refined_stat_relations(normalized_text, stat_name):
+    """
+    Classe de façon conservative les autres statistiques de rune auditées.
+
+    Le but est de distinguer un vrai gain de stat d'une simple référence,
+    d'un scaling ou d'un effet d'amplification. Les familles non validées
+    (par ex. ENERGY / TENACITY sur le patch courant) restent non structurées
+    plutôt que d'être devinées.
+    """
+
+    if stat_name == "MOVE_SPEED":
+        phrase = "vitesse de deplacement"
+        if phrase not in normalized_text:
+            return []
+
+        relations = []
+
+        amplification_patterns = (
+            r"\bbonus\b.{0,100}\bvitesse de deplacement\b"
+            r".{0,100}\bplus efficace",
+            r"\bvitesse de deplacement\b.{0,100}\bplus efficace",
+        )
+
+        gain_patterns = (
+            r"\bvous\s+gagnez\b.{0,140}\bvitesse de deplacement\b",
+            r"\bvous\s+obtenez\b.{0,140}\bvitesse de deplacement\b",
+            r"\bvous\s+recevez\b.{0,140}\bvitesse de deplacement\b",
+            r"\b(?:vous\s+)?octroie(?:nt)?\b.{0,160}\bvitesse de deplacement\b",
+            r"\b(?:vous\s+)?confere(?:nt)?\b.{0,160}\bvitesse de deplacement\b",
+            r"\baugmente(?:nt)?\b.{0,100}\b(?:votre|vos)\s+vitesse de deplacement\b",
+            r"\b(?:votre|vos)\s+vitesse de deplacement\b.{0,120}\baugmente(?:e|ent|es)?\b",
+            r"\bbonus\s*:\s*\+?\d+(?:[,.]\d+)?%?.{0,80}\bvitesse de deplacement\b",
+        )
+
+        bonus_gain_patterns = (
+            r"\b(?:vous\s+)?gagnez\s+un\s+bonus\s+en\s+vitesse de deplacement\b",
+            r"\bbonus\s+en\s+vitesse de deplacement\b",
+        )
+
+        has_amplification = any(
+            re.search(pattern, normalized_text)
+            for pattern in amplification_patterns
+        )
+
+        if has_amplification:
+            relations.append("MOVE_SPEED_BONUS_AMPLIFICATION")
+
+        # Une phrase d'amplification comme Célérité peut aussi contenir un
+        # gain direct distinct (ex. +1% de vitesse de déplacement). Le simple
+        # syntagme "bonus en vitesse" n'est toutefois pas suffisant quand la
+        # phrase dit uniquement que ces bonus deviennent plus efficaces.
+        has_direct_gain = any(
+            re.search(pattern, normalized_text)
+            for pattern in gain_patterns
+        )
+        if not has_direct_gain and not has_amplification:
+            has_direct_gain = any(
+                re.search(pattern, normalized_text)
+                for pattern in bonus_gain_patterns
+            )
+
+        if has_direct_gain:
+            relations.append("MOVE_SPEED_STAT_GAIN")
+
+        if not relations:
+            relations.append("MOVE_SPEED_REFERENCE")
+
+        return relations
+
+    if stat_name == "ATTACK_SPEED":
+        phrase = "vitesse d'attaque"
+        if phrase not in normalized_text:
+            return []
+
+        relations = []
+
+        scaling_patterns = (
+            r"\bdegats\b.{0,120}\baugmentent?\b.{0,120}"
+            r"\bvitesse d'attaque bonus\b",
+            r"\ben fonction de\b.{0,80}\bvitesse d'attaque\b",
+            r"\bselon\b.{0,80}\bvitesse d'attaque\b",
+        )
+
+        gain_patterns = (
+            r"\bvous\s+gagnez\b.{0,140}\bvitesse d'attaque\b",
+            r"\bvous\s+obtenez\b.{0,140}\bvitesse d'attaque\b",
+            r"\b(?:vous\s+)?octroie(?:nt)?\b.{0,160}\bvitesse d'attaque\b",
+            r"\baugmente(?:nt)?\s+definitivement\b.{0,120}\b(?:votre|vos)\s+vitesse d'attaque\b",
+            r"\b(?:votre|vos)\s+vitesse d'attaque\b.{0,120}\baugmente(?:e|ent|es)?\b",
+        )
+
+        if any(re.search(pattern, normalized_text) for pattern in scaling_patterns):
+            relations.append("ATTACK_SPEED_SCALING_REFERENCE")
+
+        if any(re.search(pattern, normalized_text) for pattern in gain_patterns):
+            relations.append("ATTACK_SPEED_STAT_GAIN")
+
+        if not relations:
+            relations.append("ATTACK_SPEED_REFERENCE")
+
+        return relations
+
+    if stat_name == "ABILITY_HASTE":
+        phrase = "acceleration de competence"
+        if phrase not in normalized_text:
+            return []
+
+        gain_patterns = (
+            r"\b(?:vous|votre ultime)\s+gagne(?:z)?\b.{0,160}\bacceleration de competence\b",
+            r"\b(?:vous\s+)?octroie(?:nt)?\b.{0,160}\bacceleration de competence\b",
+            r"\baugmente(?:nt)?\s+definitivement\b.{0,140}\b(?:votre|vos)\s+acceleration de competence\b",
+            r"\b(?:votre|vos)\s+acceleration de competence\b.{0,120}\baugmente(?:e|ent|es)?\b",
+        )
+
+        if any(re.search(pattern, normalized_text) for pattern in gain_patterns):
+            return ["ABILITY_HASTE_STAT_GAIN"]
+
+        return ["ABILITY_HASTE_REFERENCE"]
+
+    if stat_name == "ADAPTIVE_FORCE":
+        phrase = "force adaptative"
+        if phrase not in normalized_text:
+            return []
+
+        gain_patterns = (
+            r"\b(?:vous\s+)?(?:fait\s+)?gagne(?:r|z)?\b.{0,160}\bforce adaptative\b",
+            r"\b(?:vous\s+)?octroie(?:nt)?\b.{0,160}\bforce adaptative\b",
+            r"\bforce adaptative bonus\b.{0,120}\b(?:gagne|cumul|octroie)\b",
+        )
+
+        if any(re.search(pattern, normalized_text) for pattern in gain_patterns):
+            return ["ADAPTIVE_FORCE_STAT_GAIN"]
+
+        # Si la phrase complète contient un verbe de gain plus tôt, une
+        # coordination coupée en fragments ne doit pas transformer la suite
+        # en simple référence.
+        if (
+            "force adaptative bonus" in normalized_text
+            and re.search(r"\bvous\s+gagnez\b", normalized_text)
+        ):
+            return ["ADAPTIVE_FORCE_STAT_GAIN"]
+
+        return ["ADAPTIVE_FORCE_REFERENCE"]
+
+    if stat_name == "MANA":
+        if re.search(r"\bmana\b", normalized_text) is None:
+            return []
+
+        relations = []
+
+        max_gain_patterns = (
+            r"\baugmente(?:nt)?\s+definitivement\b.{0,120}\b(?:votre|vos)\s+mana max\b",
+            r"\b(?:votre|vos)\s+mana max\b.{0,100}\baugmente(?:e|ent|es)?\b",
+            r"\bvous\s+(?:gagnez|obtenez|recevez)\b.{0,140}\bmana max\b",
+        )
+
+        restore_patterns = (
+            r"\brecupere(?:z|nt)?\b.{0,140}\bmana\b",
+            r"\brend(?:ez|ent)?\b.{0,120}\bmana\b",
+            r"\brestaure(?:z|nt)?\b.{0,120}\bmana\b",
+        )
+
+        if any(re.search(pattern, normalized_text) for pattern in max_gain_patterns):
+            relations.append("MANA_MAX_STAT_GAIN")
+
+        if any(re.search(pattern, normalized_text) for pattern in restore_patterns):
+            relations.append("MANA_RESTORE")
+
+        if not relations:
+            relations.append("MANA_REFERENCE")
+
+        return relations
+
+    return []
+
+
+def _refined_stat_sentence_effects(text, source_field, ddragon_version):
+    """
+    Analyse au niveau de la phrase entière les familles de stats qui ont été
+    auditées sur les 62 runes du catalogue 16.16.1.
+    """
+    effects = []
+    seen = set()
+
+    for sentence in _split_sentences_preserve_coordination(text):
+        normalized = _normalize_text(sentence)
+        for stat_name in (
+            "MOVE_SPEED",
+            "ATTACK_SPEED",
+            "ABILITY_HASTE",
+            "ADAPTIVE_FORCE",
+            "MANA",
+        ):
+            for effect_type in _refined_stat_relations(normalized, stat_name):
+                key = (effect_type, sentence)
+                if key in seen:
+                    continue
+                seen.add(key)
+                effects.append(
+                    {
+                        "effect_type": effect_type,
+                        "source": "DDRAGON_RUNE_DESCRIPTION",
+                        "source_field": source_field,
+                        "confidence": "DESCRIPTION_EXPLICIT_STAT_RELATION",
+                        "evidence_text": sentence,
+                        "relation_scope": "SENTENCE_PRESERVED_COORDINATION",
+                        "ddragon_version": ddragon_version,
+                    }
+                )
+
+    return effects
+
+
 def _semantic_effects_for_fragment(fragment, source_field, ddragon_version):
     effects = []
     normalized = _normalize_text(fragment)
@@ -700,19 +879,6 @@ def _semantic_effects_for_fragment(fragment, source_field, ddragon_version):
                 }
             )
 
-    for effect_type, phrases in STAT_MODIFICATION_RULES:
-        if _has_stat_modification_context(normalized, phrases):
-            effects.append(
-                {
-                    "effect_type": effect_type,
-                    "source": "DDRAGON_RUNE_DESCRIPTION",
-                    "source_field": source_field,
-                    "confidence": "DESCRIPTION_EXPLICIT_STAT_MODIFICATION",
-                    "evidence_text": fragment,
-                    "ddragon_version": ddragon_version,
-                }
-            )
-
     deduped = []
     seen = set()
     for effect in effects:
@@ -741,6 +907,13 @@ def extract_semantic_effects(text, source_field, ddragon_version, locale=DEFAULT
         text,
         source_field,
         ddragon_version,
+    )
+    effects.extend(
+        _refined_stat_sentence_effects(
+            text,
+            source_field,
+            ddragon_version,
+        )
     )
     unparsed_fragments = []
     for fragment in _split_fragments(text):

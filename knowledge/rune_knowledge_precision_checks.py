@@ -297,6 +297,83 @@ def test_defense_stats_distinguish_gain_reduction_scaling_and_reference():
 
 
 # ============================================================
+# REFINED STAT SEMANTICS
+# ============================================================
+
+def test_refined_stat_semantics_distinguish_gain_scaling_amplification_and_restore():
+
+    move_gain, _, _ = _effects_for_text(
+        "Vous gagnez +10 vitesse de deplacement."
+    )
+    assert "MOVE_SPEED_STAT_GAIN" in move_gain
+    assert "MOVE_SPEED" not in move_gain
+
+    move_amplification, _, _ = _effects_for_text(
+        "Tous les bonus en vitesse de deplacement sont 7% plus efficaces sur vous."
+    )
+    assert "MOVE_SPEED_BONUS_AMPLIFICATION" in move_amplification
+    assert "MOVE_SPEED_STAT_GAIN" not in move_amplification
+
+    attack_gain, _, _ = _effects_for_text(
+        "Vous gagnez 3% de vitesse d'attaque."
+    )
+    assert "ATTACK_SPEED_STAT_GAIN" in attack_gain
+    assert "ATTACK_SPEED" not in attack_gain
+
+    attack_scaling, _, _ = _effects_for_text(
+        "Ces degats augmentent de 1% tous les 1% de vitesse d'attaque bonus."
+    )
+    assert "ATTACK_SPEED_SCALING_REFERENCE" in attack_scaling
+    assert "ATTACK_SPEED_STAT_GAIN" not in attack_scaling
+
+    haste_gain, _, _ = _effects_for_text(
+        "Votre ultime gagne +6 acceleration de competence."
+    )
+    assert "ABILITY_HASTE_STAT_GAIN" in haste_gain
+    assert "ABILITY_HASTE" not in haste_gain
+
+    adaptive_gain, _, _ = _effects_for_text(
+        "Attaquer des champions ennemis vous fait gagner de la force adaptative cumulable."
+    )
+    assert "ADAPTIVE_FORCE_STAT_GAIN" in adaptive_gain
+    assert "ADAPTIVE_FORCE" not in adaptive_gain
+
+    mana_gain, _, _ = _effects_for_text(
+        "Frapper un champion augmente definitivement votre mana max de 25."
+    )
+    assert "MANA_MAX_STAT_GAIN" in mana_gain
+    assert "MANA_RESTORE" not in mana_gain
+    assert "MANA" not in mana_gain
+
+    mana_restore, _, _ = _effects_for_text(
+        "Vous recuperez 1% de votre mana manquant toutes les 5 sec."
+    )
+    assert "MANA_RESTORE" in mana_restore
+    assert "MANA_MAX_STAT_GAIN" not in mana_restore
+    assert "MANA" not in mana_restore
+
+    mana_reference, _, _ = _effects_for_text(
+        "Votre mana actuel est compare a votre mana max."
+    )
+    assert "MANA_REFERENCE" in mana_reference
+    assert "MANA_MAX_STAT_GAIN" not in mana_reference
+    assert "MANA_RESTORE" not in mana_reference
+
+    # Tant qu'ENERGY et TENACITY n'ont pas de preuve réelle validée sur le
+    # catalogue courant, une simple mention ne doit pas produire un ancien
+    # tag générique.
+    energy, _, _ = _effects_for_text(
+        "Votre energie actuelle est faible."
+    )
+    assert "ENERGY" not in energy
+
+    tenacity, _, _ = _effects_for_text(
+        "La tenacite de la cible est inconnue."
+    )
+    assert "TENACITY" not in tenacity
+
+
+# ============================================================
 # SHIELD
 # ============================================================
 

@@ -17,16 +17,13 @@ LEGACY_EFFECT_TYPES = {
     "HEALTH",
     "ARMOR",
     "MAGIC_RESISTANCE",
-}
-
-GENERIC_STAT_RELATION_TYPES = {
-    "MOVE_SPEED": "vitesse de deplacement",
-    "ATTACK_SPEED": "vitesse d'attaque",
-    "ABILITY_HASTE": "acceleration de competence",
-    "ADAPTIVE_FORCE": "force adaptative",
-    "MANA": "mana",
-    "ENERGY": "energie",
-    "TENACITY": "tenacite",
+    "MOVE_SPEED",
+    "ATTACK_SPEED",
+    "ABILITY_HASTE",
+    "ADAPTIVE_FORCE",
+    "MANA",
+    "ENERGY",
+    "TENACITY",
 }
 
 KNOWN_UNPARSED_KINDS = {
@@ -411,32 +408,155 @@ def _audit_effect_semantics(report, record, effect):
                     evidence,
                 )
 
-    # Les anciens tags de modification génériques restent autorisés en code,
-    # mais ils empêchent le freeze exhaustif tant qu'ils n'ont pas été
-    # inspectés famille par famille.
-    if effect_type in GENERIC_STAT_RELATION_TYPES:
-        expected_phrase = GENERIC_STAT_RELATION_TYPES[effect_type]
-        if expected_phrase not in normalized:
+    # MOVE SPEED
+    if effect_type.startswith("MOVE_SPEED_"):
+        if "vitesse de deplacement" not in normalized:
             _blocking(
                 report,
                 record,
-                (
-                    f"{effect_type} ne contient même pas la statistique attendue "
-                    f"({expected_phrase})."
-                ),
+                f"{effect_type} sans mention de vitesse de déplacement.",
                 evidence,
             )
-        else:
-            _review(
+        if effect_type == "MOVE_SPEED_BONUS_AMPLIFICATION":
+            if "plus efficace" not in normalized:
+                _blocking(
+                    report,
+                    record,
+                    "MOVE_SPEED_BONUS_AMPLIFICATION sans amplification explicite.",
+                    evidence,
+                )
+        elif effect_type == "MOVE_SPEED_STAT_GAIN":
+            if not any(
+                token in normalized
+                for token in (
+                    "gagne",
+                    "octroie",
+                    "confere",
+                    "augmente",
+                    "augmentee",
+                    "bonus",
+                )
+            ):
+                _blocking(
+                    report,
+                    record,
+                    "MOVE_SPEED_STAT_GAIN sans langage de gain reconnu.",
+                    evidence,
+                )
+
+    # ATTACK SPEED
+    if effect_type.startswith("ATTACK_SPEED_"):
+        if "vitesse d'attaque" not in normalized:
+            _blocking(
                 report,
                 record,
-                (
-                    f"{effect_type} utilise encore un tag générique de modification. "
-                    "À distinguer entre gain/réduction/scaling/simple référence "
-                    "avant le freeze exhaustif."
-                ),
+                f"{effect_type} sans mention de vitesse d'attaque.",
                 evidence,
             )
+        if effect_type == "ATTACK_SPEED_STAT_GAIN":
+            if not any(
+                token in normalized
+                for token in ("gagne", "octroie", "augmente")
+            ):
+                _blocking(
+                    report,
+                    record,
+                    "ATTACK_SPEED_STAT_GAIN sans langage de gain reconnu.",
+                    evidence,
+                )
+        elif effect_type == "ATTACK_SPEED_SCALING_REFERENCE":
+            if not (
+                "degat" in normalized
+                or "en fonction de" in normalized
+                or "selon" in normalized
+            ):
+                _blocking(
+                    report,
+                    record,
+                    "ATTACK_SPEED_SCALING_REFERENCE sans relation de scaling explicite.",
+                    evidence,
+                )
+
+    # ABILITY HASTE
+    if effect_type.startswith("ABILITY_HASTE_"):
+        if "acceleration de competence" not in normalized:
+            _blocking(
+                report,
+                record,
+                f"{effect_type} sans mention d'accélération de compétence.",
+                evidence,
+            )
+        if effect_type == "ABILITY_HASTE_STAT_GAIN":
+            if not any(
+                token in normalized
+                for token in ("gagne", "octroie", "augmente")
+            ):
+                _blocking(
+                    report,
+                    record,
+                    "ABILITY_HASTE_STAT_GAIN sans langage de gain reconnu.",
+                    evidence,
+                )
+
+    # ADAPTIVE FORCE
+    if effect_type.startswith("ADAPTIVE_FORCE_"):
+        if "force adaptative" not in normalized:
+            _blocking(
+                report,
+                record,
+                f"{effect_type} sans mention de force adaptative.",
+                evidence,
+            )
+        if effect_type == "ADAPTIVE_FORCE_STAT_GAIN":
+            if not any(
+                token in normalized
+                for token in ("gagne", "gagner", "octroie", "bonus")
+            ):
+                _blocking(
+                    report,
+                    record,
+                    "ADAPTIVE_FORCE_STAT_GAIN sans langage de gain reconnu.",
+                    evidence,
+                )
+
+    # MANA
+    if effect_type.startswith("MANA_"):
+        if re.search(r"\bmana\b", normalized) is None:
+            _blocking(
+                report,
+                record,
+                f"{effect_type} sans mention de mana.",
+                evidence,
+            )
+        if effect_type == "MANA_MAX_STAT_GAIN":
+            if "mana max" not in normalized:
+                _blocking(
+                    report,
+                    record,
+                    "MANA_MAX_STAT_GAIN sans mention de mana max.",
+                    evidence,
+                )
+            if not any(
+                token in normalized
+                for token in ("gagne", "augmente", "augmentee")
+            ):
+                _blocking(
+                    report,
+                    record,
+                    "MANA_MAX_STAT_GAIN sans langage de gain reconnu.",
+                    evidence,
+                )
+        elif effect_type == "MANA_RESTORE":
+            if not any(
+                token in normalized
+                for token in ("recupere", "rend", "restaure")
+            ):
+                _blocking(
+                    report,
+                    record,
+                    "MANA_RESTORE sans langage de restauration reconnu.",
+                    evidence,
+                )
 
 
 def _audit_record(report, record):
@@ -727,9 +847,16 @@ def render_full_catalog_audit(report):
     audited = len(report["audited_rune_ids"])
 
     generic_review_count = sum(
-        1
-        for row in report["review"]
-        if "tag générique" in row["message"]
+        report["effect_counts"][effect_type]
+        for effect_type in (
+            "MOVE_SPEED",
+            "ATTACK_SPEED",
+            "ABILITY_HASTE",
+            "ADAPTIVE_FORCE",
+            "MANA",
+            "ENERGY",
+            "TENACITY",
+        )
     )
 
     lines = [
@@ -744,7 +871,7 @@ def render_full_catalog_audit(report):
         f"Blocking issues       : {len(report['blocking'])}",
         f"Review cases          : {len(report['review'])}",
         f"Generic stat reviews  : {generic_review_count}",
-        f"Legacy HEALTH/ARMOR/MR: {sum(report['effect_counts'][x] for x in LEGACY_EFFECT_TYPES)}",
+        f"Legacy generic tags  : {sum(report['effect_counts'][x] for x in LEGACY_EFFECT_TYPES)}",
         (
             "Historical selections : "
             f"{audit.get('rune_selection_count', 0)}"
