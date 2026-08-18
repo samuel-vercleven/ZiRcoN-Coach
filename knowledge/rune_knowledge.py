@@ -12,7 +12,7 @@ from database.database import DB_PATH
 from riot.data_dragon import DDRAGON_BASE_URL, get_ddragon_versions
 
 
-RUNE_KNOWLEDGE_VERSION = "rune_knowledge_phase2c1_v1"
+RUNE_KNOWLEDGE_VERSION = "rune_knowledge_phase2c1_b_v1"
 DEFAULT_LOCALE = "fr_FR"
 UNKNOWN = "UNKNOWN"
 NOT_EXPOSED = "NOT_EXPOSED"
@@ -26,6 +26,8 @@ SUPPORTED_SEMANTIC_LOCALES = {"fr_FR"}
 MAGICAL_FOOTWEAR_PERK_ID = 8304
 SLIGHTLY_MAGICAL_BOOTS_ITEM_ID = 2422
 STAT_PERK_SLOTS = ("offense", "flex", "defense")
+RUNE_ROLE_SOURCE = "DDRAGON_RUNESREFORGED_SLOT_INDEX"
+PAGE_CONTEXT_SOURCE = "RIOT_PERKS_STYLE_DESCRIPTION"
 
 OUTGOING_DAMAGE_ACTION_PHRASES = (
     "inflige",
@@ -89,21 +91,41 @@ CONDITION_TRIGGERS = (
 
 SEMANTIC_RULES = (
     ("HEAL", ("soigne", "soignez", "rend des pv", "recuperez des pv")),
-    ("MOVE_SPEED", ("vitesse de deplacement",)),
-    ("ATTACK_SPEED", ("vitesse d'attaque",)),
-    ("ABILITY_HASTE", ("acceleration de competence",)),
     ("COOLDOWN", ("delai de recuperation", "recuperation")),
     ("SLOW", ("ralentit", "ralentissement", "ralentisse")),
     ("STACKING", ("cumul", "cumuls", "charge", "charges")),
+    ("OMNIVAMP", ("omnivampirisme",)),
+    ("LIFE_STEAL", ("vol de vie",)),
+)
+
+STAT_MODIFICATION_RULES = (
+    ("MOVE_SPEED", ("vitesse de deplacement",)),
+    ("ATTACK_SPEED", ("vitesse d'attaque",)),
+    ("ABILITY_HASTE", ("acceleration de competence",)),
     ("ADAPTIVE_FORCE", ("force adaptative",)),
     ("ARMOR", ("armure",)),
     ("MAGIC_RESISTANCE", ("resistance magique",)),
-    ("HEALTH", ("points de vie", " pv")),
     ("MANA", (" mana",)),
     ("ENERGY", ("energie",)),
-    ("OMNIVAMP", ("omnivampirisme",)),
-    ("LIFE_STEAL", ("vol de vie",)),
     ("TENACITY", ("tenacite",)),
+)
+
+STAT_MODIFICATION_CONTEXT_PHRASES = (
+    "gagne",
+    "gagnez",
+    "obtient",
+    "obtenez",
+    "octroie",
+    "octroient",
+    "confere",
+    "conferent",
+    "accorde",
+    "accordent",
+    "augmente",
+    "augmentent",
+    "bonus",
+    "supplementaire",
+    "supplementaires",
 )
 
 REPRESENTATIVE_RUNE_IDS = (
@@ -305,6 +327,12 @@ def _has_gold_context(normalized_text):
     )
 
 
+def _has_stat_modification_context(normalized_text, stat_phrases):
+    if not _contains_any(normalized_text, stat_phrases):
+        return False
+    return _contains_any(normalized_text, STAT_MODIFICATION_CONTEXT_PHRASES)
+
+
 def _condition_records(text, source_field, ddragon_version):
     records = []
     for fragment in _split_fragments(text):
@@ -327,6 +355,144 @@ def _condition_records(text, source_field, ddragon_version):
         )
     return records
 
+def _has_health_reference(normalized_text):
+    return (
+        re.search(
+            r"(^|[^a-z])pv([^a-z]|$)",
+            normalized_text,
+        )
+        is not None
+        or "points de vie" in normalized_text
+    )
+
+
+def _health_effect_types(normalized_text):
+    """
+    Classe les relations aux PV de façon conservative.
+
+    Une mention de PV ne signifie jamais automatiquement
+    qu'une rune donne des PV au champion.
+
+    Relations possibles :
+    - HEALTH_STAT_GAIN
+    - HEALTH_THRESHOLD_REFERENCE
+    - HEALTH_SCALING_REFERENCE
+    - HEALTH_REFERENCE
+    """
+
+    if not _has_health_reference(normalized_text):
+        return []
+
+    effects = []
+
+    # ========================================================
+    # 1. VRAI GAIN DE PV / PV MAX DU JOUEUR
+    # ========================================================
+
+    health_gain_patterns = (
+        r"\bvous gagnez\s+\d+(?:[,.]\d+)?%\s+de pv max supplementaires\b",
+        r"\baugmente(?:nt)? definitivement vos pv(?: max)?\b",
+        r"\bvos pv max augmentent definitivement\b",
+        r"\baugmente vos pv max\b",
+
+        # Gain explicite en valeur fixe ou en pourcentage.
+        r"\bvous gagnez\b[^.;]{0,80}\bpv max\b",
+        r"\bvous obtenez\b[^.;]{0,80}\bpv max\b",
+        r"\bvous recevez\b[^.;]{0,80}\bpv max\b",
+
+        r"\bconfere\b[^.;]{0,80}\bpv max\b",
+        r"\boctroie\b[^.;]{0,80}\bpv max\b",
+    )
+
+    has_stat_gain = any(
+        re.search(pattern, normalized_text)
+        for pattern in health_gain_patterns
+    )
+
+    if has_stat_gain:
+        effects.append("HEALTH_STAT_GAIN")
+
+    # ========================================================
+    # 2. SEUIL / CONDITION BASÉE SUR LES PV
+    # ========================================================
+
+    threshold_patterns = (
+        r"\bmoins de \d+(?:[,.]\d+)?%\s+(?:de|des)\s+[^.;]{0,30}\bpv\b",
+        r"\bplus de \d+(?:[,.]\d+)?%\s+(?:de|des)\s+[^.;]{0,30}\bpv\b",
+        r"\ben dessous de \d+(?:[,.]\d+)?%\s+(?:de|des)\s+[^.;]{0,30}\bpv\b",
+        r"\bau-dessus de \d+(?:[,.]\d+)?%\s+(?:de|des)\s+[^.;]{0,30}\bpv\b",
+        r"\ba \d+(?:[,.]\d+)?%\s+(?:de|des)\s+[^.;]{0,30}\bpv\b",
+        r"\binfliger \d+(?:[,.]\d+)?%\s+des pv max d'un champion\b",
+    )
+
+    has_threshold = any(
+        re.search(pattern, normalized_text)
+        for pattern in threshold_patterns
+    )
+
+    if has_threshold:
+        effects.append("HEALTH_THRESHOLD_REFERENCE")
+
+    # ========================================================
+    # 3. SCALING / FORMULE BASÉE SUR LES PV
+    # ========================================================
+    #
+    # On retire d'abord les passages correspondant clairement
+    # à des seuils. Cela évite :
+    #
+    # "moins de 40% de leurs PV"
+    #
+    # => THRESHOLD + SCALING
+    #
+    # alors qu'il s'agit uniquement d'un seuil.
+    # ========================================================
+
+    scaling_text = normalized_text
+
+    for pattern in threshold_patterns:
+        scaling_text = re.sub(
+            pattern,
+            " ",
+            scaling_text,
+        )
+
+    # Une augmentation explicite des PV max exprimée en %
+    # reste un gain de stat, pas une simple référence de scaling.
+    pure_percentage_stat_gain_patterns = (
+        r"\bvous gagnez\b[^.;]{0,40}"
+        r"\d+(?:[,.]\d+)?%\s+de pv max supplementaires\b",
+    )
+
+    for pattern in pure_percentage_stat_gain_patterns:
+        scaling_text = re.sub(
+            pattern,
+            " ",
+            scaling_text,
+        )
+
+    scaling_patterns = (
+        r"\d+(?:[,.]\d+)?%\s+(?:de|des)\s+[^.;]{0,30}\bpv\b",
+        r"\ben fonction de[^.;]{0,50}\bpv\b",
+        r"\bbase sur[^.;]{0,50}\bpv\b",
+        r"\bequivalent(?:e|s)? a[^.;]{0,50}\bpv\b",
+    )
+
+    has_scaling = any(
+        re.search(pattern, scaling_text)
+        for pattern in scaling_patterns
+    )
+
+    if has_scaling:
+        effects.append("HEALTH_SCALING_REFERENCE")
+
+    # ========================================================
+    # 4. SIMPLE RÉFÉRENCE
+    # ========================================================
+
+    if not effects:
+        effects.append("HEALTH_REFERENCE")
+
+    return effects
 
 def _semantic_effects_for_fragment(fragment, source_field, ddragon_version):
     effects = []
@@ -401,7 +567,17 @@ def _semantic_effects_for_fragment(fragment, source_field, ddragon_version):
                 "ddragon_version": ddragon_version,
             }
         )
-
+    for health_effect_type in _health_effect_types(normalized):
+            effects.append(
+                {
+                    "effect_type": health_effect_type,
+                    "source": "DDRAGON_RUNE_DESCRIPTION",
+                    "source_field": source_field,
+                    "confidence": "DESCRIPTION_EXPLICIT",
+                    "evidence_text": fragment,
+                    "ddragon_version": ddragon_version,
+                }
+            )
     for effect_type, phrases in SEMANTIC_RULES:
         if _contains_any(normalized, phrases):
             effects.append(
@@ -410,6 +586,19 @@ def _semantic_effects_for_fragment(fragment, source_field, ddragon_version):
                     "source": "DDRAGON_RUNE_DESCRIPTION",
                     "source_field": source_field,
                     "confidence": "DESCRIPTION_EXPLICIT",
+                    "evidence_text": fragment,
+                    "ddragon_version": ddragon_version,
+                }
+            )
+
+    for effect_type, phrases in STAT_MODIFICATION_RULES:
+        if _has_stat_modification_context(normalized, phrases):
+            effects.append(
+                {
+                    "effect_type": effect_type,
+                    "source": "DDRAGON_RUNE_DESCRIPTION",
+                    "source_field": source_field,
+                    "confidence": "DESCRIPTION_EXPLICIT_STAT_MODIFICATION",
                     "evidence_text": fragment,
                     "ddragon_version": ddragon_version,
                 }
@@ -526,6 +715,74 @@ def _resolve_version(requested_game_version=None, versions=None):
     }
 
 
+def resolve_match_ddragon_version(game_version, versions=None):
+    versions = list(versions if versions is not None else get_ddragon_versions())
+    if not versions:
+        return {
+            "requested_game_version": game_version,
+            "resolved_ddragon_version": None,
+            "resolution_status": "NO_VERSIONS_AVAILABLE",
+            "fallback_used": False,
+            "catalog_required": True,
+        }
+
+    if not game_version:
+        return {
+            "requested_game_version": game_version,
+            "resolved_ddragon_version": None,
+            "resolution_status": "MATCH_GAME_VERSION_MISSING",
+            "fallback_used": False,
+            "catalog_required": True,
+        }
+
+    requested = str(game_version)
+    if requested in versions:
+        return {
+            "requested_game_version": requested,
+            "resolved_ddragon_version": requested,
+            "resolution_status": "EXACT_VERSION",
+            "fallback_used": False,
+            "catalog_required": True,
+        }
+
+    parts = requested.split(".")
+    if len(parts) >= 2:
+        patch_prefix = f"{parts[0]}.{parts[1]}."
+        for version in versions:
+            if version.startswith(patch_prefix):
+                return {
+                    "requested_game_version": requested,
+                    "resolved_ddragon_version": version,
+                    "resolution_status": "EXACT_PATCH",
+                    "fallback_used": False,
+                    "catalog_required": True,
+                }
+
+    return {
+        "requested_game_version": requested,
+        "resolved_ddragon_version": None,
+        "resolution_status": "PATCH_CATALOG_UNAVAILABLE",
+        "fallback_used": False,
+        "catalog_required": True,
+    }
+
+def _major_minor_patch_from_game_version(game_version):
+    if game_version in (None, "", UNKNOWN):
+        return None
+
+    match = re.match(
+        r"^\s*(\d+)\.(\d+)(?:\.|$)",
+        str(game_version),
+    )
+
+    if not match:
+        return None
+
+    major = int(match.group(1))
+    minor = int(match.group(2))
+
+    return f"{major}.{minor}"
+
 def _load_raw_runes(ddragon_version, locale):
     url = (
         f"{DDRAGON_BASE_URL}/cdn/{ddragon_version}/data/"
@@ -585,7 +842,6 @@ def _parse_completeness(short_record, long_record):
         return "COMPLETELY_UNPARSED"
 
     any_evidence = False
-    any_unparsed = False
     for record in fields:
         has_evidence = (
             bool(record["effects"])
@@ -593,17 +849,33 @@ def _parse_completeness(short_record, long_record):
             or bool(record["numeric_fragments"])
         )
         any_evidence = any_evidence or has_evidence
-        any_unparsed = any_unparsed or bool(record["unparsed_text"])
 
-    if any_evidence and not any_unparsed:
-        return "FULLY_STRUCTURED"
     if any_evidence:
         return "PARTIALLY_STRUCTURED"
     return "COMPLETELY_UNPARSED"
 
 
+def _semantic_parse_summary(short_record, long_record):
+    counts = Counter()
+    for record in (short_record, long_record):
+        if not record["clean_text"]:
+            counts["EMPTY"] += 1
+            continue
+        has_evidence = (
+            bool(record["effects"])
+            or bool(record["conditions"])
+            or bool(record["numeric_fragments"])
+        )
+        if has_evidence:
+            counts["PARTIALLY_STRUCTURED"] += 1
+        else:
+            counts["COMPLETELY_UNPARSED"] += 1
+    return dict(counts)
+
+
 def _build_rune_record(style, slot_index, rune, version_info, locale):
     ddragon_version = version_info["resolved_ddragon_version"]
+    rune_role = "KEYSTONE" if slot_index == 0 else "MINOR"
     short_record = _description_record(
         rune.get("shortDesc"),
         "shortDesc",
@@ -631,6 +903,13 @@ def _build_rune_record(style, slot_index, rune, version_info, locale):
         "style_key": style.get("key") or UNKNOWN,
         "style_name": style.get("name") or UNKNOWN,
         "slot_index": slot_index,
+        "rune_role": rune_role,
+        "rune_role_provenance": {
+            "source": RUNE_ROLE_SOURCE,
+            "rule": "slot_index 0 => KEYSTONE; other slots => MINOR",
+            "slot_index": slot_index,
+            "style_id": int(style["id"]),
+        },
         "locale": locale,
         "ddragon_version": ddragon_version,
         "raw_shortDesc": rune.get("shortDesc") or "",
@@ -656,6 +935,7 @@ def _build_rune_record(style, slot_index, rune, version_info, locale):
             "locale": locale,
         },
         "structure_completeness": _parse_completeness(short_record, long_record),
+        "semantic_parse_summary": _semantic_parse_summary(short_record, long_record),
         "raw_rune_json": dict(rune),
     }
 
@@ -689,6 +969,11 @@ def build_rune_knowledge_catalog(
         for slot_index, slot in enumerate(style.get("slots", []) or []):
             slot_record = {
                 "slot_index": slot_index,
+                "slot_role": "KEYSTONE" if slot_index == 0 else "MINOR",
+                "slot_role_provenance": {
+                    "source": RUNE_ROLE_SOURCE,
+                    "rule": "slot_index 0 => KEYSTONE; other slots => MINOR",
+                },
                 "rune_ids": [],
                 "raw_slot_json": dict(slot),
             }
@@ -752,9 +1037,11 @@ def summarize_rune_knowledge(
     formula_status_counts = Counter()
     parser_status_counts = Counter()
     structure_counts = Counter()
+    semantic_field_counts = Counter()
     unparsed_kind_counts = Counter()
     runes_by_style = Counter()
     runes_by_slot = Counter()
+    rune_role_counts = Counter()
 
     for style in styles:
         style_key = style["key"]
@@ -768,6 +1055,8 @@ def summarize_rune_knowledge(
         formula_status_counts[record["formula"]["status"]] += 1
         parser_status_counts[record["semantic_parser"]["status"]] += 1
         structure_counts[record["structure_completeness"]] += 1
+        semantic_field_counts.update(record.get("semantic_parse_summary", {}))
+        rune_role_counts[record["rune_role"]] += 1
         numeric_fragment_counts.update(
             fragment["fragment_type"] for fragment in record["numeric_fragments"]
         )
@@ -786,12 +1075,14 @@ def summarize_rune_knowledge(
         "invalid_rune_records": invalid_rune_records,
         "runes_by_style": dict(runes_by_style),
         "runes_by_slot": dict(runes_by_slot),
+        "rune_role_counts": dict(rune_role_counts),
         "semantic_effect_counts": dict(effect_counts),
         "condition_trigger_counts": dict(condition_trigger_counts),
         "numeric_fragment_counts": dict(numeric_fragment_counts),
         "formula_status_counts": dict(formula_status_counts),
         "semantic_parser_status_counts": dict(parser_status_counts),
         "structure_completeness_counts": dict(structure_counts),
+        "semantic_field_parse_counts": dict(semantic_field_counts),
         "unparsed_kind_counts": dict(unparsed_kind_counts),
         "magical_footwear_static_record": _magical_footwear_static_summary(records),
         "stat_perks_in_static_catalog": [
@@ -861,20 +1152,253 @@ def _parse_raw_json(raw_json):
         return {}
 
 
-def build_observed_rune_audit(catalog, match_rows=None, db_path=DB_PATH):
+def _page_context_from_description(description):
+    if description == "primaryStyle":
+        return "PRIMARY"
+    if description == "subStyle":
+        return "SECONDARY"
+    return UNKNOWN
+
+
+def _style_index(catalog):
+    if not catalog:
+        return {}
+    return {style["style_id"]: style for style in catalog.get("styles", [])}
+
+
+def resolve_observed_rune_page(perks, catalog=None, match_context=None):
+    match_context = dict(match_context or {})
+    records = catalog.get("records", {}) if catalog else {}
+    style_index = _style_index(catalog)
+    if not perks:
+        return {
+            "resolution_status": "NO_PERKS_PAYLOAD",
+            "catalog_status": (
+                "PATCH_CATALOG_AVAILABLE" if catalog else "PATCH_CATALOG_UNAVAILABLE"
+            ),
+            "match_context": match_context,
+            "styles": [],
+            "stat_perks": {},
+            "counts": {},
+        }
+
+    styles = []
+    stat_perks = {}
+    counts = Counter()
+    page_context_counts = Counter()
+    rune_role_counts = Counter()
+    has_unknown_link = False
+
+    for style in perks.get("styles", []) or []:
+        observed_style_id = style.get("style")
+        page_context = _page_context_from_description(style.get("description"))
+        page_context_counts[page_context] += 1
+        if catalog is None:
+            style_link_status = "PATCH_CATALOG_UNAVAILABLE"
+            static_style = None
+            has_unknown_link = True
+        else:
+            static_style = style_index.get(observed_style_id)
+            if static_style:
+                style_link_status = "LINKED_RUNE_STYLE"
+            else:
+                style_link_status = "UNKNOWN_RUNE_STYLE_ID"
+                has_unknown_link = True
+
+        resolved_style = {
+            "observed_style_id": observed_style_id,
+            "observed_description": style.get("description"),
+            "page_context": page_context,
+            "page_context_provenance": {
+                "source": PAGE_CONTEXT_SOURCE,
+                "raw_description": style.get("description"),
+                "note": "PRIMARY/SECONDARY is page context only, not rune role.",
+            },
+            "style_link_status": style_link_status,
+            "static_style_key": static_style.get("key") if static_style else UNKNOWN,
+            "static_style_name": static_style.get("name") if static_style else UNKNOWN,
+            "selections": [],
+        }
+
+        for selection in style.get("selections", []) or []:
+            perk_id = selection.get("perk")
+            if catalog is None:
+                record = None
+                link_status = "PATCH_CATALOG_UNAVAILABLE"
+                has_unknown_link = True
+            else:
+                record = records.get(perk_id)
+                if record:
+                    link_status = "LINKED_RUNE_CATALOG"
+                else:
+                    link_status = "UNKNOWN_PERK_ID"
+                    has_unknown_link = True
+
+            if record:
+                rune_role = record["rune_role"]
+                rune_role_provenance = dict(record["rune_role_provenance"])
+                style_consistency = (
+                    "MATCHES_OBSERVED_STYLE"
+                    if record["style_id"] == observed_style_id
+                    else "STATIC_STYLE_MISMATCH"
+                )
+                if style_consistency != "MATCHES_OBSERVED_STYLE":
+                    has_unknown_link = True
+            else:
+                rune_role = UNKNOWN
+                rune_role_provenance = {
+                    "source": RUNE_ROLE_SOURCE,
+                    "status": "UNAVAILABLE_WITHOUT_STATIC_RUNE_RECORD",
+                }
+                style_consistency = "UNKNOWN"
+
+            rune_role_counts[rune_role] += 1
+            counts[link_status] += 1
+            resolved_style["selections"].append(
+                {
+                    "perk_id": perk_id,
+                    "link_status": link_status,
+                    "rune_id": record["rune_id"] if record else perk_id,
+                    "rune_key": record["key"] if record else UNKNOWN,
+                    "rune_name": record["name"] if record else UNKNOWN,
+                    "rune_role": rune_role,
+                    "rune_role_provenance": rune_role_provenance,
+                    "static_style_id": record["style_id"] if record else None,
+                    "static_style_key": record["style_key"] if record else UNKNOWN,
+                    "static_slot_index": record["slot_index"] if record else None,
+                    "observed_style_id": observed_style_id,
+                    "style_consistency": style_consistency,
+                    "page_context": page_context,
+                    "page_context_provenance": {
+                        "source": PAGE_CONTEXT_SOURCE,
+                        "raw_description": style.get("description"),
+                        "note": (
+                            "PRIMARY/SECONDARY is page context only and does "
+                            "not determine KEYSTONE/MINOR."
+                        ),
+                    },
+                    "var1": selection.get("var1"),
+                    "var2": selection.get("var2"),
+                    "var3": selection.get("var3"),
+                    "var_meaning_status": "RIOT_OBSERVED_UNINTERPRETED",
+                }
+            )
+
+        styles.append(resolved_style)
+
+    for slot in STAT_PERK_SLOTS:
+        stat_perk_id = (perks.get("statPerks") or {}).get(slot)
+        if stat_perk_id is None:
+            status = "MISSING"
+        elif catalog is None:
+            status = "PATCH_CATALOG_UNAVAILABLE"
+        elif stat_perk_id in records:
+            status = "LINKED_STATIC_RUNE_UNEXPECTED"
+        else:
+            status = "STAT_PERK_NOT_EXPOSED_BY_DDRAGON_RUNE_CATALOG"
+        stat_perks[slot] = {
+            "slot": slot,
+            "stat_perk_id": stat_perk_id,
+            "status": status,
+            "meaning_status": NOT_EXPOSED,
+            "value_status": NOT_EXPOSED,
+            "source": "RIOT_MATCH_PERKS_STATPERKS",
+        }
+
+    if catalog is None:
+        resolution_status = "PATCH_CATALOG_UNAVAILABLE"
+    elif has_unknown_link:
+        resolution_status = "PARTIALLY_RESOLVED"
+    else:
+        resolution_status = "RESOLVED"
+
+    return {
+        "resolution_status": resolution_status,
+        "catalog_status": (
+            "PATCH_CATALOG_AVAILABLE" if catalog else "PATCH_CATALOG_UNAVAILABLE"
+        ),
+        "ddragon_version": catalog.get("resolved_ddragon_version") if catalog else None,
+        "locale": catalog.get("locale") if catalog else None,
+        "match_context": match_context,
+        "styles": styles,
+        "stat_perks": stat_perks,
+        "counts": dict(counts),
+        "page_context_counts": dict(page_context_counts),
+        "rune_role_counts": dict(rune_role_counts),
+    }
+
+
+def _catalog_for_resolved_version(
+    ddragon_version,
+    locale,
+    versions,
+    cache,
+    raw_runes_by_version=None,
+):
+    if not ddragon_version:
+        return None, "PATCH_CATALOG_UNAVAILABLE"
+    if ddragon_version in cache:
+        return cache[ddragon_version], "PATCH_CATALOG_AVAILABLE"
+
+    raw_runes = None
+    if raw_runes_by_version:
+        raw_runes = raw_runes_by_version.get(ddragon_version)
+    try:
+        catalog = build_rune_knowledge_catalog(
+            requested_game_version=ddragon_version,
+            locale=locale,
+            raw_runes=raw_runes,
+            versions=[ddragon_version] if versions is None else versions,
+        )
+    except requests.RequestException:
+        return None, "PATCH_CATALOG_LOAD_FAILED"
+
+    cache[ddragon_version] = catalog
+    return catalog, "PATCH_CATALOG_AVAILABLE"
+
+
+def _rune_name_from_catalog_cache(perk_id, catalog_cache):
+    for catalog in catalog_cache.values():
+        record = catalog.get("records", {}).get(perk_id)
+        if record:
+            return record["name"]
+    return UNKNOWN
+
+
+def build_observed_rune_audit(
+    catalog=None,
+    match_rows=None,
+    db_path=DB_PATH,
+    locale=DEFAULT_LOCALE,
+    versions=None,
+    catalog_by_version=None,
+    raw_runes_by_version=None,
+):
     match_rows = match_rows if match_rows is not None else _load_match_rows(db_path)
-    records = catalog["records"]
-    style_ids = {style["style_id"] for style in catalog["styles"]}
+    versions = list(versions if versions is not None else get_ddragon_versions())
+    catalog_cache = dict(catalog_by_version or {})
+    if catalog:
+        catalog_cache[catalog["resolved_ddragon_version"]] = catalog
 
     rune_counts = Counter()
     style_counts = Counter()
     link_status_counts = Counter()
     style_link_status_counts = Counter()
+    linked_rune_name_counts = Counter()
+    unresolved_perk_counts = Counter()
+    match_version_resolution_counts = Counter()
+    catalog_status_counts = Counter()
+    catalog_versions_used = Counter()
+    page_resolution_counts = Counter()
+    page_context_counts = Counter()
+    rune_role_counts = Counter()
+    style_consistency_counts = Counter()
     stat_perk_counts_by_slot = {slot: Counter() for slot in STAT_PERK_SLOTS}
     stat_perk_status_counts = Counter()
     stat_perk_examples = defaultdict(list)
     unknown_perk_examples = []
     unknown_style_examples = []
+    unavailable_catalog_examples = []
     var_observations = Counter()
     nonzero_var_observations = Counter()
     var_value_examples = defaultdict(list)
@@ -904,6 +1428,31 @@ def build_observed_rune_audit(catalog, match_rows=None, db_path=DB_PATH):
             continue
         game_version = match_row.get("game_version") or info.get("gameVersion")
         game_version_counts[game_version or UNKNOWN] += 1
+        version_info = resolve_match_ddragon_version(game_version, versions=versions)
+        match_version_resolution_counts[version_info["resolution_status"]] += 1
+        patch_catalog = None
+        patch_catalog_status = "PATCH_CATALOG_UNAVAILABLE"
+        if version_info["resolved_ddragon_version"]:
+            patch_catalog, patch_catalog_status = _catalog_for_resolved_version(
+                version_info["resolved_ddragon_version"],
+                locale,
+                versions,
+                catalog_cache,
+                raw_runes_by_version=raw_runes_by_version,
+            )
+        catalog_status_counts[patch_catalog_status] += 1
+        if patch_catalog:
+            catalog_versions_used[patch_catalog["resolved_ddragon_version"]] += 1
+        else:
+            _example(
+                unavailable_catalog_examples,
+                {
+                    "match_id": match_row.get("match_id"),
+                    "game_version": game_version,
+                    "version_resolution_status": version_info["resolution_status"],
+                    "catalog_status": patch_catalog_status,
+                },
+            )
 
         for participant in participants:
             participant_count += 1
@@ -915,13 +1464,28 @@ def build_observed_rune_audit(catalog, match_rows=None, db_path=DB_PATH):
             participants_with_perks += 1
             matches_with_perks.add(match_row.get("match_id"))
 
-            for style in perks.get("styles", []) or []:
-                style_id = style.get("style")
+            resolved_page = resolve_observed_rune_page(
+                perks,
+                patch_catalog,
+                match_context={
+                    "match_id": match_row.get("match_id"),
+                    "game_version": game_version,
+                    "resolved_ddragon_version": version_info["resolved_ddragon_version"],
+                    "version_resolution_status": version_info["resolution_status"],
+                    "catalog_status": patch_catalog_status,
+                    "participant_id": participant.get("participantId"),
+                    "champion": champion,
+                },
+            )
+            page_resolution_counts[resolved_page["resolution_status"]] += 1
+            page_context_counts.update(resolved_page.get("page_context_counts", {}))
+            rune_role_counts.update(resolved_page.get("rune_role_counts", {}))
+
+            for resolved_style in resolved_page["styles"]:
+                style_id = resolved_style["observed_style_id"]
                 style_counts[style_id] += 1
-                if style_id in style_ids:
-                    style_link_status_counts["LINKED_RUNE_STYLE"] += 1
-                else:
-                    style_link_status_counts["UNKNOWN_RUNE_STYLE_ID"] += 1
+                style_link_status_counts[resolved_style["style_link_status"]] += 1
+                if resolved_style["style_link_status"] != "LINKED_RUNE_STYLE":
                     _example(
                         unknown_style_examples,
                         {
@@ -929,17 +1493,24 @@ def build_observed_rune_audit(catalog, match_rows=None, db_path=DB_PATH):
                             "participant_id": participant.get("participantId"),
                             "champion": champion,
                             "style_id": style_id,
+                            "style_link_status": resolved_style["style_link_status"],
+                            "game_version": game_version,
+                            "resolved_ddragon_version": version_info[
+                                "resolved_ddragon_version"
+                            ],
                         },
                     )
 
-                for selection in style.get("selections", []) or []:
-                    perk_id = selection.get("perk")
+                for selection in resolved_style["selections"]:
+                    perk_id = selection["perk_id"]
                     rune_selection_count += 1
                     rune_counts[perk_id] += 1
-                    if perk_id in records:
-                        link_status_counts["LINKED_RUNE_CATALOG"] += 1
+                    link_status_counts[selection["link_status"]] += 1
+                    style_consistency_counts[selection["style_consistency"]] += 1
+                    if selection["link_status"] == "LINKED_RUNE_CATALOG":
+                        linked_rune_name_counts[selection["rune_name"]] += 1
                     else:
-                        link_status_counts["UNKNOWN_PERK_ID"] += 1
+                        unresolved_perk_counts[perk_id] += 1
                         _example(
                             unknown_perk_examples,
                             {
@@ -948,6 +1519,11 @@ def build_observed_rune_audit(catalog, match_rows=None, db_path=DB_PATH):
                                 "champion": champion,
                                 "perk_id": perk_id,
                                 "style_id": style_id,
+                                "link_status": selection["link_status"],
+                                "game_version": game_version,
+                                "resolved_ddragon_version": version_info[
+                                    "resolved_ddragon_version"
+                                ],
                             },
                         )
 
@@ -979,25 +1555,27 @@ def build_observed_rune_audit(catalog, match_rows=None, db_path=DB_PATH):
                                 "champion": champion,
                                 "perk_selection": {
                                     "perk": perk_id,
-                                    "var1": selection.get("var1"),
-                                    "var2": selection.get("var2"),
-                                    "var3": selection.get("var3"),
+                                    "var1": selection["var1"],
+                                    "var2": selection["var2"],
+                                    "var3": selection["var3"],
                                     "meaning_status": "RIOT_OBSERVED_UNINTERPRETED",
+                                    "link_status": selection["link_status"],
+                                    "rune_role": selection["rune_role"],
+                                    "page_context": selection["page_context"],
+                                    "resolved_ddragon_version": version_info[
+                                        "resolved_ddragon_version"
+                                    ],
                                 },
                             },
                         )
 
-            stat_perks = perks.get("statPerks") or {}
-            for slot in STAT_PERK_SLOTS:
-                stat_perk_id = stat_perks.get(slot)
+            for slot, stat_perk in resolved_page["stat_perks"].items():
+                stat_perk_id = stat_perk["stat_perk_id"]
                 if stat_perk_id is None:
                     stat_perk_status_counts[f"{slot}:MISSING"] += 1
                     continue
                 stat_perk_counts_by_slot[slot][stat_perk_id] += 1
-                if stat_perk_id in records:
-                    status = "LINKED_STATIC_RUNE_UNEXPECTED"
-                else:
-                    status = "STAT_PERK_NOT_EXPOSED_BY_DDRAGON_RUNE_CATALOG"
+                status = stat_perk["status"]
                 stat_perk_status_counts[f"{slot}:{status}"] += 1
                 _example(
                     stat_perk_examples[(slot, stat_perk_id)],
@@ -1009,23 +1587,13 @@ def build_observed_rune_audit(catalog, match_rows=None, db_path=DB_PATH):
                         "stat_perk_id": stat_perk_id,
                         "meaning_status": NOT_EXPOSED,
                         "value_status": NOT_EXPOSED,
+                        "status": status,
+                        "game_version": game_version,
+                        "resolved_ddragon_version": version_info[
+                            "resolved_ddragon_version"
+                        ],
                     },
                 )
-
-    known_rune_counts = Counter(
-        {
-            records[perk_id]["name"]: count
-            for perk_id, count in rune_counts.items()
-            if perk_id in records
-        }
-    )
-    unknown_rune_counts = Counter(
-        {
-            perk_id: count
-            for perk_id, count in rune_counts.items()
-            if perk_id not in records
-        }
-    )
 
     return {
         "observed_match_count": len(match_rows),
@@ -1033,14 +1601,23 @@ def build_observed_rune_audit(catalog, match_rows=None, db_path=DB_PATH):
         "participants_with_perks": participants_with_perks,
         "matches_with_perks": len(matches_with_perks),
         "rune_selection_count": rune_selection_count,
+        "patch_aware_catalog_resolution": True,
+        "match_version_resolution_counts": dict(match_version_resolution_counts),
+        "catalog_status_counts": dict(catalog_status_counts),
+        "catalog_versions_used": dict(catalog_versions_used),
+        "page_resolution_counts": dict(page_resolution_counts),
+        "page_context_counts": dict(page_context_counts),
+        "rune_role_counts": dict(rune_role_counts),
+        "style_consistency_counts": dict(style_consistency_counts),
         "link_status_counts": dict(link_status_counts),
         "style_link_status_counts": dict(style_link_status_counts),
         "observed_rune_id_counts": dict(rune_counts),
-        "known_rune_name_counts": dict(known_rune_counts.most_common()),
-        "unknown_perk_id_counts": dict(unknown_rune_counts),
+        "known_rune_name_counts": dict(linked_rune_name_counts.most_common()),
+        "unknown_perk_id_counts": dict(unresolved_perk_counts),
         "unknown_perk_examples": unknown_perk_examples,
         "observed_style_counts": dict(style_counts),
         "unknown_style_examples": unknown_style_examples,
+        "unavailable_catalog_examples": unavailable_catalog_examples,
         "stat_perk_counts_by_slot": {
             slot: dict(counts)
             for slot, counts in stat_perk_counts_by_slot.items()
@@ -1064,9 +1641,6 @@ def build_observed_rune_audit(catalog, match_rows=None, db_path=DB_PATH):
             "perk_id": MAGICAL_FOOTWEAR_PERK_ID,
             "participants": rune_counts.get(MAGICAL_FOOTWEAR_PERK_ID, 0),
             "matches": len(matches_with_magical_footwear),
-            "catalog_status": catalog["summary"]["magical_footwear_static_record"][
-                "catalog_status"
-            ],
             "examples": magical_examples,
         },
         "magical_footwear_itemization_contract": (
@@ -1123,6 +1697,11 @@ def render_rune_record_diagnostic(record):
         (
             "style/slot: "
             f"{record['style_name']} ({record['style_id']}), slot {record['slot_index']}"
+        ),
+        (
+            "rune role: "
+            f"{record['rune_role']} "
+            f"({record['rune_role_provenance']['source']})"
         ),
         f"formula: {record['formula']['status']}",
         f"structure completeness: {record['structure_completeness']}",
@@ -1221,6 +1800,7 @@ def render_rune_knowledge_audit(catalog, observed_audit=None):
         f"Total rune records: {summary['total_runes']}",
         f"Runes by style: {_format_counts(Counter(summary['runes_by_style']))}",
         f"Runes by slot: {_format_counts(Counter(summary['runes_by_slot']), limit=12)}",
+        f"Rune roles: {_format_counts(Counter(summary['rune_role_counts']))}",
         f"Duplicate rune IDs: {summary['duplicate_rune_ids'] or 'none'}",
         f"Invalid rune records: {len(summary['invalid_rune_records'])}",
         (
@@ -1234,6 +1814,10 @@ def render_rune_knowledge_audit(catalog, observed_audit=None):
         (
             "Structure completeness: "
             f"{_format_counts(Counter(summary['structure_completeness_counts']))}"
+        ),
+        (
+            "Description-field semantic completeness: "
+            f"{_format_counts(Counter(summary['semantic_field_parse_counts']))}"
         ),
         (
             "Semantic effect counts: "
@@ -1275,6 +1859,38 @@ def render_rune_knowledge_audit(catalog, observed_audit=None):
                 f"Matches with perks payload: {observed_audit['matches_with_perks']}",
                 f"Rune selections observed: {observed_audit['rune_selection_count']}",
                 (
+                    "Patch-aware catalog resolution: "
+                    f"{observed_audit['patch_aware_catalog_resolution']}"
+                ),
+                (
+                    "Match version resolution: "
+                    f"{_format_counts(Counter(observed_audit['match_version_resolution_counts']))}"
+                ),
+                (
+                    "Patch catalog status: "
+                    f"{_format_counts(Counter(observed_audit['catalog_status_counts']))}"
+                ),
+                (
+                    "Catalog versions used: "
+                    f"{_format_counts(Counter(observed_audit['catalog_versions_used']))}"
+                ),
+                (
+                    "Rune page resolution: "
+                    f"{_format_counts(Counter(observed_audit['page_resolution_counts']))}"
+                ),
+                (
+                    "Rune page context counts: "
+                    f"{_format_counts(Counter(observed_audit['page_context_counts']))}"
+                ),
+                (
+                    "Observed rune roles: "
+                    f"{_format_counts(Counter(observed_audit['rune_role_counts']))}"
+                ),
+                (
+                    "Observed rune/static style consistency: "
+                    f"{_format_counts(Counter(observed_audit['style_consistency_counts']))}"
+                ),
+                (
                     "Rune catalog link statuses: "
                     f"{_format_counts(Counter(observed_audit['link_status_counts']))}"
                 ),
@@ -1283,7 +1899,7 @@ def render_rune_knowledge_audit(catalog, observed_audit=None):
                     f"{_format_counts(Counter(observed_audit['style_link_status_counts']))}"
                 ),
                 (
-                    "Unknown observed perk IDs: "
+                    "Unresolved observed perk IDs: "
                     f"{_format_counts(Counter(observed_audit['unknown_perk_id_counts']))}"
                 ),
                 (
@@ -1330,6 +1946,10 @@ def render_rune_knowledge_audit(catalog, observed_audit=None):
                 (
                     "Magical Footwear itemization compatibility: "
                     f"{observed_audit['magical_footwear_itemization_contract']['status']}"
+                ),
+                (
+                    "Unavailable patch catalog samples: "
+                    f"{observed_audit['unavailable_catalog_examples'] or 'none'}"
                 ),
                 (
                     "Malformed match samples: "
