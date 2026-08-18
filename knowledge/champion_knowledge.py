@@ -8,7 +8,7 @@ import requests
 from riot.data_dragon import DDRAGON_BASE_URL, get_ddragon_versions
 
 
-CHAMPION_KNOWLEDGE_VERSION = "champion_knowledge_phase2b1_b_v1"
+CHAMPION_KNOWLEDGE_VERSION = "champion_knowledge_phase2b1_c_v1"
 DEFAULT_LOCALE = "fr_FR"
 UNKNOWN = "UNKNOWN"
 NOT_EXPOSED = "NOT_EXPOSED"
@@ -188,7 +188,102 @@ TRANSFORMATION_EVIDENCE_PHRASES = (
     "forme humaine",
     "forme arachneenne",
     "forme de cougar",
+    "forme de couguar",
+    "forme couguar",
     "posture",
+)
+
+ALTERNATE_FORM_SELF_PHRASES = (
+    "se transforme",
+    "change de forme",
+    "changer de forme",
+    "alterne entre",
+    "passe en forme",
+    "passe sous forme",
+    "activer sa forme",
+    "active sa forme",
+    "sa forme veritable",
+    "forme veritable",
+    "veritable forme",
+    "le transforme en",
+    "la transforme en",
+)
+
+ALTERNATE_FORM_NAMED_FORM_PHRASES = (
+    "forme de dragon",
+    "forme dragon",
+    "forme humaine",
+    "forme arachneenne",
+    "forme de cougar",
+    "forme de couguar",
+    "forme couguar",
+)
+
+ALTERNATE_FORM_STANCE_PHRASES = (
+    "change de posture",
+    "changer de posture",
+    "adopte une posture",
+    "prend une posture",
+    "posture",
+)
+
+GENERIC_TRANSFORMATION_OBJECT_PHRASES = (
+    "transforme les degats",
+    "transforme des degats",
+    "transforme ses degats",
+    "transforme l'attaque",
+    "transforme son attaque",
+    "transforme sa prochaine attaque",
+    "transforme le prochain lancement",
+    "transforme la prochaine",
+    "transforme son kit",
+    "transforme ses competences",
+    "transforme sa competence",
+    "transforme cette competence",
+    "transforme la competence",
+    "transforme la cible",
+    "transforme un ennemi",
+    "transforme l'ennemi",
+    "ennemi est transforme",
+    "ennemis sont transformes",
+    "cible est transformee",
+    "transforme la marque",
+    "transforme les marques",
+    "transforme la ressource",
+    "transforme la fureur",
+    "transforme l'effet",
+    "transforme les effets",
+    "transforme le terrain",
+    "transforme les sbires",
+    "transforme les arbrisseaux",
+    "transforme les graines",
+    "transforme les goules",
+    "transforme les plantes",
+    "transforme murmure",
+)
+
+NON_SELF_TRANSFORMATION_SUBJECT_PHRASES = (
+    "cette graine se transforme",
+    "une graine se transforme",
+    "la graine se transforme",
+    "l'ennemi se transforme",
+    "un ennemi se transforme",
+    "un champion ennemi se transforme",
+    "le champion ennemi se transforme",
+    "il se transforme en serviteur",
+    "elle se transforme en serviteur",
+    "la cible se transforme",
+    "il le transforme",
+    "elle le transforme",
+    "il la transforme",
+    "elle la transforme",
+    "les ennemis se transforment",
+    "les sbires se transforment",
+    "les arbrisseaux se transforment",
+    "les graines se transforment",
+    "les goules se transforment",
+    "les plantes se transforment",
+    "se transforme en laser",
 )
 
 PLACEHOLDER_FORMULA_HINTS = (
@@ -1009,95 +1104,80 @@ def _combined_text_for_complexity(record):
     return _normalize_text("\n".join(texts))
 
 
-COMPLEXITY_PHRASE_RULES = {
+COPIED_OR_DYNAMIC_ABILITY_RULES = [
+    ("copie", "CONFIRMED_COMPLEX_MECHANIC", "copy wording in ability text"),
+    ("copier", "CONFIRMED_COMPLEX_MECHANIC", "copy wording in ability text"),
+    (
+        "possession",
+        "CONFIRMED_COMPLEX_MECHANIC",
+        "possession wording in ability text",
+    ),
+    (
+        "prend possession",
+        "CONFIRMED_COMPLEX_MECHANIC",
+        "possession wording in ability text",
+    ),
+    (
+        "vole une competence",
+        "CONFIRMED_COMPLEX_MECHANIC",
+        "stolen-ability wording in ability text",
+    ),
+]
+
+PHASE2B1_B_COMPLEXITY_PHRASE_RULES = {
     "ALTERNATE_FORM_POSSIBLE": [
         (
             "change de forme",
             "CONFIRMED_COMPLEX_MECHANIC",
-            "explicit form-change wording",
+            "Phase 2B1-B explicit form-change evidence",
         ),
         (
             "changer de forme",
             "CONFIRMED_COMPLEX_MECHANIC",
-            "explicit form-change wording",
+            "Phase 2B1-B explicit form-change evidence",
         ),
-        ("transforme", "CONFIRMED_COMPLEX_MECHANIC", "explicit transformation wording"),
+        (
+            "transforme",
+            "UNRESOLVED",
+            "Phase 2B1-B keyword evidence; Phase 2B1-C audits transformed entity",
+        ),
         (
             "se transforme",
             "CONFIRMED_COMPLEX_MECHANIC",
-            "explicit self-transformation wording",
+            "Phase 2B1-B self-transformation evidence",
         ),
         (
             "forme de dragon",
             "PLAUSIBLE_BUT_UNDERMODELED",
-            "named alternate-form wording exposed by Data Dragon text",
+            "Phase 2B1-B named form evidence",
         ),
         (
             "forme dragon",
             "PLAUSIBLE_BUT_UNDERMODELED",
-            "named alternate-form wording exposed by Data Dragon text",
+            "Phase 2B1-B named form evidence",
         ),
         (
             "forme humaine",
             "PLAUSIBLE_BUT_UNDERMODELED",
-            "named alternate-form wording exposed by Data Dragon text",
+            "Phase 2B1-B named form evidence",
         ),
         (
             "forme arachneenne",
             "PLAUSIBLE_BUT_UNDERMODELED",
-            "named alternate-form wording exposed by Data Dragon text",
+            "Phase 2B1-B named form evidence",
         ),
         (
             "forme de cougar",
             "PLAUSIBLE_BUT_UNDERMODELED",
-            "named alternate-form wording exposed by Data Dragon text",
+            "Phase 2B1-B named form evidence",
         ),
         (
             "posture",
             "PLAUSIBLE_BUT_UNDERMODELED",
-            "stance/posture wording may imply alternate ability state",
+            "Phase 2B1-B posture evidence",
         ),
     ],
-    "COPIED_OR_DYNAMIC_ABILITY": [
-        ("copie", "CONFIRMED_COMPLEX_MECHANIC", "copy wording in ability text"),
-        ("copier", "CONFIRMED_COMPLEX_MECHANIC", "copy wording in ability text"),
-        (
-            "possession",
-            "CONFIRMED_COMPLEX_MECHANIC",
-            "possession wording in ability text",
-        ),
-        (
-            "prend possession",
-            "CONFIRMED_COMPLEX_MECHANIC",
-            "possession wording in ability text",
-        ),
-        (
-            "vole une competence",
-            "CONFIRMED_COMPLEX_MECHANIC",
-            "stolen-ability wording in ability text",
-        ),
-    ],
-}
-
-LEGACY_COMPLEXITY_PHRASE_RULES = {
-    "ALTERNATE_FORM_POSSIBLE": [
-        (
-            "change de forme",
-            "CONFIRMED_COMPLEX_MECHANIC",
-            "legacy explicit form-change evidence",
-        ),
-        (
-            "forme de",
-            "FALSE_POSITIVE",
-            "legacy generic wording; not sufficient after Phase 2B1-B",
-        ),
-        ("forme dragon", "PLAUSIBLE_BUT_UNDERMODELED", "legacy named form evidence"),
-        ("transforme", "CONFIRMED_COMPLEX_MECHANIC", "legacy transformation evidence"),
-        ("posture", "PLAUSIBLE_BUT_UNDERMODELED", "legacy posture evidence"),
-    ],
-    "COPIED_OR_DYNAMIC_ABILITY": COMPLEXITY_PHRASE_RULES[
-        "COPIED_OR_DYNAMIC_ABILITY"
-    ],
+    "COPIED_OR_DYNAMIC_ABILITY": COPIED_OR_DYNAMIC_ABILITY_RULES,
 }
 
 
@@ -1128,6 +1208,310 @@ def _iter_complexity_text_sources(record):
             }
 
 
+def _complexity_units(source):
+    text = source["evidence_text"]
+    for fragment in _split_semantic_fragments(text):
+        clauses = _split_semantic_clauses(fragment)
+        for clause in clauses or [fragment]:
+            unit = dict(source)
+            unit["evidence_text"] = clause
+            unit["context_text"] = text
+            yield unit
+    context_unit = dict(source)
+    context_unit["context_text"] = text
+    yield context_unit
+
+
+def _record_identity_terms(record):
+    terms = []
+    if record:
+        for candidate in (record.get("name"), record.get("champion_id")):
+            normalized = _normalize_text(candidate)
+            if len(normalized) >= 3 and normalized not in terms:
+                terms.append(normalized)
+    return terms
+
+
+def _has_record_identity(normalized_text, record):
+    return any(term in normalized_text for term in _record_identity_terms(record))
+
+
+def _has_explicit_champion_self_subject(normalized_text, context_normalized, record):
+    if _contains_any(normalized_text, ("le champion", "la championne")):
+        return True
+    if _has_record_identity(normalized_text, record):
+        return True
+    if _has_record_identity(context_normalized, record) and _contains_any(
+        normalized_text,
+        (
+            "sa prochaine competence le transforme",
+            "sa prochaine competence la transforme",
+            "elle prend alors sa veritable forme",
+            "il prend alors sa veritable forme",
+        ),
+    ):
+        return True
+    return False
+
+
+def _described_transformed_entity(normalized_text, context_normalized="", record=None):
+    for phrase in NON_SELF_TRANSFORMATION_SUBJECT_PHRASES:
+        if _normalize_text(phrase) in normalized_text:
+            return (
+                "non_champion_target_or_summoned_entity",
+                "FALSE_POSITIVE",
+                phrase,
+                "self-transformation grammar belongs to a target or summoned entity, not the champion",
+            )
+
+    for phrase in GENERIC_TRANSFORMATION_OBJECT_PHRASES:
+        if _normalize_text(phrase) in normalized_text:
+            return (
+                "generic_transformed_mechanic_or_object",
+                "FALSE_POSITIVE",
+                phrase,
+                "transformed entity is not the champion's own form or kit state",
+            )
+
+    if _contains_any(normalized_text, ("change de forme", "changer de forme")):
+        if not _has_explicit_champion_self_subject(
+            normalized_text, context_normalized, record
+        ):
+            return (
+                "generic_transformation_unknown_entity",
+                "UNRESOLVED",
+                "change de forme",
+                "form-change wording lacks local champion ownership evidence",
+            )
+        return (
+            "champion_self_form_or_kit_state",
+            "CONFIRMED_COMPLEX_MECHANIC",
+            "change de forme",
+            "explicit champion form-change wording",
+        )
+
+    if _contains_any(normalized_text, ("se transforme",)):
+        if not _has_explicit_champion_self_subject(
+            normalized_text, context_normalized, record
+        ):
+            return (
+                "generic_transformation_unknown_entity",
+                "UNRESOLVED",
+                "se transforme",
+                "self-transformation wording lacks local champion ownership evidence",
+            )
+        return (
+            "champion_self_form_or_state",
+            "CONFIRMED_COMPLEX_MECHANIC",
+            "se transforme",
+            "self-transformation wording identifies the champion as the subject",
+        )
+
+    if _contains_any(normalized_text, ("le transforme en", "la transforme en")):
+        if not _contains_any(
+            normalized_text,
+            (
+                "sa prochaine competence le transforme",
+                "sa prochaine competence la transforme",
+            ),
+        ):
+            return (
+                "generic_transformation_unknown_entity",
+                "UNRESOLVED",
+                "le/la transforme en",
+                "pronoun transformation wording does not establish champion self-form ownership",
+            )
+        return (
+            "champion_self_form_or_state",
+            "CONFIRMED_COMPLEX_MECHANIC",
+            "le/la transforme en",
+            "ability text indicates the champion is transformed into another form",
+        )
+
+    if _contains_any(
+        normalized_text,
+        (
+            "passe en forme",
+            "passe sous forme",
+            "activer sa forme",
+            "active sa forme",
+        ),
+    ):
+        if not _has_explicit_champion_self_subject(
+            normalized_text, context_normalized, record
+        ):
+            return (
+                "generic_transformation_unknown_entity",
+                "UNRESOLVED",
+                "owned named form",
+                "owned-form wording lacks local champion ownership evidence",
+            )
+        return (
+            "champion_owned_named_form",
+            "CONFIRMED_COMPLEX_MECHANIC",
+            "owned named form",
+            "wording indicates the champion enters or activates their own named form",
+        )
+
+    if _contains_any(normalized_text, ("forme veritable", "veritable forme")):
+        true_form_entry_phrases = (
+            "prend sa veritable forme",
+            "prend alors sa veritable forme",
+            "active sa forme veritable",
+            "activer sa forme veritable",
+            "active sa veritable forme",
+            "activer sa veritable forme",
+        )
+        if not (
+            _has_explicit_champion_self_subject(
+                normalized_text, context_normalized, record
+            )
+            and _contains_any(normalized_text, true_form_entry_phrases)
+        ):
+            return (
+                "generic_transformation_unknown_entity",
+                "UNRESOLVED",
+                "true form",
+                "true-form wording does not show the champion entering that form",
+            )
+        return (
+            "champion_owned_named_form",
+            "CONFIRMED_COMPLEX_MECHANIC",
+            "owned named form",
+            "wording indicates the champion enters or activates their own named form",
+        )
+
+    named_forms = [
+        phrase
+        for phrase in ALTERNATE_FORM_NAMED_FORM_PHRASES
+        if _normalize_text(phrase) in normalized_text
+    ]
+    context_named_forms = [
+        phrase
+        for phrase in ALTERNATE_FORM_NAMED_FORM_PHRASES
+        if _normalize_text(phrase) in context_normalized
+    ]
+    if (
+        len(set(named_forms + context_named_forms)) >= 2
+        or (
+            "forme de dragon" in named_forms
+            and _has_explicit_champion_self_subject(
+                normalized_text, context_normalized, record
+            )
+        )
+        or (
+            "forme de cougar" in named_forms
+            and _has_explicit_champion_self_subject(
+                normalized_text, context_normalized, record
+            )
+        )
+        or (
+            "forme de couguar" in named_forms
+            and _has_explicit_champion_self_subject(
+                normalized_text, context_normalized, record
+            )
+        )
+        or (
+            "forme couguar" in named_forms
+            and _has_explicit_champion_self_subject(
+                normalized_text, context_normalized, record
+            )
+        )
+    ):
+        return (
+            "champion_named_form_set",
+            "PLAUSIBLE_BUT_UNDERMODELED",
+            ", ".join(sorted(set(named_forms + context_named_forms))),
+            "named champion form wording suggests an alternate form kit/state",
+        )
+
+    if _contains_any(normalized_text, ALTERNATE_FORM_STANCE_PHRASES):
+        if not _has_explicit_champion_self_subject(
+            normalized_text, context_normalized, record
+        ):
+            return (
+                "generic_transformation_unknown_entity",
+                "UNRESOLVED",
+                "posture",
+                "stance/posture wording lacks local champion ownership evidence",
+            )
+        return (
+            "champion_combat_stance_or_state",
+            "PLAUSIBLE_BUT_UNDERMODELED",
+            "posture",
+            "stance/posture wording may describe the champion's combat state",
+        )
+
+    if "transforme" in normalized_text:
+        return (
+            "generic_transformation_unknown_entity",
+            "UNRESOLVED",
+            "transforme",
+            "generic transformation wording does not establish champion self-form ownership",
+        )
+
+    return (
+        UNKNOWN,
+        "UNRESOLVED",
+        UNKNOWN,
+        "no transformation entity could be identified",
+    )
+
+
+def _scan_alternate_form_evidence(record):
+    evidence = []
+    seen = set()
+    for source in _iter_complexity_text_sources(record):
+        for unit in _complexity_units(source):
+            normalized = _normalize_text(unit["evidence_text"])
+            context_normalized = _normalize_text(unit.get("context_text", ""))
+            if not (
+                _contains_any(normalized, ALTERNATE_FORM_SELF_PHRASES)
+                or _contains_any(normalized, ALTERNATE_FORM_NAMED_FORM_PHRASES)
+                or _contains_any(normalized, ALTERNATE_FORM_STANCE_PHRASES)
+                or _contains_any(context_normalized, ALTERNATE_FORM_NAMED_FORM_PHRASES)
+            ):
+                continue
+            entity, classification, matched_text, why = _described_transformed_entity(
+                normalized,
+                context_normalized,
+                record,
+            )
+            if classification == "FALSE_POSITIVE":
+                continue
+            if classification == "UNRESOLVED":
+                continue
+            if entity == "generic_transformation_unknown_entity":
+                continue
+            key = (
+                "ALTERNATE_FORM_POSSIBLE",
+                unit["source_field"],
+                unit.get("spell_id"),
+                unit["section_name"],
+                matched_text,
+                unit["evidence_text"],
+            )
+            if key in seen:
+                continue
+            seen.add(key)
+            evidence.append(
+                {
+                    "flag": "ALTERNATE_FORM_POSSIBLE",
+                    "evidence_classification": classification,
+                    "source_field": unit["source_field"],
+                    "section_name": unit["section_name"],
+                    "spell_id": unit.get("spell_id", NOT_EXPOSED),
+                    "slot": unit.get("slot", NOT_EXPOSED),
+                    "matched_text": matched_text,
+                    "evidence_text": unit["evidence_text"],
+                    "entity_or_state": entity,
+                    "why": why,
+                    "ddragon_version": record["ddragon_version"],
+                }
+            )
+    return evidence
+
+
 def _scan_complexity_phrase_evidence(record, phrase_rules):
     evidence = []
     seen = set()
@@ -1149,17 +1533,32 @@ def _scan_complexity_phrase_evidence(record, phrase_rules):
                 if key in seen:
                     continue
                 seen.add(key)
+                entity_or_state = "copied_or_dynamic_ability"
+                classification_to_use = classification
+                why_to_use = why
+                if flag == "ALTERNATE_FORM_POSSIBLE":
+                    (
+                        entity_or_state,
+                        classification_to_use,
+                        _matched_entity_text,
+                        why_to_use,
+                    ) = _described_transformed_entity(
+                        normalized,
+                        normalized,
+                        record,
+                    )
                 evidence.append(
                     {
                         "flag": flag,
-                        "evidence_classification": classification,
+                        "evidence_classification": classification_to_use,
                         "source_field": source["source_field"],
                         "section_name": source["section_name"],
                         "spell_id": source.get("spell_id", NOT_EXPOSED),
                         "slot": source.get("slot", NOT_EXPOSED),
                         "matched_text": phrase,
                         "evidence_text": source["evidence_text"],
-                        "why": why,
+                        "entity_or_state": entity_or_state,
+                        "why": why_to_use,
                         "ddragon_version": record["ddragon_version"],
                     }
                 )
@@ -1196,17 +1595,22 @@ def audit_complexity(record):
                 "slot": NOT_EXPOSED,
                 "matched_text": f"{spell_count} spells",
                 "evidence_text": f"Data Dragon exposes {spell_count} spells",
+                "entity_or_state": "spell_array_structure",
                 "why": "non-4-spell structure makes Q/W/E/R inference unsafe",
                 "ddragon_version": record["ddragon_version"],
             }
         )
 
-    phrase_evidence = _scan_complexity_phrase_evidence(
+    alternate_form_evidence = _scan_alternate_form_evidence(record)
+    evidence.extend(alternate_form_evidence)
+    flags.extend(item["flag"] for item in alternate_form_evidence)
+
+    copied_dynamic_evidence = _scan_complexity_phrase_evidence(
         record,
-        COMPLEXITY_PHRASE_RULES,
+        {"COPIED_OR_DYNAMIC_ABILITY": COPIED_OR_DYNAMIC_ABILITY_RULES},
     )
-    evidence.extend(phrase_evidence)
-    flags.extend(item["flag"] for item in phrase_evidence)
+    evidence.extend(copied_dynamic_evidence)
+    flags.extend(item["flag"] for item in copied_dynamic_evidence)
 
     if record["metadata_warnings"]:
         flags.append("DATA_DRAGON_KIT_INCOMPLETE")
@@ -1220,6 +1624,7 @@ def audit_complexity(record):
                 "slot": NOT_EXPOSED,
                 "matched_text": ", ".join(record["metadata_warnings"]),
                 "evidence_text": f"metadata_warnings={record['metadata_warnings']}",
+                "entity_or_state": "missing_ddragon_detail",
                 "why": "missing Data Dragon fields make the kit incomplete",
                 "ddragon_version": record["ddragon_version"],
             }
@@ -1238,6 +1643,7 @@ def audit_complexity(record):
                 "slot": NOT_EXPOSED,
                 "matched_text": ", ".join(sorted(set(flags))),
                 "evidence_text": "Generic factual flags indicate under-modeled kit semantics.",
+                "entity_or_state": "aggregate_non_standard_complexity",
                 "why": "aggregate marker for consumers; not champion-specific logic",
                 "ddragon_version": record["ddragon_version"],
             }
@@ -1254,7 +1660,7 @@ def classify_complexity(record):
     return audit_complexity(record)["flags"]
 
 
-def _legacy_phase2b1_complexity_flags(record):
+def _phase2b1_b_complexity_flags(record):
     flags = []
     spell_count = len(record["spells"])
     text = _combined_text_for_complexity(record)
@@ -1265,9 +1671,14 @@ def _legacy_phase2b1_complexity_flags(record):
         text,
         (
             "change de forme",
-            "forme de",
-            "forme dragon",
+            "changer de forme",
             "transforme",
+            "se transforme",
+            "forme de dragon",
+            "forme dragon",
+            "forme humaine",
+            "forme arachneenne",
+            "forme de cougar",
             "posture",
         ),
     ):
@@ -1292,7 +1703,7 @@ def _legacy_phase2b1_complexity_flags(record):
     return sorted(set(flags))
 
 
-def _legacy_complexity_evidence(record):
+def _phase2b1_b_complexity_evidence(record):
     evidence = []
     spell_count = len(record["spells"])
     if spell_count != 4:
@@ -1306,12 +1717,13 @@ def _legacy_complexity_evidence(record):
                 "slot": NOT_EXPOSED,
                 "matched_text": f"{spell_count} spells",
                 "evidence_text": f"Data Dragon exposes {spell_count} spells",
-                "why": "legacy non-4-spell structure evidence",
+                "entity_or_state": "spell_array_structure",
+                "why": "Phase 2B1-B non-4-spell structure evidence",
                 "ddragon_version": record["ddragon_version"],
             }
         )
     evidence.extend(
-        _scan_complexity_phrase_evidence(record, LEGACY_COMPLEXITY_PHRASE_RULES)
+        _scan_complexity_phrase_evidence(record, PHASE2B1_B_COMPLEXITY_PHRASE_RULES)
     )
     if record["metadata_warnings"]:
         evidence.append(
@@ -1324,7 +1736,8 @@ def _legacy_complexity_evidence(record):
                 "slot": NOT_EXPOSED,
                 "matched_text": ", ".join(record["metadata_warnings"]),
                 "evidence_text": f"metadata_warnings={record['metadata_warnings']}",
-                "why": "legacy missing Data Dragon fields evidence",
+                "entity_or_state": "missing_ddragon_detail",
+                "why": "Phase 2B1-B missing Data Dragon fields evidence",
                 "ddragon_version": record["ddragon_version"],
             }
         )
@@ -1491,10 +1904,10 @@ def _placeholder_example(record, spell, placeholder):
 
 
 def _complexity_baseline_audit_row(record):
-    previous_flags = _legacy_phase2b1_complexity_flags(record)
+    previous_flags = _phase2b1_b_complexity_flags(record)
     current_flags = record["complexity_flags"]
     current_evidence = list(record.get("complexity_evidence", []))
-    legacy_evidence = _legacy_complexity_evidence(record)
+    baseline_evidence = _phase2b1_b_complexity_evidence(record)
     current_non_standard = [
         flag
         for flag in current_flags
@@ -1513,7 +1926,22 @@ def _complexity_baseline_audit_row(record):
         "current_flags": current_flags,
         "review_status": review_status,
         "current_evidence": current_evidence,
-        "legacy_evidence": legacy_evidence,
+        "baseline_evidence": baseline_evidence,
+    }
+
+
+def _complexity_flag_audit_row(record, flag):
+    evidence = [
+        item
+        for item in record.get("complexity_evidence", [])
+        if item.get("flag") == flag
+    ]
+    return {
+        "champion_id": record["champion_id"],
+        "champion_name": record["name"],
+        "flag": flag,
+        "current_flags": record["complexity_flags"],
+        "evidence": evidence,
     }
 
 
@@ -1533,6 +1961,8 @@ def summarize_champion_knowledge(records, missing_detail_files=None):
     metadata_warning_counts = Counter()
     unknown_placeholder_keys = {}
     baseline_complexity_audit = []
+    current_alternate_form_audit = []
+    current_copied_dynamic_audit = []
 
     champions_with_normalized_stats = 0
     passive_records = 0
@@ -1563,6 +1993,14 @@ def summarize_champion_knowledge(records, missing_detail_files=None):
         for warning in record["metadata_warnings"]:
             metadata_warning_counts[warning] += 1
         complexity_flag_counts.update(record["complexity_flags"])
+        if "ALTERNATE_FORM_POSSIBLE" in record["complexity_flags"]:
+            current_alternate_form_audit.append(
+                _complexity_flag_audit_row(record, "ALTERNATE_FORM_POSSIBLE")
+            )
+        if "COPIED_OR_DYNAMIC_ABILITY" in record["complexity_flags"]:
+            current_copied_dynamic_audit.append(
+                _complexity_flag_audit_row(record, "COPIED_OR_DYNAMIC_ABILITY")
+            )
 
         for spell in record["spells"]:
             if spell["slot_source"] != "DDRAGON_ARRAY_ORDER":
@@ -1608,7 +2046,7 @@ def summarize_champion_knowledge(records, missing_detail_files=None):
             for effect in spell["effects"]:
                 semantic_effect_counts[effect["effect_type"]] += 1
 
-        previous_flags = _legacy_phase2b1_complexity_flags(record)
+        previous_flags = _phase2b1_b_complexity_flags(record)
         if "COMPLEX_KIT_UNDERMODELED" in previous_flags:
             row = _complexity_baseline_audit_row(record)
             baseline_complexity_audit.append(row)
@@ -1633,6 +2071,8 @@ def summarize_champion_knowledge(records, missing_detail_files=None):
         key=lambda item: (-item["count"], item["key"])
     )
     baseline_complexity_audit.sort(key=lambda item: item["champion_id"])
+    current_alternate_form_audit.sort(key=lambda item: item["champion_id"])
+    current_copied_dynamic_audit.sort(key=lambda item: item["champion_id"])
 
     return {
         "total_champions": len(records),
@@ -1657,6 +2097,13 @@ def summarize_champion_knowledge(records, missing_detail_files=None):
         "complexity_flag_counts": complexity_flag_counts,
         "baseline_complexity_audit": baseline_complexity_audit,
         "complexity_audit_classification_counts": complexity_audit_classification_counts,
+        "current_alternate_form_audit": current_alternate_form_audit,
+        "current_copied_dynamic_audit": current_copied_dynamic_audit,
+        "removed_complex_false_positives": [
+            row
+            for row in baseline_complexity_audit
+            if row["review_status"] == "FALSE_POSITIVE"
+        ],
         "metadata_warning_counts": metadata_warning_counts,
     }
 
@@ -1718,6 +2165,7 @@ def _format_complexity_evidence(item, prefix):
     return (
         f"  * {prefix} {item['flag']} [{item['evidence_classification']}] "
         f"{item['source_field']} {item['section_name']} "
+        f"entity={item.get('entity_or_state', UNKNOWN)} "
         f"matched={item['matched_text']!r} evidence={item['evidence_text']!r} "
         f"why={item['why']}"
     )
@@ -1734,13 +2182,41 @@ def _format_complexity_baseline_audit(rows):
             )
         )
         current = _first_evidence_per_flag(row["current_evidence"])
-        legacy = _first_evidence_per_flag(row["legacy_evidence"])
+        baseline = _first_evidence_per_flag(row["baseline_evidence"])
         if current:
             for item in current:
                 lines.append(_format_complexity_evidence(item, "current"))
         else:
-            for item in legacy:
-                lines.append(_format_complexity_evidence(item, "legacy-only"))
+            for item in baseline:
+                lines.append(_format_complexity_evidence(item, "baseline-only"))
+    return lines or ["- none"]
+
+
+def _format_current_complexity_flag_audit(rows):
+    lines = []
+    for row in rows:
+        lines.append(
+            (
+                f"- {row['champion_name']} ({row['champion_id']}): "
+                f"flag={row['flag']} | current={row['current_flags']}"
+            )
+        )
+        for item in _first_evidence_per_flag(row["evidence"]):
+            lines.append(_format_complexity_evidence(item, "current"))
+    return lines or ["- none"]
+
+
+def _format_removed_complexity_false_positives(rows):
+    lines = []
+    for row in rows:
+        lines.append(
+            (
+                f"- {row['champion_name']} ({row['champion_id']}): "
+                f"previous={row['previous_flags']} | current={row['current_flags']}"
+            )
+        )
+        for item in _first_evidence_per_flag(row["baseline_evidence"]):
+            lines.append(_format_complexity_evidence(item, "removed-baseline"))
     return lines or ["- none"]
 
 
@@ -1883,7 +2359,7 @@ def render_champion_record_diagnostic(record):
 def render_champion_knowledge_audit(catalog):
     summary = catalog["summary"]
     lines = [
-        "CHAMPION KNOWLEDGE BASE PHASE 2B1 AUDIT",
+        "CHAMPION KNOWLEDGE BASE PHASE 2B1-C AUDIT",
         "",
         "Scope: factual, patch-aware Data Dragon champion knowledge only.",
         "No runes, damage simulation, combos, Burst/TTK, composition analysis,",
@@ -1969,9 +2445,20 @@ def render_champion_knowledge_audit(catalog):
             limit=30,
         ),
         "",
-        "Phase 2B1 baseline complex champion audit:",
+        "Phase 2B1-B baseline complex champion audit:",
         f"Previous complex-kit cases audited: {len(summary['baseline_complexity_audit'])}",
         *_format_complexity_baseline_audit(summary["baseline_complexity_audit"]),
+        "",
+        "Remaining ALTERNATE_FORM_POSSIBLE champions:",
+        *_format_current_complexity_flag_audit(summary["current_alternate_form_audit"]),
+        "",
+        "Remaining COPIED_OR_DYNAMIC_ABILITY champions:",
+        *_format_current_complexity_flag_audit(summary["current_copied_dynamic_audit"]),
+        "",
+        "Removed Phase 2B1-B complex false positives:",
+        *_format_removed_complexity_false_positives(
+            summary["removed_complex_false_positives"]
+        ),
     ]
     return "\n".join(lines)
 

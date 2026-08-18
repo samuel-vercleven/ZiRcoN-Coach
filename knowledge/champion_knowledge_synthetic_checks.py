@@ -49,6 +49,42 @@ RAW_CHAMPIONS = {
         "partype": "Mana",
         "stats": {"hp": 560, "attackdamage": 54},
     },
+    "SelfFormHero": {
+        "id": "SelfFormHero",
+        "key": "1004",
+        "name": "Self Form Hero",
+        "title": "the shifter",
+        "tags": ["Fighter"],
+        "partype": "Mana",
+        "stats": {"hp": 610, "attackdamage": 61},
+    },
+    "GenericTransformHero": {
+        "id": "GenericTransformHero",
+        "key": "1005",
+        "name": "Generic Transform Hero",
+        "title": "the converter",
+        "tags": ["Mage"],
+        "partype": "Mana",
+        "stats": {"hp": 540, "attackdamage": 51},
+    },
+    "NonSelfTransformHero": {
+        "id": "NonSelfTransformHero",
+        "key": "1007",
+        "name": "Non Self Transform Hero",
+        "title": "the careful parser",
+        "tags": ["Mage"],
+        "partype": "Mana",
+        "stats": {"hp": 540, "attackdamage": 51},
+    },
+    "CopyHero": {
+        "id": "CopyHero",
+        "key": "1006",
+        "name": "Copy Hero",
+        "title": "the borrower",
+        "tags": ["Mage"],
+        "partype": "Mana",
+        "stats": {"hp": 540, "attackdamage": 51},
+    },
     "MissingDetailHero": {
         "id": "MissingDetailHero",
         "key": "1002",
@@ -164,7 +200,7 @@ RAW_CHAMPION_DETAILS = {
         **RAW_CHAMPIONS["ComplexHero"],
         "passive": {
             "name": "Forms",
-            "description": "Change de forme et copie une compétence ennemie.",
+            "description": "Le champion change de forme et copie une compétence ennemie.",
             "image": {"full": "ComplexHero_P.png"},
         },
         "spells": [
@@ -206,6 +242,107 @@ RAW_CHAMPION_DETAILS = {
                 "Prend une forme de cristal.",
                 "Prend une forme de cristal.",
             ),
+        ],
+    },
+    "SelfFormHero": {
+        **RAW_CHAMPIONS["SelfFormHero"],
+        "passive": {
+            "name": "Own Form",
+            "description": "Le champion se transforme en dragon et change ses competences.",
+            "image": {"full": "SelfFormHero_P.png"},
+        },
+        "spells": [
+            _spell("SelfFormHeroQ", "Q", "Inflige des degats.", "Inflige des degats."),
+            _spell("SelfFormHeroW", "W", "Ralentit la cible.", "Ralentit la cible."),
+            _spell("SelfFormHeroE", "E", "Se rue.", "Se rue."),
+            _spell(
+                "SelfFormHeroR",
+                "R",
+                "Sa prochaine competence le transforme en Mega Forme.",
+                "Sa prochaine competence le transforme en Mega Forme.",
+            ),
+        ],
+    },
+    "GenericTransformHero": {
+        **RAW_CHAMPIONS["GenericTransformHero"],
+        "passive": {
+            "name": "Converted Damage",
+            "description": "Transforme 20% des degats en degats magiques.",
+            "image": {"full": "GenericTransformHero_P.png"},
+        },
+        "spells": [
+            _spell(
+                "GenericTransformHeroQ",
+                "Target",
+                "Transforme l'ennemi en creature inoffensive.",
+                "Transforme l'ennemi en creature inoffensive.",
+            ),
+            _spell(
+                "GenericTransformHeroW",
+                "Resource",
+                "Transforme la Fureur en bouclier.",
+                "Transforme la Fureur en bouclier.",
+            ),
+            _spell(
+                "GenericTransformHeroE",
+                "Mark",
+                "Transforme la marque en ralentissement.",
+                "Transforme la marque en ralentissement.",
+            ),
+            _spell(
+                "GenericTransformHeroR",
+                "Effect",
+                "Transforme l'effet en bonus temporaire.",
+                "Transforme l'effet en bonus temporaire.",
+            ),
+        ],
+    },
+    "NonSelfTransformHero": {
+        **RAW_CHAMPIONS["NonSelfTransformHero"],
+        "passive": {
+            "name": "Seed Form",
+            "description": "Cette graine se transforme en plante.",
+            "image": {"full": "NonSelfTransformHero_P.png"},
+        },
+        "spells": [
+            _spell(
+                "NonSelfTransformHeroQ",
+                "Polymorph",
+                "Il le transforme en une petite bete inoffensive.",
+                "Il le transforme en une petite bete inoffensive.",
+            ),
+            _spell(
+                "NonSelfTransformHeroW",
+                "Laser",
+                "Elle se transforme en laser a longue portee.",
+                "Elle se transforme en laser a longue portee.",
+            ),
+            _spell(
+                "NonSelfTransformHeroE",
+                "True Form Display",
+                "Revele sa forme veritable pendant 2 sec.",
+                "Revele sa forme veritable pendant 2 sec.",
+            ),
+            _spell(
+                "NonSelfTransformHeroR",
+                "Target",
+                "La cible se transforme en statue.",
+                "La cible se transforme en statue.",
+            ),
+        ],
+    },
+    "CopyHero": {
+        **RAW_CHAMPIONS["CopyHero"],
+        "passive": {
+            "name": "Borrowed Spell",
+            "description": "Copie une competence ennemie.",
+            "image": {"full": "CopyHero_P.png"},
+        },
+        "spells": [
+            _spell("CopyHeroQ", "Q", "Inflige des degats.", "Inflige des degats."),
+            _spell("CopyHeroW", "W", "Soigne un allie.", "Soigne un allie."),
+            _spell("CopyHeroE", "E", "Ralentit la cible.", "Ralentit la cible."),
+            _spell("CopyHeroR", "R", "Copier le dernier sort ennemi.", "Copier le dernier sort ennemi."),
         ],
     },
 }
@@ -315,7 +452,7 @@ def test_renderers_execute():
     catalog = _catalog()
     audit = render_champion_knowledge_audit(catalog)
     diagnostics = render_representative_champion_diagnostics(catalog)
-    assert "CHAMPION KNOWLEDGE BASE PHASE 2B1 AUDIT" in audit
+    assert "CHAMPION KNOWLEDGE BASE PHASE 2B1-C AUDIT" in audit
     assert "REPRESENTATIVE CHAMPION KNOWLEDGE DIAGNOSTICS" in diagnostics
 
 

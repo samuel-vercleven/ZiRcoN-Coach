@@ -11,7 +11,7 @@
 Frozen means: no retuning/refactor without a demonstrated correctness or integration bug or explicit project review request.
 
 ## In development
-- Champion Knowledge Base Phase 2B1-B: implemented and awaiting project review.
+- Champion Knowledge Base Phase 2B1-C: implemented and awaiting project review.
 - Status: REVIEW_REQUIRED, not FROZEN.
 - Next major task remains for project review / TODO.md.
 
@@ -232,7 +232,7 @@ Known Phase 2A limitations:
 - No champion semantic knowledge, composition analysis, build recommendation, GOOD/BAD label, item score, personal win-rate adjustment, or ML has been started.
 - Phase 2A is FROZEN; do not modify it without a demonstrated factual correctness bug, Riot/Data Dragon compatibility need, strictly necessary downstream integration change, or explicit project review request.
 
-## Champion Knowledge Base Phase 2B1-B
+## Champion Knowledge Base Phase 2B1-C
 Status: implemented, REVIEW_REQUIRED, not FROZEN.
 
 Purpose:
@@ -251,19 +251,23 @@ Implementation:
 - All final spell formulas remain non-executable; unresolved or incomplete formula data is marked FORMULA_INCOMPLETE.
 - Semantic parsing remains conservative and fr_FR-only.
 - Phase 2B1-B evaluates sensitive semantics at clause/fragment level where practical: damage type, percent-health damage, shield, heal, reveal, execute, and damage reduction.
+- Phase 2B1-C separates generic transformation semantics from champion form/kit complexity.
+- TRANSFORMATION means a transformation mechanic is factually described; it must not be interpreted as champion form change by future consumers.
+- ALTERNATE_FORM_POSSIBLE now requires separate subject/state evidence that the champion enters or owns an alternate form, named form, stance, or kit state.
 - Rejected sensitive matches are preserved in partial/unparsed records so source text is not silently treated as understood.
 - SHIELD now requires grant/create/obtain/apply/absorb/protect evidence, not the word "bouclier" alone.
 - DAMAGE_TYPE_UNRESOLVED now requires outgoing damage action and excludes defensive/reduction/immunity/absorbed-damage contexts.
 - Percent-health damage now requires HP reference and outgoing damage evidence in the same clause/mechanic.
 - REVEAL no longer uses generic "vision" wording.
-- TRANSFORMATION / ALTERNATE_FORM no longer use generic "forme de" wording.
+- Generic "transforme" and generic "forme de" wording no longer create ALTERNATE_FORM_POSSIBLE by themselves.
+- Transformations of damage, targets, marks, resources, effects, terrain, summoned entities, seeds/plants, weapons, or abilities remain possible TRANSFORMATION semantics but are not champion alternate-form evidence.
 - Complexity flags remain generic and champion-agnostic, with per-flag evidence records.
 
 Real Data Dragon audit baseline:
 - Command: python -m knowledge.champion_knowledge.
 - Locale: fr_FR.
 - Resolved Data Dragon version: 16.16.1.
-- Champion knowledge version: champion_knowledge_phase2b1_b_v1.
+- Champion knowledge version: champion_knowledge_phase2b1_c_v1.
 - Total champions: 173.
 - Individual champion files loaded: 173.
 - Missing champion detail files: 0.
@@ -283,23 +287,29 @@ Real Data Dragon audit baseline:
 - Semantic parse completeness: 61 FULLY_PARSED, 1297 PARTIALLY_PARSED, 199 COMPLETELY_UNPARSED.
 - Sensitive semantic counts vs Phase 2B1 baseline: SHIELD 128 -> 41, DAMAGE_TYPE_UNRESOLVED 314 -> 359, PERCENT_MAX_HEALTH_DAMAGE 83 -> 62, PERCENT_CURRENT_HEALTH_DAMAGE 13 -> 13, MISSING_HEALTH_DAMAGE 48 -> 21, REVEAL 68 -> 27, TRANSFORMATION 40 -> 53.
 - Current semantic highlights: MAGIC_DAMAGE 554, DAMAGE_TYPE_UNRESOLVED 359, PHYSICAL_DAMAGE 271, SHIELD 41, REVEAL 27, TRUE_DAMAGE 25.
-- Complexity flags: 142 STANDARD_KIT, 31 COMPLEX_KIT_UNDERMODELED, 28 ALTERNATE_FORM_POSSIBLE, 3 COPIED_OR_DYNAMIC_ABILITY.
-- Baseline 38 complex-kit cases audited: 25 CONFIRMED_COMPLEX_MECHANIC, 6 PLAUSIBLE_BUT_UNDERMODELED, 7 FALSE_POSITIVE.
-- False-positive baseline complex cases removed by generic rules: Aatrox, Fiora, Graves, Kassadin, Renekton, Vayne, Zaahen.
+- Complexity flags after Phase 2B1-C: 154 STANDARD_KIT, 19 COMPLEX_KIT_UNDERMODELED, 16 ALTERNATE_FORM_POSSIBLE, 3 COPIED_OR_DYNAMIC_ABILITY.
+- Phase 2B1-B non-standard baseline audited: 31 champion cases.
+- Baseline audit status after subject-aware classification: 13 CONFIRMED_COMPLEX_MECHANIC, 6 PLAUSIBLE_BUT_UNDERMODELED, 12 FALSE_POSITIVE.
+- Remaining ALTERNATE_FORM_POSSIBLE champions: Anivia, Bel'Veth, Elise, Galio, Gnar, Irelia, Jax, Kennen, Maokai, Nidalee, Rammus, Senna, Shyvana, Swain, Udyr, Volibear.
+- Remaining COPIED_OR_DYNAMIC_ABILITY champions: Wukong, Sylas, Viego.
+- Removed Phase 2B1-B alternate-form false positives by generic evidence rules: Ambessa, Ashe, Aurelion Sol, Jarvan IV, Jayce, Jhin, K'Santé, Lissandra, Lulu, Yorick, Zeri, Zyra.
+- Targeted audit examples: Lissandra enemy-servant transformation, Lulu polymorph target, Zeri projectile-to-laser, and Zyra seed-to-plant are no longer champion alternate-form evidence; Nidalee is retained via named form evidence using fr_FR "couguar".
+- Xerath "dévoile sa forme véritable" and Renekton generic true/tyrant-form wording are not newly promoted unless the text shows the champion entering/activating the form under the current generic rules.
 - Metadata warnings: 0.
 - Representative diagnostics include required fixed champions plus shield, healing, transformation, copied/dynamic, true damage, percent-health damage, hard CC, and stealth/reveal categories.
 
-Known Phase 2B1-B limitations:
+Known Phase 2B1-C limitations:
 - Data Dragon champion descriptions are not executable combat formulas.
 - Level-resolved champion stats are not calculated yet.
 - All 692 spells remain FORMULA_INCOMPLETE until a later validated formula/combat layer resolves them.
 - UNKNOWN_PLACEHOLDER keys are audited but not artificially resolved.
 - Semantic effects are parser-derived factual evidence, not champion strength labels.
 - DAMAGE_TYPE_UNRESOLVED count increased because clause-local parsing now records untyped outgoing damage clauses even when nearby tooltip text exposes typed damage elsewhere; this is evidence granularity, not damage simulation.
-- TRANSFORMATION count increased because explicit transformation clauses are now captured with narrower evidence; generic "forme de" no longer qualifies.
+- TRANSFORMATION count remains generic factual transformation evidence and is intentionally separate from champion alternate-form complexity.
+- Some true kit-state cases may remain STANDARD_KIT when Data Dragon wording describes transformed weapons/abilities rather than an explicit champion-owned form/state; this is left for project review rather than broadened by inference.
 - Tags such as Fighter, Tank, Assassin, Mage, or Support remain Riot metadata only and are not recommendations.
 - Complex kits are flagged generically and intentionally under-modeled rather than solved with champion-specific architecture.
-- Phase 2B1-B appears technically ready for project review, not freeze.
+- Phase 2B1-C appears technically ready for project review, not freeze.
 
 ## Architecture
 - main.py remains a dev/integration harness.
@@ -307,7 +317,7 @@ Known Phase 2B1-B limitations:
 - Analysis modules should remain UI-agnostic.
 - Itemization v22 logic lives in analysis/itemization_analyzer.py; synthetic checks live in analysis/itemization_synthetic_checks.py.
 - Item Knowledge Base Phase 2A lives in knowledge/item_knowledge.py; synthetic checks live in knowledge/item_knowledge_synthetic_checks.py and knowledge/item_knowledge_precision_checks.py.
-- Champion Knowledge Base Phase 2B1-B lives in knowledge/champion_knowledge.py; synthetic checks live in knowledge/champion_knowledge_synthetic_checks.py and knowledge/champion_knowledge_precision_checks.py.
+- Champion Knowledge Base Phase 2B1-C lives in knowledge/champion_knowledge.py; synthetic checks live in knowledge/champion_knowledge_synthetic_checks.py and knowledge/champion_knowledge_precision_checks.py.
 
 ## Handoff rule
 Codex must update this file after each completed task.

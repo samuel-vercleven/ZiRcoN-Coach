@@ -170,6 +170,55 @@ def test_generic_form_wording_does_not_imply_transformation_or_complexity():
     assert "ALTERNATE_FORM_POSSIBLE" not in record["complexity_flags"]
 
 
+def test_transformation_semantic_is_not_alternate_form_complexity():
+    record = _catalog()["records"]["GenericTransformHero"]
+    effects = _all_effects(record)
+    assert "TRANSFORMATION" in effects
+    assert "ALTERNATE_FORM_POSSIBLE" not in record["complexity_flags"]
+    assert "COMPLEX_KIT_UNDERMODELED" not in record["complexity_flags"]
+
+
+def test_non_self_transformations_do_not_create_alternate_form_complexity():
+    record = _catalog()["records"]["NonSelfTransformHero"]
+    effects = _all_effects(record)
+    assert "TRANSFORMATION" in effects
+    assert "ALTERNATE_FORM_POSSIBLE" not in record["complexity_flags"]
+    assert "COMPLEX_KIT_UNDERMODELED" not in record["complexity_flags"]
+
+
+def test_self_form_evidence_produces_alternate_form_complexity():
+    record = _catalog()["records"]["SelfFormHero"]
+    flags = set(record["complexity_flags"])
+    assert "TRANSFORMATION" in _all_effects(record)
+    assert "ALTERNATE_FORM_POSSIBLE" in flags
+    assert "COMPLEX_KIT_UNDERMODELED" in flags
+    assert any(
+        evidence["flag"] == "ALTERNATE_FORM_POSSIBLE"
+        and evidence["entity_or_state"] in {
+            "champion_self_form_or_state",
+            "champion_self_form_or_kit_state",
+        }
+        for evidence in record["complexity_evidence"]
+    )
+
+    gnar_like, _, _, _ = _effects_for_text(
+        "Sa prochaine competence le transforme en Mega Forme."
+    )
+    assert "TRANSFORMATION" in gnar_like
+
+
+def test_copied_ability_complexity_is_preserved():
+    record = _catalog()["records"]["CopyHero"]
+    flags = set(record["complexity_flags"])
+    assert "COPIED_OR_DYNAMIC_ABILITY" in flags
+    assert "COMPLEX_KIT_UNDERMODELED" in flags
+    assert any(
+        evidence["flag"] == "COPIED_OR_DYNAMIC_ABILITY"
+        and evidence["entity_or_state"] == "copied_or_dynamic_ability"
+        for evidence in record["complexity_evidence"]
+    )
+
+
 def test_no_source_text_loss_for_incomplete_semantics():
     catalog = _catalog()
     for record in catalog["records"].values():
@@ -200,6 +249,10 @@ def main():
     test_percent_health_damage_requires_clause_local_damage_evidence()
     test_reveal_requires_explicit_reveal_not_generic_vision()
     test_generic_form_wording_does_not_imply_transformation_or_complexity()
+    test_transformation_semantic_is_not_alternate_form_complexity()
+    test_non_self_transformations_do_not_create_alternate_form_complexity()
+    test_self_form_evidence_produces_alternate_form_complexity()
+    test_copied_ability_complexity_is_preserved()
     test_no_source_text_loss_for_incomplete_semantics()
     print("Champion knowledge precision checks passed.")
 
