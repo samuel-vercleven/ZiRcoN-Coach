@@ -239,3 +239,67 @@ Rules:
 
 Status:
 FROZEN.
+
+## Rune Knowledge Base Phase 2C1-B - FROZEN
+Decision:
+Freeze Rune Knowledge Base Phase 2C1-B as the factual, patch-aware rune knowledge layer after the refined-stat-semantics and full-catalog review.
+
+Scope:
+- Data Dragon `runesReforged.json` catalog and patch-aware historical catalog resolution;
+- rune tree/style, slot, ID, key, icon, name, description, raw JSON, numeric-fragment, condition, semantic-evidence, unresolved-text, and provenance preservation;
+- structural KEYSTONE/MINOR role derivation;
+- Riot PRIMARY/SECONDARY page context kept separate from rune role;
+- Riot observed perk linkage, `var1`/`var2`/`var3` preservation, and statPerks auditing;
+- Magical Footwear compatibility contract with frozen Itemization v22;
+- conservative fr_FR semantic relations validated by full-catalog audit.
+
+Validated baseline:
+- rune knowledge version rune_knowledge_phase2c1_b_v3;
+- Data Dragon version 16.16.1;
+- locale fr_FR;
+- 5 rune styles, 20 slots, 62 rune records;
+- 62/62 runes audited by the full-catalog audit;
+- 13/13 synthetic checks PASS;
+- 10/10 precision checks PASS;
+- real Rune Knowledge audit PASS;
+- full-catalog audit PASS;
+- 0 blocking issues;
+- 0 review cases;
+- 0 legacy generic stat tags;
+- 104 historical matches / 1040 participants / 6240 rune selections audited;
+- 6240 LINKED_RUNE_CATALOG, 0 UNKNOWN_PERK_ID;
+- 2080 LINKED_RUNE_STYLE, 0 UNKNOWN_RUNE_STYLE_ID;
+- Magical Footwear itemization compatibility PASS;
+- previously frozen module guard PASS.
+
+Reasons:
+- project review found and corrected false or overly broad semantic treatment before freeze;
+- HEALTH references are separated from actual health-stat gains;
+- ARMOR and MAGIC_RESISTANCE preserve coordinated sentence semantics and distinguish gain, target reduction, scaling, and reference;
+- MOVE_SPEED, ATTACK_SPEED, ABILITY_HASTE, ADAPTIVE_FORCE, and MANA no longer use broad generic modification tags on the validated catalog;
+- Ruban de mana distinguishes permanent max-mana gain from mana restoration;
+- Tempo mortel distinguishes attack-speed gain from attack-speed-based damage scaling;
+- the exhaustive catalog audit now examines all 62 current runes rather than relying only on representative examples;
+- historical linkage is patch-aware and does not silently substitute the latest catalog for unavailable historical patches;
+- unknown, partial, unparsed, uninterpreted, and not-exposed states remain explicit instead of being filled from memory.
+
+Permanent limitations:
+- Data Dragon descriptions are not executable gameplay formulas;
+- all 62 rune formulas remain RUNE_FORMULA_INCOMPLETE;
+- numeric fragments are source evidence, not computed formulas;
+- condition text is NOT_EXECUTED;
+- Riot var1/var2/var3 remain RIOT_OBSERVED_UNINTERPRETED;
+- statPerk meanings/values are not exposed by the validated static source and remain NOT_EXPOSED;
+- partial/unparsed text must not be treated as understood;
+- semantic tags are factual parser evidence, not rune strength or recommendation labels;
+- the full-catalog PASS validates the implemented invariants, not complete formal modeling of every live-game rune mechanic.
+
+Rules:
+- Prefer UNKNOWN / NOT_EXPOSED / PARTIAL / UNPARSED / INCOMPLETE over false certainty.
+- Do not infer stat shard meanings or values from memory.
+- Do not execute rune formulas or conditions from this layer.
+- Do not infer rune strength, champion synergy, build advice, composition advice, or matchup recommendations directly from Phase 2C1-B facts.
+- Do not modify Phase 2C1-B without a demonstrated factual correctness bug, Riot/Data Dragon compatibility requirement, strictly necessary downstream integration change, or explicit project review request.
+
+Status:
+FROZEN.

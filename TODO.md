@@ -1,40 +1,51 @@
 # ZiRcoN Coach - TODO
 
 ## Current task
-COMPLETED - Phase 2C1 Rune Knowledge Base.
+COMPLETED - Freeze Rune Knowledge Base Phase 2C1-B.
 
 ## Completion status
-REVIEW_REQUIRED.
+FROZEN.
 
-Implemented factual, patch-aware Rune Knowledge Base Phase 2C1:
-- Data Dragon `runesReforged.json` schema inspected and documented.
-- Rune trees/styles, slots, IDs, names, keys, icons, shortDesc, longDesc, cleaned text, raw rune JSON, raw style/slot JSON, numeric fragments, condition text, parser evidence, and unresolved text are preserved.
-- All 62 runes are marked RUNE_FORMULA_INCOMPLETE by design.
-- fr_FR semantic parser contract is explicit; unsupported locales preserve raw text and skip French semantic parsing.
-- Conditions are structured as text with NOT_EXECUTED status.
-- Riot match `perks.styles[].selections[].perk` IDs are linked to the static Data Dragon catalog.
-- Riot `var1`, `var2`, and `var3` are preserved as RIOT_OBSERVED_UNINTERPRETED.
-- `perks.statPerks.offense/flex/defense` are audited separately and not assigned names or values from memory.
-- Magical Footwear 8304 compatibility with frozen Itemization v22 was verified without modifying itemization logic: item 2422 remains RUNE_GRANT with DERIVED_INFERRED timing only.
-
-Validation completed:
-- Python compile passed for the new Rune Knowledge files.
-- 15 direct synthetic/precision checks passed.
-- Real Data Dragon catalogue audit passed.
-- Historical observed-rune audit passed on 104 matches / 1040 participants / 6240 rune selections.
-
-Baseline requiring project review:
+Validated freeze baseline:
+- Rune knowledge version: `rune_knowledge_phase2c1_b_v3`.
 - Data Dragon version: 16.16.1.
-- Rune records: 62.
+- Locale: fr_FR.
+- Rune records: 62/62 audited.
 - Styles: 5.
 - Slots: 20.
-- Rune catalog link statuses: 6240 LINKED_RUNE_CATALOG, 0 UNKNOWN_PERK_ID.
-- statPerks are not exposed in `runesReforged.json`.
-- statPerks.offense: 5005 552, 5008 378, 5007 110.
-- statPerks.flex: 5001 90, 5008 905, 5010 45.
-- statPerks.defense: 5001 793, 5011 216, 5013 31.
-- Magical Footwear observed: 211 participant selections across 97 matches.
+- Synthetic checks: PASS 13/13.
+- Precision checks: PASS 10/10.
+- Real Rune Knowledge audit: PASS.
+- Full catalog audit: PASS.
+- Full catalog blocking issues: 0.
+- Full catalog review cases: 0.
+- Legacy generic stat tags: 0.
+- Historical raw JSON: 104 matches / 1040 participants.
+- Historical rune selections: 6240.
+- Rune catalog links: 6240 LINKED_RUNE_CATALOG, 0 UNKNOWN_PERK_ID.
+- Rune style links: 2080 LINKED_RUNE_STYLE, 0 UNKNOWN_RUNE_STYLE_ID.
+- Magical Footwear 8304 compatibility with frozen Itemization v22: PASS.
+- FROZEN guard: PASS.
 
-Do not start Phase 2D, rune formulas, stat shard meaning, Burst/TTK, damage,
-composition analysis, recommendations, or ML until project review defines the
-next task.
+Permanent limitations:
+- All 62 formulas remain RUNE_FORMULA_INCOMPLETE.
+- Rune conditions remain NOT_EXECUTED.
+- Riot var1/var2/var3 remain RIOT_OBSERVED_UNINTERPRETED.
+- statPerk meanings/values remain NOT_EXPOSED from the validated static source.
+- partial/unparsed text remains explicit uncertainty.
+- no damage, Burst/TTK, composition recommendations, build recommendations, rune scoring, or ML is part of this frozen layer.
+
+Freeze rule:
+Do not modify Rune Knowledge Phase 2C1-B unless there is a demonstrated factual correctness bug, Riot/Data Dragon compatibility requirement, strictly necessary downstream integration change, or explicit project review request.
+
+## Next major task
+NEXT - Level-Resolved Champion Stat Formula Foundation.
+
+Scope:
+- establish and validate the exact champion level-stat calculation contract before combat simulation;
+- consume the frozen Champion Knowledge layer without retuning it;
+- preserve provenance and explicit unsupported/unknown states;
+- add focused synthetic checks, precision checks, and real-data diagnostics;
+- do not start Combat / Damage Engine, Burst/TTK, composition recommendations, build recommendations, or ML yet.
+
+After this foundation is validated, project review will define the next factual combat-input/formula layer before Combat / Damage Engine work.
