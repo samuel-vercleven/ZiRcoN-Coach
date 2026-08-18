@@ -241,7 +241,8 @@ def test_item_graph_traversal_and_costs():
     major_graph = records[3000]["item_graph"]
     sword_graph = records[1036]["item_graph"]
     assert set(major_graph["direct_components"]) == {1036, 1001}
-    assert set(major_graph["recursive_component_tree"]) == {1036, 1001}
+    assert major_graph["recursive_component_tree"] == [1036, 1001]
+    assert major_graph["recursive_component_counts"] == {1036: 1, 1001: 1}
     assert 3000 in sword_graph["final_upgrade_descendants"]
     assert major_graph["combine_cost"] == 850
 

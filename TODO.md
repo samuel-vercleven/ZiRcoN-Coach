@@ -1,27 +1,46 @@
 # ZiRcoN Coach - TODO
 
 ## Current task
-COMPLETED - Phase 2A - Patch-aware Item Knowledge Base.
+COMPLETED - Phase 2A-B - Item Knowledge precision audit before freeze.
 
 ## Status
 - Implemented by Codex.
 - Finished as REVIEW_REQUIRED for project review.
-- No Phase 2B champion/composition work was started.
-- No build recommendation logic was started.
-- No item GOOD/BAD labels, Itemization Score, personal Win/Loss learning, or ML was added.
+- Phase 2A is still not FROZEN.
 - No FROZEN analyzer was modified.
+- No champion knowledge, composition analysis, build recommendation, GOOD/BAD label, Itemization Score, statistical learning, or ML was started.
 
 ## Completed scope
-- Added a new UI-agnostic knowledge package under knowledge/.
-- Built patch-aware Data Dragon item catalog records.
-- Preserved raw Data Dragon facts and descriptions for auditability.
-- Normalized reliable item stats with source/provenance.
-- Preserved unknown or unmapped information as UNKNOWN / NOT_EXPOSED / UNPARSED_EFFECT_TEXT.
-- Extracted structured factual item mechanics with evidence and confidence.
-- Built item graph facts from Data Dragon from/into relationships.
-- Classified Summoner's Rift relevance and special item applicability without deleting non-standard records.
-- Added deterministic synthetic checks that do not require network access.
-- Ran the real Data Dragon catalog audit and representative item diagnostics.
+- Audited and hardened high-risk semantic effect rules.
+- Removed the false implication that a Data Dragon `OnHit` tag alone means ON_HIT_DAMAGE.
+- Required contextual damage evidence for `*DAMAGE` semantic effects.
+- Prevented "achève une quête" from producing EXECUTE.
+- Distinguished active shield grants from shield reduction.
+- Required CC/debuff context for CLEANSE.
+- Avoided treating generic "améliore" text as TRANSFORMATION.
+- Preserved mixed parsed/unparsed sections as PARTIALLY_PARSED_EFFECT_TEXT.
+- Added fully / partially / completely unparsed section coverage.
+- Preserved recursive component multiplicity and exposed recursive_component_counts.
+- Made the locale contract explicit: semantic parsing is SUPPORTED for fr_FR and UNSUPPORTED_LOCALE otherwise.
+- Added positive and negative semantic precision tests.
+- Added component multiplicity tests.
+- Reran the real Data Dragon catalog audit and sensitive semantic diagnostics.
+
+## Important result
+- Resolved Data Dragon version: 16.16.1.
+- Item knowledge version: item_knowledge_phase2a_b_v1.
+- Total Data Dragon item records audited: 868.
+- Purchasable Summoner's Rift items: 254.
+- Items with extracted effects: 414.
+- Items with description effects: 357.
+- Items with UNPARSED/PARTIAL effect text: 396.
+- Fully parsed sections: 198.
+- Partially parsed sections: 151.
+- Completely unparsed sections: 384.
+- Graph inconsistencies: 0.
+- Repeated direct-component recipes: 45.
+- Repeated recursive-component recipes: 170.
+- Representative diagnostics coverage: 18/18.
 
 ## Review handoff
 Project review should inspect:
@@ -29,15 +48,8 @@ Project review should inspect:
 - PROJECT_STATE.md.
 - knowledge/item_knowledge.py.
 - knowledge/item_knowledge_synthetic_checks.py.
-- logs/item_knowledge_phase2a_audit.txt if local raw audit details are needed.
-
-## Important result
-- Resolved Data Dragon version: 16.16.1.
-- Total Data Dragon item records audited: 868.
-- Purchasable Summoner's Rift items: 254.
-- Graph inconsistencies: 0.
-- Representative diagnostics coverage: 18/18.
-- Items with UNPARSED_EFFECT_TEXT: 279.
+- knowledge/item_knowledge_precision_checks.py.
+- logs/item_knowledge_phase2ab_precision_audit.txt if local raw audit details are needed.
 
 ## Next task
 Not defined by Codex.

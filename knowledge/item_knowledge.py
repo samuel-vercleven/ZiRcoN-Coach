@@ -12,12 +12,63 @@ from riot.data_dragon import (
 )
 
 
-ITEM_KNOWLEDGE_VERSION = "item_knowledge_phase2a_v1"
+ITEM_KNOWLEDGE_VERSION = "item_knowledge_phase2a_b_v1"
 DEFAULT_LOCALE = "fr_FR"
 UNKNOWN = "UNKNOWN"
 NOT_EXPOSED = "NOT_EXPOSED"
 UNPARSED_EFFECT_TEXT = "UNPARSED_EFFECT_TEXT"
+PARTIALLY_PARSED_EFFECT_TEXT = "PARTIALLY_PARSED_EFFECT_TEXT"
+SEMANTIC_PARSER_SUPPORTED = "SUPPORTED"
+SEMANTIC_PARSER_UNSUPPORTED_LOCALE = "UNSUPPORTED_LOCALE"
 SUMMONERS_RIFT_MAP_ID = "11"
+SUPPORTED_SEMANTIC_LOCALES = {"fr_FR"}
+SENSITIVE_EFFECT_TYPES = (
+    "EXECUTE",
+    "PERCENT_CURRENT_HEALTH_DAMAGE",
+    "PERCENT_MAX_HEALTH_DAMAGE",
+    "ACTIVE_DAMAGE",
+    "ACTIVE_SHIELD",
+    "CLEANSE",
+    "TRANSFORMATION",
+    "MOVEMENT_SPEED_TRIGGER",
+    "STACKING_EFFECT",
+    "ON_HIT_DAMAGE",
+    "HARD_CC",
+)
+
+PRE_PRECISION_BASELINE_EFFECT_COUNTS = {
+    "ON_HIT_DAMAGE": 170,
+    "MOVEMENT_SPEED_TRIGGER": 77,
+    "SLOW": 73,
+    "STACKING_EFFECT": 65,
+    "LIFE_STEAL_EFFECT": 61,
+    "OMNIVAMP_EFFECT": 53,
+    "CRITICAL_STRIKE_EFFECT": 52,
+    "PERCENT_MAX_HEALTH_DAMAGE": 46,
+    "TENACITY": 45,
+    "ACTIVE_DAMAGE": 36,
+    "TRANSFORMATION": 28,
+    "HARD_CC": 21,
+    "GRIEVOUS_WOUNDS": 20,
+    "HEAL": 20,
+    "SPELLBLADE": 18,
+    "QUEST_OR_SPECIAL_MECHANIC": 16,
+    "TRUE_DAMAGE": 16,
+    "EXECUTE": 13,
+    "LIFELINE_SHIELD": 13,
+    "ACTIVE_MOVEMENT": 12,
+    "CLEANSE": 11,
+    "MISSING_HEALTH_SCALING": 11,
+    "ACTIVE_SHIELD": 10,
+    "PERCENT_CURRENT_HEALTH_DAMAGE": 7,
+    "STASIS": 6,
+    "SPELL_SHIELD": 5,
+    "ARMOR_PENETRATION": 4,
+    "DASH": 4,
+    "MAGIC_PENETRATION": 4,
+    "MAGIC_RESIST_REDUCTION": 2,
+    "SHIELD_REDUCTION": 1,
+}
 
 STAT_FIELD_MAP = {
     "FlatPhysicalDamageMod": ("attack_damage", "flat"),
@@ -84,7 +135,6 @@ DESCRIPTION_STAT_PATTERNS = [
 ]
 
 TAG_EFFECT_MAP = {
-    "OnHit": "ON_HIT_DAMAGE",
     "Slow": "SLOW",
     "Tenacity": "TENACITY",
     "LifeSteal": "LIFE_STEAL_EFFECT",
@@ -119,7 +169,14 @@ EFFECT_RULES = [
     ("HEAL", ("soigne", "soignez", "recuperez des pv")),
     ("LIFE_STEAL_EFFECT", ("vol de vie",)),
     ("OMNIVAMP_EFFECT", ("omnivampirisme",)),
-    ("DAMAGE_REDUCTION", ("degats sont reduits", "reduction des degats")),
+    (
+        "DAMAGE_REDUCTION",
+        (
+            "degats sont reduits",
+            "degats subis sont reduits",
+            "reduction des degats",
+        ),
+    ),
     ("STASIS", ("stase",)),
     ("REVIVE", ("ressuscite", "ressuscitez", "ranimation")),
     ("CLEANSE", ("dissipez", "dissipe")),
@@ -150,7 +207,7 @@ EFFECT_RULES = [
     ("TRUE_DAMAGE", ("degats bruts",)),
     ("ON_HIT_DAMAGE", ("a l'impact", "à l'impact")),
     ("STACKING_EFFECT", ("cumul", "charges")),
-    ("TRANSFORMATION", ("transforme", "transformation", "ameliore")),
+    ("TRANSFORMATION", ("transforme", "transformation", "evolue", "ameliore")),
     ("QUEST_OR_SPECIAL_MECHANIC", ("quete", "compagnon de la jungle")),
 ]
 
@@ -293,7 +350,18 @@ def _description_stat_mapping(line):
     return None
 
 
-def normalize_item_stats(raw_stats, stats_text, ddragon_version):
+def semantic_parser_status(locale):
+    if locale in SUPPORTED_SEMANTIC_LOCALES:
+        return SEMANTIC_PARSER_SUPPORTED
+    return SEMANTIC_PARSER_UNSUPPORTED_LOCALE
+
+
+def normalize_item_stats(
+    raw_stats,
+    stats_text,
+    ddragon_version,
+    locale=DEFAULT_LOCALE,
+):
     normalized = []
     seen_canonical = set()
     raw_stats = raw_stats or {}
@@ -317,26 +385,27 @@ def normalize_item_stats(raw_stats, stats_text, ddragon_version):
             }
         )
 
-    for line in (stats_text or "").splitlines():
-        parsed = _description_stat_mapping(line)
-        if not parsed:
-            continue
-        stat, value, unit = parsed
-        if stat in seen_canonical:
-            continue
-        seen_canonical.add(stat)
-        normalized.append(
-            {
-                "stat": stat,
-                "value": value,
-                "unit": unit,
-                "source": "DDRAGON_DESCRIPTION_STATS",
-                "source_field": "description.stats",
-                "confidence": "DESCRIPTION_EXPLICIT",
-                "evidence_text": line,
-                "ddragon_version": ddragon_version,
-            }
-        )
+    if semantic_parser_status(locale) == SEMANTIC_PARSER_SUPPORTED:
+        for line in (stats_text or "").splitlines():
+            parsed = _description_stat_mapping(line)
+            if not parsed:
+                continue
+            stat, value, unit = parsed
+            if stat in seen_canonical:
+                continue
+            seen_canonical.add(stat)
+            normalized.append(
+                {
+                    "stat": stat,
+                    "value": value,
+                    "unit": unit,
+                    "source": "DDRAGON_DESCRIPTION_STATS",
+                    "source_field": "description.stats",
+                    "confidence": "DESCRIPTION_EXPLICIT",
+                    "evidence_text": line,
+                    "ddragon_version": ddragon_version,
+                }
+            )
 
     return normalized
 
@@ -356,9 +425,393 @@ def _add_effect(effects, effect):
     effects.append(effect)
 
 
-def extract_item_effects(raw_item, description_sections, ddragon_version):
+def _contains_any(normalized_text, phrases):
+    return any(_normalize_text(phrase) in normalized_text for phrase in phrases)
+
+
+def _has_damage_evidence(normalized_text):
+    return _contains_any(
+        normalized_text,
+        (
+            "inflige",
+            "infligent",
+            "degats",
+            "degat",
+            "blesse",
+            "blessures",
+        ),
+    )
+
+
+def _has_damage_action_evidence(normalized_text):
+    if _contains_any(
+        normalized_text,
+        (
+            "inflige",
+            "infligent",
+            "infligez",
+            "infligeant",
+            "brule",
+            "brulure",
+            "blesse",
+            "blessante",
+        ),
+    ):
+        return True
+    if "fait perdre" in normalized_text and "degats" in normalized_text:
+        return True
+    if "pts de degats" in normalized_text and "a l'impact" in normalized_text:
+        return True
+    if "en degats" in normalized_text and _contains_any(
+        normalized_text,
+        ("pv max", "pv actuels", "pv actuel"),
+    ):
+        return True
+    return False
+
+
+def _has_percent_health_damage_context(effect_type, normalized_text):
+    if effect_type == "PERCENT_MAX_HEALTH_DAMAGE":
+        if "moins de" in normalized_text and "degats max" in normalized_text:
+            return False
+        if "en moins de" in normalized_text:
+            return False
+        return bool(
+            (
+                re.search(r"%\s+(?:de|des|du|de vos|de ses|de leurs).{0,40}pv max", normalized_text)
+                and _contains_any(
+                    normalized_text,
+                    (
+                        "equivalent",
+                        "equivalents",
+                        "hauteur",
+                        "en degats",
+                        "fait perdre",
+                    ),
+                )
+            )
+            or re.search(r"pv max.{0,40}en degats", normalized_text)
+        )
+    if effect_type == "PERCENT_CURRENT_HEALTH_DAMAGE":
+        return bool(
+            re.search(r"%\s+(?:de|des|du|de vos|de ses|de leurs).{0,40}pv actuel", normalized_text)
+            or re.search(r"pv actuels?.{0,40}en degats", normalized_text)
+            or re.search(r"degats.{0,80}pv actuels?", normalized_text)
+        )
+    return True
+
+
+def _has_damage_reduction_context(normalized_text):
+    return _contains_any(
+        normalized_text,
+        (
+            "reduction des degats",
+            "degats sont reduits",
+            "degats subis",
+            "reduit les degats",
+            "reduisant les degats",
+            "moins de degats",
+        ),
+    )
+
+
+def _has_shield_grant_context(normalized_text):
+    return (
+        "bouclier" in normalized_text
+        and _contains_any(
+            normalized_text,
+            (
+                "octroie",
+                "octroyez",
+                "octroie un bouclier",
+                "gagnez un bouclier",
+                "obtient un bouclier",
+                "vous protege",
+                "protege",
+                "absorbe",
+            ),
+        )
+    )
+
+
+def _has_shield_reduction_context(normalized_text):
+    return (
+        "bouclier" in normalized_text
+        and _contains_any(
+            normalized_text,
+            (
+                "reduit les boucliers",
+                "reduction des boucliers",
+                "detruit les boucliers",
+                "anti-bouclier",
+                "contre les boucliers",
+            ),
+        )
+    )
+
+
+def _has_cleanse_context(normalized_text):
+    return _contains_any(normalized_text, ("dissipe", "dissipez")) and (
+        _contains_any(
+            normalized_text,
+            (
+                "controle",
+                "entrave",
+                "etourdissement",
+                "immobilisation",
+                "ralentissement",
+                "silence",
+                "suppression",
+                "effet negatif",
+                "effets negatifs",
+                "malus",
+                "debuff",
+            ),
+        )
+    )
+
+
+def _has_execute_context(normalized_text):
+    if "quete" in normalized_text:
+        return False
+    return _contains_any(
+        normalized_text,
+        ("execute", "execution", "acheve"),
+    ) and _contains_any(
+        normalized_text,
+        (
+            "ennemi",
+            "ennemis",
+            "champion",
+            "champions",
+            "monstre",
+            "monstres",
+            "cible",
+            "adversaire",
+            "sbire",
+            "sbires",
+        ),
+    )
+
+
+def _has_movement_trigger_context(normalized_text):
+    return _contains_any(
+        normalized_text,
+        (
+            "quand",
+            "lorsque",
+            "apres",
+            "apres avoir",
+            "pendant",
+            "si vous",
+            "bonus",
+            "en combat",
+            "hors combat",
+        ),
+    )
+
+
+def _is_transformation_context(normalized_text):
+    return _contains_any(
+        normalized_text,
+        (
+            "transforme",
+            "transformation",
+            "se transforme",
+            "evolue",
+        ),
+    )
+
+
+def _has_damage_evidence_near_phrase(
+    effect_type,
+    section_text,
+    phrase_matches,
+):
+    for fragment in _split_semantic_fragments(section_text):
+        normalized_fragment = _normalize_text(fragment)
+        if not any(
+            _normalize_text(phrase) in normalized_fragment
+            for phrase in phrase_matches
+        ):
+            continue
+        if not _has_damage_evidence(normalized_fragment):
+            continue
+        if effect_type == "ACTIVE_DAMAGE":
+            if "tonnes de degats" in normalized_fragment:
+                continue
+            if not _contains_any(
+                normalized_fragment,
+                ("inflige", "infligent", "infligeant", "infligez"),
+            ):
+                continue
+        if not _has_damage_action_evidence(normalized_fragment):
+            continue
+        if not _has_percent_health_damage_context(
+            effect_type,
+            normalized_fragment,
+        ):
+            continue
+        if _has_damage_reduction_context(normalized_fragment):
+            continue
+        return True
+    return False
+
+
+def _effect_rule_applies(
+    effect_type,
+    section,
+    normalized_text,
+    section_text,
+    phrase_matches,
+):
+    if (
+        effect_type.startswith("ACTIVE_")
+        and section.get("section_type") != "ACTIVE"
+    ):
+        return False
+
+    if effect_type in {
+        "ACTIVE_DAMAGE",
+        "PERCENT_CURRENT_HEALTH_DAMAGE",
+        "PERCENT_MAX_HEALTH_DAMAGE",
+        "ON_HIT_DAMAGE",
+    }:
+        if not _has_damage_evidence_near_phrase(
+            effect_type,
+            section_text,
+            phrase_matches,
+        ):
+            return False
+
+    if effect_type == "ACTIVE_SHIELD":
+        return _has_shield_grant_context(normalized_text)
+
+    if effect_type == "SHIELD_REDUCTION":
+        return _has_shield_reduction_context(normalized_text)
+
+    if effect_type == "CLEANSE":
+        return _has_cleanse_context(normalized_text)
+
+    if effect_type == "EXECUTE":
+        return _has_execute_context(normalized_text)
+
+    if effect_type == "TRANSFORMATION":
+        return _is_transformation_context(normalized_text)
+
+    if effect_type == "MOVEMENT_SPEED_TRIGGER":
+        return _has_movement_trigger_context(normalized_text)
+
+    if effect_type == "STACKING_EFFECT":
+        return _contains_any(
+            normalized_text,
+            ("cumul", "cumuls", "charge", "charges"),
+        ) and _contains_any(
+            normalized_text,
+            (
+                "jusqu'a",
+                "max",
+                "gagnez",
+                "accumule",
+                "cumule",
+                "cumulable",
+            ),
+        )
+
+    if effect_type == "HARD_CC":
+        return _contains_any(
+            normalized_text,
+            (
+                "etourdit",
+                "immobilise",
+                "projette",
+                "reduit au silence",
+                "reduit la cible au silence",
+                "provoque",
+                "suppression",
+            ),
+        ) or (
+            "silence" in normalized_text
+            and _contains_any(
+                normalized_text,
+                ("ennemi", "ennemis", "cible", "adversaire"),
+            )
+        )
+
+    return True
+
+
+def _split_semantic_fragments(text):
+    fragments = re.split(r"[\n.;!?]+", text or "")
+    return [_collapse_spaces(fragment) for fragment in fragments if _collapse_spaces(fragment)]
+
+
+def _section_partial_parse_record(
+    section,
+    section_text,
+    section_effects,
+    ddragon_version,
+):
+    if not section.get("text"):
+        return None, "NO_EFFECT_TEXT"
+
+    matched_texts = [
+        effect.get("matched_text")
+        for effect in section_effects
+        if effect.get("matched_text")
+    ]
+    if not section_effects:
+        return (
+            {
+                "kind": UNPARSED_EFFECT_TEXT,
+                "section_type": section.get("section_type", UNKNOWN),
+                "section_name": section.get("name", UNKNOWN),
+                "text": section.get("text"),
+                "source": "DDRAGON_DESCRIPTION",
+                "ddragon_version": ddragon_version,
+            },
+            "COMPLETELY_UNPARSED",
+        )
+
+    unmatched_fragments = []
+    for fragment in _split_semantic_fragments(section.get("text")):
+        normalized_fragment = _normalize_text(fragment)
+        if any(_normalize_text(text) in normalized_fragment for text in matched_texts):
+            continue
+        unmatched_fragments.append(fragment)
+
+    if unmatched_fragments:
+        return (
+            {
+                "kind": PARTIALLY_PARSED_EFFECT_TEXT,
+                "section_type": section.get("section_type", UNKNOWN),
+                "section_name": section.get("name", UNKNOWN),
+                "text": section.get("text"),
+                "unparsed_fragments": unmatched_fragments,
+                "matched_effect_types": [
+                    effect["effect_type"] for effect in section_effects
+                ],
+                "matched_texts": matched_texts,
+                "source": "DDRAGON_DESCRIPTION",
+                "ddragon_version": ddragon_version,
+            },
+            "PARTIALLY_PARSED",
+        )
+
+    return None, "FULLY_PARSED"
+
+
+def extract_item_effects(
+    raw_item,
+    description_sections,
+    ddragon_version,
+    locale=DEFAULT_LOCALE,
+):
     effects = []
     tags = raw_item.get("tags") or []
+    parser_status = semantic_parser_status(locale)
+    section_parse_counts = Counter()
+    section_parse_details = []
 
     for tag in tags:
         effect_type = TAG_EFFECT_MAP.get(tag)
@@ -377,6 +830,28 @@ def extract_item_effects(raw_item, description_sections, ddragon_version):
         )
 
     unparsed = []
+    if parser_status != SEMANTIC_PARSER_SUPPORTED:
+        for section in description_sections.get("sections", []):
+            if not section.get("text"):
+                continue
+            section_parse_counts["unsupported_locale_sections"] += 1
+            unparsed.append(
+                {
+                    "kind": UNPARSED_EFFECT_TEXT,
+                    "reason": SEMANTIC_PARSER_UNSUPPORTED_LOCALE,
+                    "section_type": section.get("section_type", UNKNOWN),
+                    "section_name": section.get("name", UNKNOWN),
+                    "text": section.get("text"),
+                    "source": "DDRAGON_DESCRIPTION",
+                    "ddragon_version": ddragon_version,
+                }
+            )
+        return effects, unparsed, {
+            "status": parser_status,
+            "section_counts": dict(section_parse_counts),
+            "section_parse_details": section_parse_details,
+        }
+
     for section in description_sections.get("sections", []):
         section_text = " ".join(
             value
@@ -384,7 +859,7 @@ def extract_item_effects(raw_item, description_sections, ddragon_version):
             if value
         )
         normalized = _normalize_text(section_text)
-        matched = False
+        section_effects = []
 
         for effect_type, phrases in EFFECT_RULES:
             phrase_matches = [
@@ -395,40 +870,55 @@ def extract_item_effects(raw_item, description_sections, ddragon_version):
             if not phrase_matches:
                 continue
 
-            if (
-                effect_type.startswith("ACTIVE_")
-                and section.get("section_type") != "ACTIVE"
+            if not _effect_rule_applies(
+                effect_type,
+                section,
+                normalized,
+                section_text,
+                phrase_matches,
             ):
                 continue
 
-            matched = True
-            _add_effect(
-                effects,
-                {
-                    "effect_type": effect_type,
-                    "confidence": "DESCRIPTION_EXPLICIT",
-                    "source": "DDRAGON_DESCRIPTION",
-                    "source_field": section.get("section_type"),
-                    "section_name": section.get("name"),
-                    "evidence_text": section_text,
-                    "matched_text": phrase_matches[0],
-                    "ddragon_version": ddragon_version,
-                },
-            )
+            effect = {
+                "effect_type": effect_type,
+                "confidence": "DESCRIPTION_EXPLICIT",
+                "source": "DDRAGON_DESCRIPTION",
+                "source_field": section.get("section_type"),
+                "section_name": section.get("name"),
+                "evidence_text": section_text,
+                "matched_text": phrase_matches[0],
+                "ddragon_version": ddragon_version,
+            }
+            before_count = len(effects)
+            _add_effect(effects, effect)
+            if len(effects) > before_count:
+                section_effects.append(effect)
 
-        if section.get("text") and not matched:
-            unparsed.append(
-                {
-                    "kind": UNPARSED_EFFECT_TEXT,
-                    "section_type": section.get("section_type", UNKNOWN),
-                    "section_name": section.get("name", UNKNOWN),
-                    "text": section.get("text"),
-                    "source": "DDRAGON_DESCRIPTION",
-                    "ddragon_version": ddragon_version,
-                }
-            )
+        parse_record, parse_status = _section_partial_parse_record(
+            section,
+            section_text,
+            section_effects,
+            ddragon_version,
+        )
+        section_parse_counts[parse_status.lower() + "_sections"] += 1
+        section_parse_details.append(
+            {
+                "section_type": section.get("section_type", UNKNOWN),
+                "section_name": section.get("name", UNKNOWN),
+                "parse_status": parse_status,
+                "matched_effect_types": [
+                    effect["effect_type"] for effect in section_effects
+                ],
+            }
+        )
+        if parse_record:
+            unparsed.append(parse_record)
 
-    return effects, unparsed
+    return effects, unparsed, {
+        "status": parser_status,
+        "section_counts": dict(section_parse_counts),
+        "section_parse_details": section_parse_details,
+    }
 
 
 def _int_list(values):
@@ -577,11 +1067,13 @@ def _build_initial_record(
         raw_item.get("stats") or {},
         sections.get("stats_text"),
         ddragon_version,
+        locale,
     )
-    effects, unparsed = extract_item_effects(
+    effects, unparsed, semantic_parse = extract_item_effects(
         raw_item,
         sections,
         ddragon_version,
+        locale,
     )
     metadata_warnings = []
 
@@ -598,6 +1090,12 @@ def _build_initial_record(
         "version_resolution_status": version_info["resolution_status"],
         "version_fallback_used": version_info["fallback_used"],
         "locale": locale,
+        "semantic_parser": {
+            "status": semantic_parser_status(locale),
+            "supported_locales": sorted(SUPPORTED_SEMANTIC_LOCALES),
+            "description_stat_parser_status": semantic_parser_status(locale),
+            "description_effect_parser_status": semantic_parse["status"],
+        },
         "purchasable": gold.get("purchasable")
         if "purchasable" in gold
         else UNKNOWN,
@@ -618,6 +1116,8 @@ def _build_initial_record(
         "raw_effect_fields": dict(raw_item.get("effect") or {}),
         "effects": effects,
         "unparsed_effect_text": unparsed,
+        "semantic_parse_summary": semantic_parse["section_counts"],
+        "semantic_parse_details": semantic_parse["section_parse_details"],
         "raw_description": description if description is not None else "",
         "clean_description": sections["clean_text"],
         "description_sections": sections,
@@ -791,7 +1291,9 @@ def attach_item_graph(records):
 
         record["item_graph"] = {
             "direct_components": direct_components,
-            "recursive_component_tree": sorted(set(component_tree)),
+            "recursive_component_tree": component_tree,
+            "recursive_component_counts": dict(Counter(component_tree)),
+            "unique_recursive_component_tree": sorted(set(component_tree)),
             "direct_upgrades": list(record["into_item_ids"]),
             "final_upgrade_descendants": sorted(set(descendants)),
             "item_depth": _item_depth(item_id, records),
@@ -871,6 +1373,10 @@ def summarize_item_knowledge(records, graph_issues, invalid_item_keys=None):
     items_with_description_effects = 0
     items_with_unparsed = 0
     items_with_unknown_stats = 0
+    semantic_parser_status_counts = Counter()
+    section_parse_counts = Counter()
+    repeated_direct_component_recipes = []
+    repeated_recursive_component_recipes = []
 
     for record in records.values():
         normalized_stats = record["normalized_stats"]
@@ -889,6 +1395,42 @@ def summarize_item_knowledge(records, graph_issues, invalid_item_keys=None):
             unknown_metadata_count += 1
         if any(stat["stat"] == "UNKNOWN" for stat in normalized_stats):
             items_with_unknown_stats += 1
+        semantic_parser_status_counts[
+            record.get("semantic_parser", {}).get("status", UNKNOWN)
+        ] += 1
+        section_parse_counts.update(record.get("semantic_parse_summary", {}))
+
+        direct_counts = Counter(record["item_graph"].get("direct_components", []))
+        repeated_direct = {
+            component_id: count
+            for component_id, count in direct_counts.items()
+            if count > 1
+        }
+        if repeated_direct:
+            repeated_direct_component_recipes.append(
+                {
+                    "item_id": record["item_id"],
+                    "name": record["name"],
+                    "component_counts": repeated_direct,
+                }
+            )
+
+        recursive_counts = Counter(
+            record["item_graph"].get("recursive_component_tree", [])
+        )
+        repeated_recursive = {
+            component_id: count
+            for component_id, count in recursive_counts.items()
+            if count > 1
+        }
+        if repeated_recursive:
+            repeated_recursive_component_recipes.append(
+                {
+                    "item_id": record["item_id"],
+                    "name": record["name"],
+                    "component_counts": repeated_recursive,
+                }
+            )
 
         for stat in normalized_stats:
             stat_counts[stat["stat"]] += 1
@@ -897,6 +1439,11 @@ def summarize_item_knowledge(records, graph_issues, invalid_item_keys=None):
             effect_counts[effect["effect_type"]] += 1
             effect_confidence_counts[effect["confidence"]] += 1
         class_counts.update(record["applicability"]["classes"])
+
+    effect_delta = {
+        effect_type: effect_counts[effect_type] - baseline_count
+        for effect_type, baseline_count in PRE_PRECISION_BASELINE_EFFECT_COUNTS.items()
+    }
 
     return {
         "total_item_records": len(records),
@@ -912,6 +1459,8 @@ def summarize_item_knowledge(records, graph_issues, invalid_item_keys=None):
         "items_with_unparsed_effect_text": items_with_unparsed,
         "items_with_unknown_metadata": unknown_metadata_count,
         "items_with_unknown_stats": items_with_unknown_stats,
+        "semantic_parser_status_counts": semantic_parser_status_counts,
+        "section_parse_counts": section_parse_counts,
         "graph_inconsistencies": len(graph_issues),
         "graph_issue_kinds": Counter(issue["kind"] for issue in graph_issues),
         "duplicate_ids": 0,
@@ -923,7 +1472,20 @@ def summarize_item_knowledge(records, graph_issues, invalid_item_keys=None):
         "canonical_stat_coverage": stat_counts,
         "source_field_coverage": source_field_counts,
         "effect_type_coverage": effect_counts,
+        "effect_type_delta_from_phase2a_baseline": effect_delta,
         "effect_confidence_counts": effect_confidence_counts,
+        "recipes_with_repeated_direct_components": (
+            len(repeated_direct_component_recipes)
+        ),
+        "recipes_with_repeated_recursive_components": (
+            len(repeated_recursive_component_recipes)
+        ),
+        "repeated_direct_component_samples": (
+            repeated_direct_component_recipes[:12]
+        ),
+        "repeated_recursive_component_samples": (
+            repeated_recursive_component_recipes[:12]
+        ),
         "graph_issue_samples": graph_issues[:12],
     }
 
@@ -1062,6 +1624,7 @@ def render_item_record_diagnostic(record):
         f"raw stats: {record['raw_stats'] or 'none'}",
         f"raw effect fields: {record['raw_effect_fields'] or 'none'}",
         f"plaintext: {record['plaintext'] or 'none'}",
+        f"semantic parser: {record['semantic_parser']}",
         f"clean description: {record['clean_description'] or 'none'}",
         "normalized stats:",
     ]
@@ -1084,6 +1647,7 @@ def render_item_record_diagnostic(record):
             "item graph:",
             f"  direct_components={graph['direct_components']}",
             f"  recursive_component_tree={graph['recursive_component_tree']}",
+            f"  recursive_component_counts={graph['recursive_component_counts']}",
             f"  direct_upgrades={graph['direct_upgrades']}",
             f"  final_upgrade_descendants={graph['final_upgrade_descendants']}",
             f"  item_depth={graph['item_depth']}",
@@ -1120,6 +1684,10 @@ def render_item_knowledge_audit(catalog):
         f"Version resolution: {catalog['version_resolution_status']}",
         f"Fallback used: {catalog['version_fallback_used']}",
         f"Locale: {catalog['locale']}",
+        (
+            "Semantic parser statuses: "
+            f"{_format_counts(summary['semantic_parser_status_counts'])}"
+        ),
         "",
         f"Total item records: {summary['total_item_records']}",
         (
@@ -1150,8 +1718,32 @@ def render_item_knowledge_audit(catalog):
             "Items with unknown raw stats preserved: "
             f"{summary['items_with_unknown_stats']}"
         ),
+        (
+            "Description effect sections fully parsed: "
+            f"{summary['section_parse_counts'].get('fully_parsed_sections', 0)}"
+        ),
+        (
+            "Description effect sections partially parsed: "
+            f"{summary['section_parse_counts'].get('partially_parsed_sections', 0)}"
+        ),
+        (
+            "Description effect sections completely unparsed: "
+            f"{summary['section_parse_counts'].get('completely_unparsed_sections', 0)}"
+        ),
+        (
+            "Unsupported-locale description sections: "
+            f"{summary['section_parse_counts'].get('unsupported_locale_sections', 0)}"
+        ),
         f"Graph inconsistencies: {summary['graph_inconsistencies']}",
         f"Graph issue kinds: {_format_counts(summary['graph_issue_kinds'])}",
+        (
+            "Recipes with repeated direct components: "
+            f"{summary['recipes_with_repeated_direct_components']}"
+        ),
+        (
+            "Recipes with repeated recursive components: "
+            f"{summary['recipes_with_repeated_recursive_components']}"
+        ),
         f"Duplicate IDs: {summary['duplicate_ids']}",
         f"Duplicate names: {summary['duplicate_names'] or 'none'}",
         f"Mode-specific / non-SR items: {summary['mode_specific_items']}",
@@ -1175,10 +1767,24 @@ def render_item_knowledge_audit(catalog):
             f"{_format_counts(summary['effect_type_coverage'])}"
         ),
         (
+            "Targeted semantic effect deltas vs Phase 2A baseline: "
+            f"{_format_counts({effect: summary['effect_type_delta_from_phase2a_baseline'].get(effect, 0) for effect in SENSITIVE_EFFECT_TYPES})}"
+        ),
+        (
             "Effect confidence coverage: "
             f"{_format_counts(summary['effect_confidence_counts'])}"
         ),
     ]
+
+    if summary["repeated_direct_component_samples"]:
+        lines.extend(["", "Repeated direct component samples:"])
+        for sample in summary["repeated_direct_component_samples"]:
+            lines.append(f"- {sample}")
+
+    if summary["repeated_recursive_component_samples"]:
+        lines.extend(["", "Repeated recursive component samples:"])
+        for sample in summary["repeated_recursive_component_samples"]:
+            lines.append(f"- {sample}")
 
     if summary["graph_issue_samples"]:
         lines.extend(["", "Graph issue samples:"])
@@ -1220,11 +1826,64 @@ def render_representative_item_diagnostics(catalog):
     return "\n".join(lines)
 
 
+def render_sensitive_semantic_diagnostics(catalog):
+    records = catalog["records"]
+    summary = catalog["summary"]
+    effect_types = sorted(summary["effect_type_coverage"])
+    targeted = set(SENSITIVE_EFFECT_TYPES)
+    lines = [
+        "SENSITIVE SEMANTIC FAMILY DIAGNOSTICS",
+        "",
+        "Samples are factual parser outputs with evidence, not advice.",
+    ]
+
+    for effect_type in effect_types:
+        samples = []
+        for record in records.values():
+            for effect in record["effects"]:
+                if effect["effect_type"] != effect_type:
+                    continue
+                samples.append((record, effect))
+        sample_limit = 12 if effect_type in targeted else 3
+        baseline = PRE_PRECISION_BASELINE_EFFECT_COUNTS.get(effect_type, 0)
+        delta = len(samples) - baseline
+        lines.extend(
+            [
+                "",
+                (
+                    f"## {effect_type} | count={len(samples)} | "
+                    f"phase2a_baseline={baseline} | delta={delta}"
+                ),
+            ]
+        )
+        for record, effect in samples[:sample_limit]:
+            evidence = effect.get("evidence_text") or effect.get("source_field")
+            lines.append(
+                (
+                    f"- {record['item_id']} {record['name']} | "
+                    f"confidence={effect['confidence']} | "
+                    f"source={effect['source']} | evidence={evidence}"
+                )
+            )
+        if len(samples) > sample_limit:
+            lines.append(f"- ... {len(samples) - sample_limit} more")
+
+    missing_targeted = [
+        effect_type
+        for effect_type in SENSITIVE_EFFECT_TYPES
+        if effect_type not in summary["effect_type_coverage"]
+    ]
+    lines.extend(["", f"Targeted families with zero current hits: {missing_targeted or 'none'}"])
+    return "\n".join(lines)
+
+
 def main():
     catalog = build_item_knowledge_catalog()
     print(render_item_knowledge_audit(catalog))
     print()
     print(render_representative_item_diagnostics(catalog))
+    print()
+    print(render_sensitive_semantic_diagnostics(catalog))
 
 
 if __name__ == "__main__":

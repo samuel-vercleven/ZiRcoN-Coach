@@ -10,7 +10,7 @@
 Frozen means: no retuning/refactor without a demonstrated correctness or integration bug or explicit project review request.
 
 ## In development
-- Item Knowledge Base Phase 2A: implemented and awaiting project review.
+- Item Knowledge Base Phase 2A-B: precision pass implemented and awaiting project review.
 - Status: REVIEW_REQUIRED, not FROZEN.
 - Next major task remains for project review / TODO.md.
 
@@ -147,8 +147,8 @@ Permanent Phase 1 limitations:
 - Plain UNRESOLVED destroyed records are 0 in the Phase 1D baseline; the previous 13-case family was explained as consumable Riot representation, and the full current count is 45 consumable not-held representations.
 - No LIKELY_REAL_REMOVAL evidence was found in the Phase 1D audit.
 
-## Item Knowledge Base Phase 2A
-Status: implemented, REVIEW_REQUIRED, not FROZEN.
+## Item Knowledge Base Phase 2A-B
+Status: precision pass implemented, REVIEW_REQUIRED, not FROZEN.
 
 Purpose:
 - UI-agnostic, patch-aware factual knowledge layer for all Data Dragon items.
@@ -166,23 +166,38 @@ Implementation:
 - Preserves unmapped structured stats as UNKNOWN instead of discarding them.
 - Cleans item HTML descriptions and extracts stats/passive/active/rules sections where exposed.
 - Extracts factual mechanics with evidence and confidence; description-derived effects remain DESCRIPTION_EXPLICIT, not recommendation logic.
-- Keeps unknown description mechanics as UNPARSED_EFFECT_TEXT.
-- Builds item graph facts: direct components, recursive component tree, direct upgrades, final upgrade descendants, item depth, component gold contribution, combine cost where derivable, and graph issues.
+- Phase 2A-B prioritizes semantic precision over recall for high-risk families.
+- `OnHit` Data Dragon tags no longer imply ON_HIT_DAMAGE without explicit damage evidence.
+- `*DAMAGE` semantic effects require damage action evidence in the same section/clause.
+- EXECUTE excludes quest-completion wording such as "achève une quête".
+- ACTIVE_SHIELD distinguishes shield grants from enemy shield reduction.
+- CLEANSE requires CC/debuff/removal context.
+- TRANSFORMATION no longer fires from generic "améliore" wording alone.
+- Locale contract is explicit: semantic description parsing is SUPPORTED for fr_FR and UNSUPPORTED_LOCALE otherwise; raw data remains available.
+- Keeps unknown description mechanics as UNPARSED_EFFECT_TEXT and mixed sections as PARTIALLY_PARSED_EFFECT_TEXT.
+- Builds item graph facts: direct components, recursive component tree preserving multiplicity, recursive component counts, direct upgrades, final upgrade descendants, item depth, component gold contribution, combine cost where derivable, and graph issues.
 - Classifies applicability without deleting records: Summoner's Rift purchasable, boots, starter/basic component, jungle starter, consumable, trinket, special/generated, mode-specific/non-SR, champion-specific, non-purchasable, special recipe.
 
 Real Data Dragon audit baseline:
 - Command: python -m knowledge.item_knowledge.
 - Locale: fr_FR.
 - Resolved Data Dragon version: 16.16.1.
+- Item knowledge version: item_knowledge_phase2a_b_v1.
 - Total item records: 868.
 - Purchasable Summoner's Rift items: 254.
 - Items with normalized stats: 655.
-- Items with extracted effects: 480.
-- Items with description-only effects: 386.
-- Items with unparsed effect text: 279.
+- Items with extracted effects: 414.
+- Items with description-only effects: 357.
+- Items with unparsed effect text: 396.
 - Items with UNKNOWN metadata: 0.
 - Items with unknown raw stats preserved: 0.
+- Description effect sections fully parsed: 198.
+- Description effect sections partially parsed: 151.
+- Description effect sections completely unparsed: 384.
+- Semantic parser statuses: SUPPORTED 868.
 - Graph inconsistencies: 0.
+- Recipes with repeated direct components: 45.
+- Recipes with repeated recursive components: 170.
 - Duplicate IDs: 0.
 - Duplicate names: present in Data Dragon across variants/modes and reported for transparency, not deduplicated.
 - Mode-specific / non-SR items: 552.
@@ -192,22 +207,24 @@ Real Data Dragon audit baseline:
 
 Coverage highlights:
 - Canonical stats found include health, ability_haste, attack_damage, ability_power, armor, magic_resistance, attack_speed_percent, mana, percent_move_speed, critical_strike_chance, mana_regen, health_regen, lethality, flat_move_speed, life_steal, omnivamp, tenacity, magic_penetration_flat, armor_penetration_percent, and magic_penetration_percent.
-- Extracted effect families include ON_HIT_DAMAGE, MOVEMENT_SPEED_TRIGGER, SLOW, STACKING_EFFECT, LIFE_STEAL_EFFECT, OMNIVAMP_EFFECT, CRITICAL_STRIKE_EFFECT, PERCENT_MAX_HEALTH_DAMAGE, TENACITY, active effects, TRANSFORMATION, HARD_CC, GRIEVOUS_WOUNDS, HEAL, SPELLBLADE, QUEST_OR_SPECIAL_MECHANIC, TRUE_DAMAGE, EXECUTE, LIFELINE_SHIELD, CLEANSE, STASIS, SPELL_SHIELD, penetration mechanics, and SHIELD_REDUCTION.
+- Extracted effect families include SLOW, LIFE_STEAL_EFFECT, MOVEMENT_SPEED_TRIGGER, STACKING_EFFECT, OMNIVAMP_EFFECT, CRITICAL_STRIKE_EFFECT, TENACITY, ON_HIT_DAMAGE, ACTIVE_DAMAGE, TRANSFORMATION, HARD_CC, GRIEVOUS_WOUNDS, HEAL, SPELLBLADE, QUEST_OR_SPECIAL_MECHANIC, TRUE_DAMAGE, LIFELINE_SHIELD, ACTIVE_MOVEMENT, MISSING_HEALTH_SCALING, PERCENT_MAX_HEALTH_DAMAGE, ACTIVE_SHIELD, CLEANSE, EXECUTE, PERCENT_CURRENT_HEALTH_DAMAGE, STASIS, SPELL_SHIELD, penetration mechanics, and SHIELD_REDUCTION.
+- Targeted semantic deltas vs Phase 2A baseline: ON_HIT_DAMAGE -130, PERCENT_MAX_HEALTH_DAMAGE -36, MOVEMENT_SPEED_TRIGGER -20, STACKING_EFFECT -11, ACTIVE_DAMAGE -6, EXECUTE -6, TRANSFORMATION -6, CLEANSE -3, ACTIVE_SHIELD -2, PERCENT_CURRENT_HEALTH_DAMAGE -1, HARD_CC 0.
 
 Known Phase 2A limitations:
 - Description parsing is factual evidence extraction, not validated gameplay advice.
 - DESCRIPTION_EXPLICIT effects remain parser-derived from Data Dragon text and must stay auditable through evidence_text.
-- 279 items still contain UNPARSED_EFFECT_TEXT; future consumers must explicitly handle or ignore those fragments.
+- 396 items still contain UNPARSED_EFFECT_TEXT / PARTIALLY_PARSED_EFFECT_TEXT; future consumers must explicitly handle or ignore those fragments.
 - Duplicate item names are preserved because Data Dragon exposes separate item IDs/variants.
+- Semantic parser support is currently explicit for fr_FR only.
 - No champion semantic knowledge, composition analysis, build recommendation, GOOD/BAD label, item score, personal win-rate adjustment, or ML has been started.
-- Phase 2A is ready for project review, not freeze.
+- Phase 2A-B is ready for project review, not freeze.
 
 ## Architecture
 - main.py remains a dev/integration harness.
 - Final UI later with PySide6.
 - Analysis modules should remain UI-agnostic.
 - Itemization v22 logic lives in analysis/itemization_analyzer.py; synthetic checks live in analysis/itemization_synthetic_checks.py.
-- Item Knowledge Base Phase 2A lives in knowledge/item_knowledge.py; synthetic checks live in knowledge/item_knowledge_synthetic_checks.py.
+- Item Knowledge Base Phase 2A-B lives in knowledge/item_knowledge.py; synthetic checks live in knowledge/item_knowledge_synthetic_checks.py and knowledge/item_knowledge_precision_checks.py.
 
 ## Handoff rule
 Codex must update this file after each completed task.

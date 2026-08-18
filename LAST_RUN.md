@@ -4,7 +4,7 @@
 REVIEW_REQUIRED
 
 ## Date
-2026-08-18 00:50 local
+2026-08-18 17:29 local
 
 ## Command
 python -m knowledge.item_knowledge
@@ -12,27 +12,28 @@ python -m knowledge.item_knowledge
 ## Runtime
 - completed
 - approximate duration: about 1-2 seconds for the real Data Dragon catalog audit
-- `python main.py` was not run because Phase 2A was not integrated into the dev harness
-- raw Phase 2A audit output saved locally to logs/item_knowledge_phase2a_audit.txt
+- `python main.py` was not run because Phase 2A-B did not integrate with the dev harness
+- raw Phase 2A-B audit output saved locally to logs/item_knowledge_phase2ab_precision_audit.txt
 
 ## Files changed
-- knowledge/__init__.py
 - knowledge/item_knowledge.py
 - knowledge/item_knowledge_synthetic_checks.py
+- knowledge/item_knowledge_precision_checks.py
 - PROJECT_STATE.md
 - TODO.md
 - LAST_RUN.md
 
 ## Tests executed
-- `.venv\Scripts\python.exe -m py_compile knowledge\item_knowledge.py knowledge\item_knowledge_synthetic_checks.py`
+- `.venv\Scripts\python.exe -m py_compile knowledge\item_knowledge.py knowledge\item_knowledge_synthetic_checks.py knowledge\item_knowledge_precision_checks.py`
 - `.venv\Scripts\python.exe -m knowledge.item_knowledge_synthetic_checks`
+- `.venv\Scripts\python.exe -m knowledge.item_knowledge_precision_checks`
 - `.venv\Scripts\python.exe -X utf8 -m knowledge.item_knowledge`
 
 ## Errors encountered
 - Initial non-escalated Python commands failed because the venv points to Python under AppData and the sandbox denied access.
-- Re-ran the same compile/check commands with required escalation; they passed.
-- Initial PowerShell redirection produced poor accent rendering in the audit log.
-- Re-ran the audit with UTF-8 console/output settings; the saved audit is readable.
+- Re-ran the same commands with required escalation; compile/tests/audit passed.
+- Precision tests exposed one missing DAMAGE_REDUCTION phrasing; fixed by recognizing "dégâts subis sont réduits".
+- Real audit exposed additional false-positive risks in ACTIVE_DAMAGE and PERCENT_MAX_HEALTH_DAMAGE; tightened damage-action and threshold-context checks, then reran tests and audit.
 
 ## Main analyzer results
 ### Death Analyzer
@@ -49,12 +50,13 @@ python -m knowledge.item_knowledge
 
 ### Current analyzer
 - Build / Itemization Analyzer v22 Phase 1 not modified; remains FROZEN.
-- New current work is Item Knowledge Base Phase 2A, implemented as a separate knowledge layer.
-- No champion analysis, composition analysis, build recommendation, item GOOD/BAD label, Itemization Score, personal Win/Loss learning, or ML was added.
+- Item Knowledge Base Phase 2A-B precision pass implemented.
+- No champion knowledge, composition analysis, build recommendation, item GOOD/BAD label, Itemization Score, personal/global statistical learning, or ML was added.
 
-Phase 2A audit:
-- Item knowledge version: item_knowledge_phase2a_v1.
+Phase 2A-B audit:
+- Item knowledge version: item_knowledge_phase2a_b_v1.
 - Locale: fr_FR.
+- Semantic parser status: SUPPORTED for 868 records.
 - Requested game version: LATEST.
 - Resolved Data Dragon version: 16.16.1.
 - Version resolution: LATEST.
@@ -62,62 +64,55 @@ Phase 2A audit:
 - Total item records: 868.
 - Purchasable Summoner's Rift items: 254.
 - Items with normalized stats: 655.
-- Items with extracted effects: 480.
-- Items with description-only effects: 386.
-- Items with unparsed effect text: 279.
+- Items with extracted effects: 414.
+- Items with description effects: 357.
+- Items with unparsed / partial effect text: 396.
 - Items with UNKNOWN metadata: 0.
 - Items with unknown raw stats preserved: 0.
+- Fully parsed description effect sections: 198.
+- Partially parsed description effect sections: 151.
+- Completely unparsed description effect sections: 384.
+- Unsupported-locale sections in this fr_FR audit: 0.
 - Graph inconsistencies: 0.
+- Repeated direct-component recipes: 45.
+- Repeated recursive-component recipes: 170.
 - Duplicate IDs: 0.
-- Duplicate names: reported and preserved as Data Dragon item variants.
+- Duplicate names: reported and preserved as Data Dragon variants.
 - Mode-specific / non-SR items: 552.
 - Champion-specific items: 7.
 - Non-purchasable items: 172.
 - Representative diagnostics coverage: 18/18 required families, none missing.
 
-Normalized stat coverage:
-- health: 275
-- ability_haste: 224
-- attack_damage: 201
-- ability_power: 193
-- armor: 116
-- magic_resistance: 98
-- attack_speed_percent: 92
-- mana: 87
-- percent_move_speed: 77
-- critical_strike_chance: 62
-- mana_regen: 59
-- health_regen: 47
-- lethality: 39
-- flat_move_speed: 30
-- life_steal: 25
-- omnivamp: 15
-- tenacity: 15
-- magic_penetration_flat: 11
-- armor_penetration_percent: 8
-- magic_penetration_percent: 7
-
-Semantic effect coverage:
-- Extracted 480 items with effects.
-- Effect confidence counts: DESCRIPTION_EXPLICIT 639, STRUCTURED 281.
-- Main effect families include ON_HIT_DAMAGE, MOVEMENT_SPEED_TRIGGER, SLOW, STACKING_EFFECT, LIFE_STEAL_EFFECT, OMNIVAMP_EFFECT, CRITICAL_STRIKE_EFFECT, PERCENT_MAX_HEALTH_DAMAGE, TENACITY, ACTIVE_DAMAGE, TRANSFORMATION, HARD_CC, GRIEVOUS_WOUNDS, HEAL, SPELLBLADE, QUEST_OR_SPECIAL_MECHANIC, TRUE_DAMAGE, EXECUTE, LIFELINE_SHIELD, ACTIVE_MOVEMENT, CLEANSE, MISSING_HEALTH_SCALING, ACTIVE_SHIELD, PERCENT_CURRENT_HEALTH_DAMAGE, STASIS, SPELL_SHIELD, penetration mechanics, DASH, MAGIC_RESIST_REDUCTION, and SHIELD_REDUCTION.
+Targeted semantic deltas vs Phase 2A baseline:
+- ON_HIT_DAMAGE: -130.
+- PERCENT_MAX_HEALTH_DAMAGE: -36.
+- MOVEMENT_SPEED_TRIGGER: -20.
+- STACKING_EFFECT: -11.
+- ACTIVE_DAMAGE: -6.
+- EXECUTE: -6.
+- TRANSFORMATION: -6.
+- CLEANSE: -3.
+- ACTIVE_SHIELD: -2.
+- PERCENT_CURRENT_HEALTH_DAMAGE: -1.
+- HARD_CC: 0.
 
 ## Suspicious findings
-- 279 items retain UNPARSED_EFFECT_TEXT. This is intentional transparency, not treated as a failure.
-- Duplicate names are common in Data Dragon because different item IDs/variants share names across modes or special states; no deduplication was performed.
+- 396 items retain UNPARSED_EFFECT_TEXT or PARTIALLY_PARSED_EFFECT_TEXT. This is intentional and preferable to false semantic certainty.
+- Some active consumables still classify as ACTIVE_DAMAGE only when their section includes explicit damage-action evidence; project review should inspect these examples.
+- 45 direct and 170 recursive repeated-component recipes are now visible instead of being deduplicated away.
 
 ## Methodological concerns
-- REVIEW_REQUIRED because Phase 2A introduces a new factual knowledge taxonomy and description parser that should be reviewed before future consumers depend on it.
-- Description-derived effects are parser outputs with evidence, not validated gameplay advice.
-- No recommendation semantics should consume UNKNOWN or UNPARSED content without explicit handling.
+- REVIEW_REQUIRED because Phase 2A-B changes the semantic parser/taxonomy behavior and should be reviewed before freeze.
+- The parser is explicitly fr_FR-only for description semantics.
+- Description-derived effects remain parser outputs with evidence, not gameplay advice.
 
 ## Remaining issues
-- Phase 2A is not FROZEN.
-- No Phase 2B champion/composition knowledge was started.
-- Future project review must decide whether the current taxonomy and parser coverage are acceptable.
+- Phase 2A is still not FROZEN.
+- No Phase 2B champion/composition/recommendation work was started.
+- Future consumers must explicitly handle UNKNOWN, UNPARSED_EFFECT_TEXT, and PARTIALLY_PARSED_EFFECT_TEXT.
 
 ## Codex technical recommendation
-- Review representative diagnostics and UNPARSED_EFFECT_TEXT examples before allowing contextual build reasoning to consume the knowledge base.
+- Project review should inspect the sensitive semantic diagnostics, especially ACTIVE_DAMAGE and percent-health families, before declaring Phase 2A freeze-ready.
 
 ## Review request
-REVIEW_REQUIRED because Phase 2A is implemented and tested, but taxonomy/parser semantics require project review before freeze or Phase 2B.
+REVIEW_REQUIRED because Phase 2A-B is implemented and tested, but semantic precision and parser coverage require project review before freeze.
