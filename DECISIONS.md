@@ -105,3 +105,78 @@ Rules:
 
 Status:
 FROZEN.
+
+## Item Knowledge Base Phase 2A - FROZEN
+Decision:
+Freeze Item Knowledge Base Phase 2A as the factual, patch-aware item knowledge layer.
+
+Scope:
+- Data Dragon item catalog loading and patch-aware version resolution;
+- raw item data preservation, including descriptions, plaintext, stats, effects, gold, tags, maps, components, upgrades, consumed fields, and audit metadata;
+- canonical stat normalization with provenance;
+- conservative semantic description parsing for fr_FR;
+- DESCRIPTION_EXPLICIT confidence for parser-derived mechanics;
+- UNKNOWN, NOT_EXPOSED, UNPARSED_EFFECT_TEXT, and PARTIALLY_PARSED_EFFECT_TEXT preservation;
+- item graph facts with repeated component multiplicity preserved;
+- applicability, map, special/generated, champion-specific, mode-specific, non-purchasable, consumable, trinket, jungle-starter, and boots classification.
+
+Out of scope:
+- champion knowledge;
+- rune knowledge;
+- spell formulas;
+- composition analysis;
+- damage simulation;
+- Burst / TTK;
+- contextual build reasoning;
+- recommendations;
+- GOOD/BAD item labels;
+- item scoring;
+- ML.
+
+Validated baseline:
+- item knowledge version item_knowledge_phase2a_c_v1;
+- Data Dragon version 16.16.1;
+- locale fr_FR;
+- 868 total item records;
+- 254 purchasable Summoner's Rift items;
+- 655 items with normalized stats;
+- 414 items with extracted effects;
+- 357 items with description effects;
+- 443 items with unparsed or partial effect text;
+- 96 FULLY_PARSED description sections;
+- 253 PARTIALLY_PARSED description sections;
+- 384 COMPLETELY_UNPARSED description sections;
+- 201 same-sentence partial cases preserved as incomplete;
+- 45 repeated direct-component recipes;
+- 170 repeated recursive-component recipes;
+- 0 graph inconsistencies;
+- representative diagnostics coverage 18/18.
+
+Reasons:
+- project review validated Phase 2A-C as the accepted Phase 2A baseline;
+- parser behavior now favors precision and auditability over false completeness;
+- same-sentence multi-mechanic text is not marked FULLY_PARSED merely because one mechanic was recognized;
+- raw source evidence and provenance remain available to downstream consumers;
+- Data Dragon component multiplicity is preserved instead of deduplicated away;
+- unsupported locales cannot silently use the French semantic parser.
+
+Permanent limitations:
+- Data Dragon descriptions are not a complete formal gameplay rules engine;
+- description-derived mechanics are parser interpretations with evidence, not exact executable formulas;
+- the semantic description parser is supported only for fr_FR;
+- many mechanics intentionally remain PARTIALLY_PARSED or UNPARSED;
+- duplicate item names and variants are preserved rather than merged;
+- mode-specific, champion-specific, generated, and non-purchasable records remain in the catalog and must be filtered by future consumers when appropriate;
+- Phase 2A does not decide whether an item is good or bad in a champion/composition context.
+
+Rules:
+- Prefer UNKNOWN / UNPARSED / PARTIALLY_PARSED to false certainty.
+- Never treat partial or unparsed content as understood.
+- Never infer gameplay advice directly from an item semantic tag.
+- Preserve raw Data Dragon source text and provenance for audit.
+- Preserve repeated component multiplicity.
+- Do not retune the parser merely to increase semantic coverage.
+- Do not modify Phase 2A without a demonstrated factual correctness bug, Riot/Data Dragon compatibility need, strictly necessary downstream integration change, or explicit project review request.
+
+Status:
+FROZEN.

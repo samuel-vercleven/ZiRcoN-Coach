@@ -1,17 +1,17 @@
 # ZiRcoN Coach - Project State
 
-## Frozen analyzers
+## Frozen modules / knowledge layers
 - Death Analyzer: v11 - FROZEN.
 - Jungle Tempo / Pathing Analyzer: v17 - FROZEN.
 - Objective Analyzer: v20 - FROZEN.
 - Recall / Reset Analyzer: v21 - FROZEN.
 - Build / Itemization Analyzer: v22 Phase 1 - FROZEN.
+- Item Knowledge Base: Phase 2A - FROZEN.
 
 Frozen means: no retuning/refactor without a demonstrated correctness or integration bug or explicit project review request.
 
 ## In development
-- Item Knowledge Base Phase 2A-C: conservative semantic completeness fix implemented and awaiting project review.
-- Status: REVIEW_REQUIRED, not FROZEN.
+- No active development task is defined by Codex after the Phase 2A freeze.
 - Next major task remains for project review / TODO.md.
 
 ## Dataset
@@ -147,13 +147,15 @@ Permanent Phase 1 limitations:
 - Plain UNRESOLVED destroyed records are 0 in the Phase 1D baseline; the previous 13-case family was explained as consumable Riot representation, and the full current count is 45 consumable not-held representations.
 - No LIKELY_REAL_REMOVAL evidence was found in the Phase 1D audit.
 
-## Item Knowledge Base Phase 2A-C
-Status: conservative completeness fix implemented, REVIEW_REQUIRED, not FROZEN.
+## Item Knowledge Base Phase 2A
+Status: FROZEN by project review after Phase 2A-C.
 
 Purpose:
 - UI-agnostic, patch-aware factual knowledge layer for all Data Dragon items.
 - Answers what an item contains/does according to patch-aware Data Dragon data.
 - Does not use personal history, Win/Loss statistics, champions, compositions, recommendations, item scores, or ML.
+- Freeze covers factual item knowledge only.
+- Phase 2B champion knowledge, rune knowledge, spell formulas, composition analysis, damage simulation, Burst/TTK, contextual builds, recommendations, and ML remain out of scope.
 
 Implementation:
 - New package: knowledge/.
@@ -182,7 +184,7 @@ Implementation:
 - Builds item graph facts: direct components, recursive component tree preserving multiplicity, recursive component counts, direct upgrades, final upgrade descendants, item depth, component gold contribution, combine cost where derivable, and graph issues.
 - Classifies applicability without deleting records: Summoner's Rift purchasable, boots, starter/basic component, jungle starter, consumable, trinket, special/generated, mode-specific/non-SR, champion-specific, non-purchasable, special recipe.
 
-Real Data Dragon audit baseline:
+Freeze baseline:
 - Command: python -m knowledge.item_knowledge.
 - Locale: fr_FR.
 - Resolved Data Dragon version: 16.16.1.
@@ -220,17 +222,21 @@ Known Phase 2A limitations:
 - DESCRIPTION_EXPLICIT effects remain parser-derived from Data Dragon text and must stay auditable through evidence_text.
 - 443 items still contain UNPARSED_EFFECT_TEXT / PARTIALLY_PARSED_EFFECT_TEXT; future consumers must explicitly handle or ignore those fragments.
 - FULLY_PARSED counts intentionally decreased after Phase 2A-C; this is preferred over silently treating unrecognized same-sentence mechanics as understood.
+- UNKNOWN, UNPARSED_EFFECT_TEXT, and PARTIALLY_PARSED_EFFECT_TEXT are preferred to false certainty.
+- The 201 same-sentence partial cases are intentionally preserved as incomplete rather than over-parsed.
+- Raw Data Dragon descriptions, raw stats, normalized facts, effect evidence, and Data Dragon version provenance remain authoritative for audit.
+- Repeated direct and recursive components preserve multiplicity and must not be deduplicated away by consumers.
 - Duplicate item names are preserved because Data Dragon exposes separate item IDs/variants.
 - Semantic parser support is currently explicit for fr_FR only.
 - No champion semantic knowledge, composition analysis, build recommendation, GOOD/BAD label, item score, personal win-rate adjustment, or ML has been started.
-- Phase 2A-C is ready for project review, not freeze.
+- Phase 2A is FROZEN; do not modify it without a demonstrated factual correctness bug, Riot/Data Dragon compatibility need, strictly necessary downstream integration change, or explicit project review request.
 
 ## Architecture
 - main.py remains a dev/integration harness.
 - Final UI later with PySide6.
 - Analysis modules should remain UI-agnostic.
 - Itemization v22 logic lives in analysis/itemization_analyzer.py; synthetic checks live in analysis/itemization_synthetic_checks.py.
-- Item Knowledge Base Phase 2A-C lives in knowledge/item_knowledge.py; synthetic checks live in knowledge/item_knowledge_synthetic_checks.py and knowledge/item_knowledge_precision_checks.py.
+- Item Knowledge Base Phase 2A lives in knowledge/item_knowledge.py; synthetic checks live in knowledge/item_knowledge_synthetic_checks.py and knowledge/item_knowledge_precision_checks.py.
 
 ## Handoff rule
 Codex must update this file after each completed task.

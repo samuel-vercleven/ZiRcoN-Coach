@@ -1,179 +1,132 @@
 # ZiRcoN Coach — TODO
 
 ## Current task
-COMPLETED — Phase 2A-C — Conservative semantic completeness fix before freeze.
+COMPLETED — Freeze Item Knowledge Base — Phase 2A.
 
 ## Status
 
 Completed by Codex on 2026-08-18.
 
-Result: REVIEW_REQUIRED.
+Result: PASS.
 
-No next major task is defined here; project review should decide whether Phase 2A-C is freeze-ready.
+Item Knowledge Base Phase 2A is now documented as FROZEN.
 
-## Goal
+No next major task is defined here; project review should define Phase 2B or any other next step.
 
-Fix one remaining semantic completeness issue in Item Knowledge.
+## Decision
 
-Phase 2A-B is otherwise accepted.
+Project review accepts Phase 2A-C as the validated Item Knowledge baseline.
 
-Do NOT redesign the parser.
-Do NOT expand the semantic taxonomy.
-Do NOT start champion knowledge.
+Item Knowledge Base Phase 2A is now approved for FROZEN status.
 
----
+This freeze covers factual, patch-aware item knowledge only.
 
-## Problem
-
-Current partial parsing splits section text mainly on:
-
-- newline
-- .
-- ;
-- !
-- ?
-
-A fragment is then considered parsed if it contains a matched semantic phrase.
-
-This can incorrectly mark a multi-mechanic sentence as fully understood.
-
-Example:
-
-"Inflige 100 dégâts et vous confère 30% de vitesse d'attaque pendant 4 sec."
-
-If ACTIVE_DAMAGE is recognized but the temporary attack-speed buff is not,
-the whole sentence must NOT be considered fully parsed.
-
-A recognized phrase inside a fragment is not evidence that every mechanic
-inside that fragment is understood.
+It does NOT freeze future:
+- champion knowledge;
+- rune knowledge;
+- spell formulas;
+- composition analysis;
+- damage simulation;
+- Burst / TTK;
+- contextual build reasoning;
+- recommendations;
+- ML.
 
 ---
 
-## Part A — Conservative completeness semantics
+## Freeze baseline
 
-Make section completeness conservative.
+Validated Data Dragon catalog:
 
-A section may be FULLY_PARSED only when the parser has sufficient evidence
-that no meaningful mechanic text remains unexplained.
+- Item knowledge version: item_knowledge_phase2a_c_v1
+- Locale: fr_FR
+- Resolved Data Dragon version: 16.16.1
+- Total item records: 868
+- Purchasable Summoner's Rift items: 254
+- Items with normalized stats: 655
+- Items with extracted effects: 414
+- Items with description effects: 357
+- Items with unparsed/partial effect text: 443
+- Graph inconsistencies: 0
+- Repeated direct-component recipes: 45
+- Repeated recursive-component recipes: 170
+- Representative diagnostics: 18/18
 
-If completeness cannot be demonstrated:
+Description semantic completeness:
 
-mark it PARTIALLY_PARSED
-and preserve the original section text / unresolved text.
-
-Do not attempt aggressive natural-language interpretation.
-
-It is acceptable for FULLY_PARSED counts to decrease significantly.
-
-Precision and auditability are more important than coverage.
-
----
-
-## Part B — Same-sentence multi-mechanic tests
-
-Add deterministic tests for cases such as:
-
-1.
-
-"Inflige 100 dégâts magiques et vous confère 30% de vitesse d'attaque."
-
-Expected:
-- ACTIVE_DAMAGE extracted
-- section NOT FULLY_PARSED
-- attack-speed-related remaining text preserved
-
-2.
-
-"Vous gagnez un bouclier et votre prochaine attaque ralentit la cible."
-
-If only part of the mechanics are understood:
-- recognized effects preserved
-- remaining mechanic preserved
-- section PARTIALLY_PARSED
-
-3.
-
-A genuinely simple section containing only one fully recognized mechanic.
-
-Example:
-"Inflige 100 dégâts magiques à la cible."
-
-This MAY be FULLY_PARSED if the implementation can safely demonstrate it.
-
-4.
-
-Completely unknown sentence:
-- COMPLETELY_UNPARSED
-- original text preserved
+- FULLY_PARSED sections: 96
+- PARTIALLY_PARSED sections: 253
+- COMPLETELY_UNPARSED sections: 384
+- same-sentence partial cases preserved: 201
 
 ---
 
-## Part C — No silent text loss invariant
+## Frozen methodology
 
-Add an explicit synthetic invariant:
+Preserve:
 
-Semantic parsing must never discard source effect text merely because one
-effect was extracted from the same sentence.
+- patch-aware Data Dragon version resolution;
+- raw item data and descriptions;
+- provenance for normalized facts;
+- canonical stat normalization;
+- UNKNOWN / NOT_EXPOSED handling;
+- conservative semantic effect extraction;
+- DESCRIPTION_EXPLICIT confidence for parser-derived semantics;
+- UNPARSED_EFFECT_TEXT;
+- PARTIALLY_PARSED_EFFECT_TEXT;
+- original source text for auditability;
+- explicit fr_FR semantic parser contract;
+- item graph with component multiplicity;
+- applicability / map / special-item classification.
 
-For every description effect section, future consumers must always have access
-to:
+Rules:
 
-- original section text
-- extracted effects
-- parse completeness
-- unresolved text when completeness is not proven
-
-Raw source text must remain available regardless.
-
----
-
-## Part D — Real catalog audit
-
-Rerun the full current Data Dragon catalog.
-
-Report:
-
-- resolved version
-- total items
-- items with effects
-- FULLY_PARSED sections
-- PARTIALLY_PARSED sections
-- COMPLETELY_UNPARSED sections
-- unsupported locale sections
-- graph issues
-- representative diagnostics
-
-Specifically inspect several sections containing multiple mechanics in one
-sentence.
-
-Do not optimize the counts.
-
-A rise in PARTIALLY_PARSED is acceptable and may be desirable.
+- Never treat partial or unparsed content as understood.
+- Never infer gameplay advice directly from an item semantic tag.
+- Semantic precision is preferred over recall.
+- Raw source evidence remains authoritative/auditable.
+- Unsupported locales must not silently use the French parser.
+- Repeated components must preserve multiplicity.
 
 ---
 
-## Accepted Phase 2A-B work
+## Permanent limitations
 
-Do not reopen without a demonstrated bug:
+1. Data Dragon descriptions are not a complete formal gameplay rules engine.
 
-- semantic false-positive hardening
-- EXECUTE quest fix
-- percent-health damage contextual checks
-- ACTIVE_DAMAGE contextual checks
-- ACTIVE_SHIELD vs shield reduction
-- CLEANSE contextual checks
-- TRANSFORMATION contextual checks
-- ON_HIT_DAMAGE damage requirement
-- explicit fr_FR parser contract
-- recursive component multiplicity
-- patch-aware Data Dragon data
-- provenance/raw data preservation
+2. Description-derived mechanics are parser interpretations with evidence,
+   not exact executable formulas.
+
+3. Many mechanics intentionally remain PARTIALLY_PARSED or UNPARSED.
+
+4. The semantic description parser is currently supported only for fr_FR.
+
+5. Duplicate item names/variants are preserved rather than merged.
+
+6. Mode-specific, champion-specific, generated and non-purchasable items remain
+   in the catalog and must be filtered by future consumers when appropriate.
+
+7. Phase 2A does not determine whether an item is GOOD/BAD or appropriate
+   against a specific champion/composition.
 
 ---
 
 ## Frozen boundary
 
-Do NOT modify:
+After this commit, do not modify Item Knowledge Phase 2A unless:
+
+- a demonstrated factual correctness bug is found;
+- Riot/Data Dragon format changes require compatibility;
+- a later layer requires a strictly necessary integration change;
+- project review explicitly reopens it.
+
+Do not retune the parser merely to increase semantic coverage.
+
+---
+
+## Existing frozen modules
+
+Remain untouched:
 
 - Death Analyzer v11
 - Jungle Tempo / Pathing v17
@@ -183,46 +136,29 @@ Do NOT modify:
 
 ---
 
-## Do NOT start
+## Python
 
-- champion knowledge
-- rune knowledge
-- damage simulation
-- Burst / TTK
-- composition analysis
-- contextual builds
-- recommendations
-- ML
+Do NOT modify Python for this documentation-only freeze.
 
-Burst / TTK remains a future feature after the knowledge/data layers are frozen.
+Do not rerun the catalog unless Python unexpectedly changes.
+
+If Python modification becomes necessary:
+stop and return REVIEW_REQUIRED.
 
 ---
 
-## Testing
-
-Run:
-
-- py_compile
-- existing synthetic checks
-- existing precision checks
-- new same-sentence completeness tests
-- real Data Dragon catalog audit
-
----
-
-## Reporting
+## Documentation
 
 Update:
 
-- LAST_RUN.md
 - PROJECT_STATE.md
-- TODO.md → completed
+- DECISIONS.md
+- TODO.md → COMPLETED
+- LAST_RUN.md
 
-Finish with:
+Add Item Knowledge Base Phase 2A to the frozen modules / knowledge layers.
 
-REVIEW_REQUIRED
-
-Do not freeze Phase 2A yourself.
+Do not start Phase 2B in this commit.
 
 ---
 
@@ -232,4 +168,4 @@ Commit and push.
 
 Suggested commit:
 
-Make item semantic completeness conservative
+Freeze item knowledge phase 2A
