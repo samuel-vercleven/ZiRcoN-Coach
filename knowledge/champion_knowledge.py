@@ -8,7 +8,7 @@ import requests
 from riot.data_dragon import DDRAGON_BASE_URL, get_ddragon_versions
 
 
-CHAMPION_KNOWLEDGE_VERSION = "champion_knowledge_phase2b1_v1"
+CHAMPION_KNOWLEDGE_VERSION = "champion_knowledge_phase2b1_b_v1"
 DEFAULT_LOCALE = "fr_FR"
 UNKNOWN = "UNKNOWN"
 NOT_EXPOSED = "NOT_EXPOSED"
@@ -75,7 +75,7 @@ SEMANTIC_RULES = [
     ("GROUND", ("cloue au sol", "ancre au sol")),
     ("CAMOUFLAGE", ("camouflage", "camoufle")),
     ("STEALTH", ("furtivite", "invisible", "invisibilite")),
-    ("REVEAL", ("revele", "revelation", "vision")),
+    ("REVEAL", ("revele", "revelation")),
     ("ATTACK_RESET", ("reinitialise son attaque", "reinitialise l'attaque")),
     ("ON_HIT", ("a l'impact", "effets a l'impact")),
     ("STACKING", ("cumul", "cumuls", "charge", "charges")),
@@ -110,6 +110,122 @@ HARD_CC_TYPES = {
     "SLEEP",
 }
 
+CLAUSE_LOCAL_EFFECT_TYPES = {
+    "PERCENT_MAX_HEALTH_DAMAGE",
+    "PERCENT_CURRENT_HEALTH_DAMAGE",
+    "MISSING_HEALTH_DAMAGE",
+    "TRUE_DAMAGE",
+    "PHYSICAL_DAMAGE",
+    "MAGIC_DAMAGE",
+    "DAMAGE_TYPE_UNRESOLVED",
+    "EXECUTE",
+    "HEAL",
+    "SHIELD",
+    "DAMAGE_REDUCTION",
+    "REVEAL",
+}
+
+OUTGOING_DAMAGE_ACTION_PHRASES = (
+    "inflige",
+    "infligent",
+    "infligez",
+    "infliger",
+    "blesse",
+    "blessent",
+    "fait perdre",
+    "font perdre",
+)
+
+DEFENSIVE_DAMAGE_CONTEXT_PHRASES = (
+    "degats subis",
+    "degats qu'il subit",
+    "degats qu'elle subit",
+    "degats qu'ils subissent",
+    "degats qu'elles subissent",
+    "reduit les degats",
+    "reduisent les degats",
+    "reduction des degats",
+    "subit moins de degats",
+    "subissent moins de degats",
+    "immunise aux degats",
+    "insensible aux degats",
+    "absorbe les degats",
+    "absorbe des degats",
+)
+
+SHIELD_GRANT_OR_USE_PHRASES = (
+    "gagne un bouclier",
+    "gagnez un bouclier",
+    "obtient un bouclier",
+    "obtenez un bouclier",
+    "octroie un bouclier",
+    "confere un bouclier",
+    "cree un bouclier",
+    "applique un bouclier",
+    "bouclier qui absorbe",
+    "bouclier absorbe",
+    "bouclier protege",
+)
+
+SHIELD_NEGATIVE_CONTEXT_PHRASES = (
+    "detruit les boucliers",
+    "detruire les boucliers",
+    "reduit les boucliers",
+    "ignore les boucliers",
+    "contre les boucliers",
+    "aux boucliers",
+    "boucliers ennemis",
+    "cible deja protegee par un bouclier",
+)
+
+TRANSFORMATION_EVIDENCE_PHRASES = (
+    "transforme",
+    "se transforme",
+    "change de forme",
+    "changer de forme",
+    "forme de dragon",
+    "forme dragon",
+    "forme humaine",
+    "forme arachneenne",
+    "forme de cougar",
+    "posture",
+)
+
+PLACEHOLDER_FORMULA_HINTS = (
+    "damage",
+    "degat",
+    "heal",
+    "shield",
+    "speed",
+    "slow",
+    "duration",
+    "range",
+    "radius",
+    "ratio",
+    "amount",
+    "value",
+    "bonus",
+    "cost",
+    "cooldown",
+    "stack",
+    "percent",
+    "hp",
+    "mana",
+)
+
+PLACEHOLDER_DISPLAY_HINTS = (
+    "keyword",
+    "icon",
+    "color",
+    "display",
+    "name",
+    "text",
+    "description",
+    "append",
+    "modifier",
+    "resource",
+)
+
 REPRESENTATIVE_REQUIREMENTS = [
     "Shyvana",
     "Bel'Veth",
@@ -118,9 +234,13 @@ REPRESENTATIVE_REQUIREMENTS = [
     "Viego",
     "alternate_or_transformation",
     "complex_ability_structure",
-    "healing_or_shield",
+    "shield",
+    "healing",
+    "copied_or_dynamic",
     "true_damage",
+    "percent_health_damage",
     "hard_cc",
+    "stealth_or_reveal",
     "mixed_damage",
 ]
 
@@ -159,18 +279,11 @@ def _contains_any(normalized_text, phrases):
 
 
 def _has_damage_action(normalized_text):
-    return _contains_any(
-        normalized_text,
-        (
-            "inflige",
-            "infligent",
-            "infligez",
-            "blesse",
-            "blessures",
-            "fait perdre",
-            "degats",
-        ),
-    )
+    return _contains_any(normalized_text, OUTGOING_DAMAGE_ACTION_PHRASES)
+
+
+def _has_defensive_damage_context(normalized_text):
+    return _contains_any(normalized_text, DEFENSIVE_DAMAGE_CONTEXT_PHRASES)
 
 
 def _is_damage_type_present(normalized_text):
@@ -189,11 +302,16 @@ def _effect_rule_applies(effect_type, normalized_text):
         "PERCENT_CURRENT_HEALTH_DAMAGE",
         "MISSING_HEALTH_DAMAGE",
     }:
-        return _has_damage_action(normalized_text)
+        return (
+            _has_damage_action(normalized_text)
+            and not _has_defensive_damage_context(normalized_text)
+        )
 
     if effect_type == "DAMAGE_TYPE_UNRESOLVED":
-        return _has_damage_action(normalized_text) and not _is_damage_type_present(
-            normalized_text
+        return (
+            _has_damage_action(normalized_text)
+            and not _is_damage_type_present(normalized_text)
+            and not _has_defensive_damage_context(normalized_text)
         )
 
     if effect_type == "EXECUTE":
@@ -203,9 +321,10 @@ def _effect_rule_applies(effect_type, normalized_text):
         )
 
     if effect_type == "SHIELD":
-        return "bouclier" in normalized_text and _contains_any(
-            normalized_text,
-            ("gagne", "obtient", "octroie", "absorbe", "protege", "bouclier"),
+        return (
+            "bouclier" in normalized_text
+            and _contains_any(normalized_text, SHIELD_GRANT_OR_USE_PHRASES)
+            and not _contains_any(normalized_text, SHIELD_NEGATIVE_CONTEXT_PHRASES)
         )
 
     if effect_type == "HEAL":
@@ -215,9 +334,12 @@ def _effect_rule_applies(effect_type, normalized_text):
         )
 
     if effect_type == "TRANSFORMATION":
+        return _contains_any(normalized_text, TRANSFORMATION_EVIDENCE_PHRASES)
+
+    if effect_type == "REVEAL":
         return _contains_any(
             normalized_text,
-            ("transforme", "change de forme", "forme de", "forme dragon"),
+            ("ennemi", "ennemis", "champion", "champions", "cible", "zone"),
         )
 
     return True
@@ -252,6 +374,17 @@ def _split_semantic_clauses(fragment):
     return [_collapse_spaces(clause) for clause in clauses if _collapse_spaces(clause)]
 
 
+def _candidate_semantic_units(text, clause_local):
+    if not clause_local:
+        return [text]
+
+    units = []
+    for fragment in _split_semantic_fragments(text):
+        clauses = _split_semantic_clauses(fragment)
+        units.extend(clauses or [fragment])
+    return units or [text]
+
+
 def _contains_matched_semantic_text(text, normalized_matched_texts):
     normalized_text = _normalize_text(text)
     return any(
@@ -274,11 +407,17 @@ def _unresolved_semantic_clauses(fragment, normalized_matched_texts):
     ]
 
 
-def _section_partial_parse_record(section, section_effects, ddragon_version):
+def _section_partial_parse_record(
+    section,
+    section_effects,
+    ddragon_version,
+    rejected_matched_texts=None,
+):
     text = section.get("text")
     if not text:
         return None, "NO_EFFECT_TEXT"
 
+    rejected_matched_texts = list(rejected_matched_texts or [])
     matched_texts = [
         effect.get("matched_text")
         for effect in section_effects
@@ -286,6 +425,11 @@ def _section_partial_parse_record(section, section_effects, ddragon_version):
     ]
     normalized_matched_texts = [
         _normalize_text(text) for text in matched_texts if _normalize_text(text)
+    ]
+    normalized_rejected_texts = [
+        _normalize_text(text)
+        for text in rejected_matched_texts
+        if _normalize_text(text)
     ]
 
     if not section_effects:
@@ -296,6 +440,7 @@ def _section_partial_parse_record(section, section_effects, ddragon_version):
                 "section_name": section.get("section_name", UNKNOWN),
                 "text": text,
                 "unparsed_fragments": [text],
+                "rejected_matched_texts": rejected_matched_texts,
                 "source": "DDRAGON_CHAMPION_TEXT",
                 "ddragon_version": ddragon_version,
             },
@@ -313,6 +458,12 @@ def _section_partial_parse_record(section, section_effects, ddragon_version):
             fragment,
             normalized_matched_texts,
         )
+        for clause in _split_semantic_clauses(fragment):
+            if (
+                _contains_matched_semantic_text(clause, normalized_rejected_texts)
+                and clause not in unresolved_clauses
+            ):
+                unresolved_clauses.append(clause)
         if unresolved_clauses:
             unmatched_fragments.extend(unresolved_clauses)
             partial_fragment_details.append(
@@ -336,6 +487,7 @@ def _section_partial_parse_record(section, section_effects, ddragon_version):
                     effect["effect_type"] for effect in section_effects
                 ],
                 "matched_texts": matched_texts,
+                "rejected_matched_texts": rejected_matched_texts,
                 "source": "DDRAGON_CHAMPION_TEXT",
                 "ddragon_version": ddragon_version,
             },
@@ -379,38 +531,44 @@ def extract_semantic_effects(sections, ddragon_version, locale=DEFAULT_LOCALE):
         text = section.get("text")
         if not text:
             continue
-        normalized = _normalize_text(text)
         section_effects = []
+        rejected_matched_texts = []
 
         for effect_type, phrases in SEMANTIC_RULES:
-            phrase_matches = [
-                phrase
-                for phrase in phrases
-                if _normalize_text(phrase) in normalized
-            ]
-            if not phrase_matches:
-                continue
-            if not _effect_rule_applies(effect_type, normalized):
-                continue
-            effect = {
-                "effect_type": effect_type,
-                "source": "DDRAGON_CHAMPION_TEXT",
-                "source_field": section.get("section_type", UNKNOWN),
-                "section_name": section.get("section_name", UNKNOWN),
-                "evidence_text": text,
-                "matched_text": phrase_matches[0],
-                "confidence": "DESCRIPTION_EXPLICIT",
-                "ddragon_version": ddragon_version,
-            }
-            before_count = len(effects)
-            _add_effect(effects, effect)
-            if len(effects) > before_count:
-                section_effects.append(effect)
+            clause_local = effect_type in CLAUSE_LOCAL_EFFECT_TYPES
+            for unit_text in _candidate_semantic_units(text, clause_local):
+                normalized_unit = _normalize_text(unit_text)
+                phrase_matches = [
+                    phrase
+                    for phrase in phrases
+                    if _normalize_text(phrase) in normalized_unit
+                ]
+                if not phrase_matches:
+                    continue
+                if not _effect_rule_applies(effect_type, normalized_unit):
+                    if effect_type != "DAMAGE_TYPE_UNRESOLVED":
+                        rejected_matched_texts.extend(phrase_matches)
+                    continue
+                effect = {
+                    "effect_type": effect_type,
+                    "source": "DDRAGON_CHAMPION_TEXT",
+                    "source_field": section.get("section_type", UNKNOWN),
+                    "section_name": section.get("section_name", UNKNOWN),
+                    "evidence_text": unit_text,
+                    "matched_text": phrase_matches[0],
+                    "confidence": "DESCRIPTION_EXPLICIT",
+                    "ddragon_version": ddragon_version,
+                }
+                before_count = len(effects)
+                _add_effect(effects, effect)
+                if len(effects) > before_count:
+                    section_effects.append(effect)
 
         parse_record, parse_status = _section_partial_parse_record(
             section,
             section_effects,
             ddragon_version,
+            rejected_matched_texts,
         )
         section_parse_counts[parse_status.lower() + "_sections"] += 1
         section_parse_details.append(
@@ -422,6 +580,7 @@ def extract_semantic_effects(sections, ddragon_version, locale=DEFAULT_LOCALE):
                 "matched_effect_types": [
                     effect["effect_type"] for effect in section_effects
                 ],
+                "rejected_matched_texts": rejected_matched_texts,
                 "unresolved_text": parse_record.get("unparsed_fragments", [])
                 if parse_record
                 else [],
@@ -850,7 +1009,252 @@ def _combined_text_for_complexity(record):
     return _normalize_text("\n".join(texts))
 
 
+COMPLEXITY_PHRASE_RULES = {
+    "ALTERNATE_FORM_POSSIBLE": [
+        (
+            "change de forme",
+            "CONFIRMED_COMPLEX_MECHANIC",
+            "explicit form-change wording",
+        ),
+        (
+            "changer de forme",
+            "CONFIRMED_COMPLEX_MECHANIC",
+            "explicit form-change wording",
+        ),
+        ("transforme", "CONFIRMED_COMPLEX_MECHANIC", "explicit transformation wording"),
+        (
+            "se transforme",
+            "CONFIRMED_COMPLEX_MECHANIC",
+            "explicit self-transformation wording",
+        ),
+        (
+            "forme de dragon",
+            "PLAUSIBLE_BUT_UNDERMODELED",
+            "named alternate-form wording exposed by Data Dragon text",
+        ),
+        (
+            "forme dragon",
+            "PLAUSIBLE_BUT_UNDERMODELED",
+            "named alternate-form wording exposed by Data Dragon text",
+        ),
+        (
+            "forme humaine",
+            "PLAUSIBLE_BUT_UNDERMODELED",
+            "named alternate-form wording exposed by Data Dragon text",
+        ),
+        (
+            "forme arachneenne",
+            "PLAUSIBLE_BUT_UNDERMODELED",
+            "named alternate-form wording exposed by Data Dragon text",
+        ),
+        (
+            "forme de cougar",
+            "PLAUSIBLE_BUT_UNDERMODELED",
+            "named alternate-form wording exposed by Data Dragon text",
+        ),
+        (
+            "posture",
+            "PLAUSIBLE_BUT_UNDERMODELED",
+            "stance/posture wording may imply alternate ability state",
+        ),
+    ],
+    "COPIED_OR_DYNAMIC_ABILITY": [
+        ("copie", "CONFIRMED_COMPLEX_MECHANIC", "copy wording in ability text"),
+        ("copier", "CONFIRMED_COMPLEX_MECHANIC", "copy wording in ability text"),
+        (
+            "possession",
+            "CONFIRMED_COMPLEX_MECHANIC",
+            "possession wording in ability text",
+        ),
+        (
+            "prend possession",
+            "CONFIRMED_COMPLEX_MECHANIC",
+            "possession wording in ability text",
+        ),
+        (
+            "vole une competence",
+            "CONFIRMED_COMPLEX_MECHANIC",
+            "stolen-ability wording in ability text",
+        ),
+    ],
+}
+
+LEGACY_COMPLEXITY_PHRASE_RULES = {
+    "ALTERNATE_FORM_POSSIBLE": [
+        (
+            "change de forme",
+            "CONFIRMED_COMPLEX_MECHANIC",
+            "legacy explicit form-change evidence",
+        ),
+        (
+            "forme de",
+            "FALSE_POSITIVE",
+            "legacy generic wording; not sufficient after Phase 2B1-B",
+        ),
+        ("forme dragon", "PLAUSIBLE_BUT_UNDERMODELED", "legacy named form evidence"),
+        ("transforme", "CONFIRMED_COMPLEX_MECHANIC", "legacy transformation evidence"),
+        ("posture", "PLAUSIBLE_BUT_UNDERMODELED", "legacy posture evidence"),
+    ],
+    "COPIED_OR_DYNAMIC_ABILITY": COMPLEXITY_PHRASE_RULES[
+        "COPIED_OR_DYNAMIC_ABILITY"
+    ],
+}
+
+
+def _iter_complexity_text_sources(record):
+    passive = record.get("passive") or {}
+    if passive.get("clean_description"):
+        yield {
+            "source_field": "PASSIVE_DESCRIPTION",
+            "section_name": passive.get("name", UNKNOWN),
+            "evidence_text": passive.get("clean_description", ""),
+        }
+    for spell in record.get("spells", []):
+        if spell.get("clean_description"):
+            yield {
+                "source_field": "SPELL_DESCRIPTION",
+                "section_name": spell.get("name", UNKNOWN),
+                "spell_id": spell.get("spell_id", UNKNOWN),
+                "slot": spell.get("inferred_slot", UNKNOWN),
+                "evidence_text": spell.get("clean_description", ""),
+            }
+        if spell.get("clean_tooltip"):
+            yield {
+                "source_field": "SPELL_TOOLTIP",
+                "section_name": spell.get("name", UNKNOWN),
+                "spell_id": spell.get("spell_id", UNKNOWN),
+                "slot": spell.get("inferred_slot", UNKNOWN),
+                "evidence_text": spell.get("clean_tooltip", ""),
+            }
+
+
+def _scan_complexity_phrase_evidence(record, phrase_rules):
+    evidence = []
+    seen = set()
+    for flag, rules in phrase_rules.items():
+        for source in _iter_complexity_text_sources(record):
+            normalized = _normalize_text(source["evidence_text"])
+            for phrase, classification, why in rules:
+                normalized_phrase = _normalize_text(phrase)
+                if normalized_phrase not in normalized:
+                    continue
+                key = (
+                    flag,
+                    source["source_field"],
+                    source.get("spell_id"),
+                    source["section_name"],
+                    normalized_phrase,
+                    source["evidence_text"],
+                )
+                if key in seen:
+                    continue
+                seen.add(key)
+                evidence.append(
+                    {
+                        "flag": flag,
+                        "evidence_classification": classification,
+                        "source_field": source["source_field"],
+                        "section_name": source["section_name"],
+                        "spell_id": source.get("spell_id", NOT_EXPOSED),
+                        "slot": source.get("slot", NOT_EXPOSED),
+                        "matched_text": phrase,
+                        "evidence_text": source["evidence_text"],
+                        "why": why,
+                        "ddragon_version": record["ddragon_version"],
+                    }
+                )
+    return evidence
+
+
+def _complexity_review_classification(evidence):
+    classifications = {item["evidence_classification"] for item in evidence}
+    if "FALSE_POSITIVE" in classifications and len(classifications) == 1:
+        return "FALSE_POSITIVE"
+    if "CONFIRMED_COMPLEX_MECHANIC" in classifications:
+        return "CONFIRMED_COMPLEX_MECHANIC"
+    if "PLAUSIBLE_BUT_UNDERMODELED" in classifications:
+        return "PLAUSIBLE_BUT_UNDERMODELED"
+    if "FALSE_POSITIVE" in classifications:
+        return "FALSE_POSITIVE"
+    return "UNRESOLVED"
+
+
+def audit_complexity(record):
+    flags = []
+    spell_count = len(record["spells"])
+    evidence = []
+
+    if spell_count != 4:
+        flags.append("EXTRA_ABILITY_STRUCTURE")
+        evidence.append(
+            {
+                "flag": "EXTRA_ABILITY_STRUCTURE",
+                "evidence_classification": "CONFIRMED_COMPLEX_MECHANIC",
+                "source_field": "DDRAGON_SPELL_ARRAY",
+                "section_name": "spell_count",
+                "spell_id": NOT_EXPOSED,
+                "slot": NOT_EXPOSED,
+                "matched_text": f"{spell_count} spells",
+                "evidence_text": f"Data Dragon exposes {spell_count} spells",
+                "why": "non-4-spell structure makes Q/W/E/R inference unsafe",
+                "ddragon_version": record["ddragon_version"],
+            }
+        )
+
+    phrase_evidence = _scan_complexity_phrase_evidence(
+        record,
+        COMPLEXITY_PHRASE_RULES,
+    )
+    evidence.extend(phrase_evidence)
+    flags.extend(item["flag"] for item in phrase_evidence)
+
+    if record["metadata_warnings"]:
+        flags.append("DATA_DRAGON_KIT_INCOMPLETE")
+        evidence.append(
+            {
+                "flag": "DATA_DRAGON_KIT_INCOMPLETE",
+                "evidence_classification": "UNRESOLVED",
+                "source_field": "DDRAGON_CHAMPION_DETAIL",
+                "section_name": "metadata_warnings",
+                "spell_id": NOT_EXPOSED,
+                "slot": NOT_EXPOSED,
+                "matched_text": ", ".join(record["metadata_warnings"]),
+                "evidence_text": f"metadata_warnings={record['metadata_warnings']}",
+                "why": "missing Data Dragon fields make the kit incomplete",
+                "ddragon_version": record["ddragon_version"],
+            }
+        )
+    if any(flag != "STANDARD_KIT" for flag in flags):
+        flags.append("COMPLEX_KIT_UNDERMODELED")
+        evidence.append(
+            {
+                "flag": "COMPLEX_KIT_UNDERMODELED",
+                "evidence_classification": _complexity_review_classification(
+                    evidence
+                ),
+                "source_field": "DERIVED_COMPLEXITY_AUDIT",
+                "section_name": "non_standard_flags",
+                "spell_id": NOT_EXPOSED,
+                "slot": NOT_EXPOSED,
+                "matched_text": ", ".join(sorted(set(flags))),
+                "evidence_text": "Generic factual flags indicate under-modeled kit semantics.",
+                "why": "aggregate marker for consumers; not champion-specific logic",
+                "ddragon_version": record["ddragon_version"],
+            }
+        )
+    if not flags:
+        flags.append("STANDARD_KIT")
+    return {
+        "flags": sorted(set(flags)),
+        "evidence": evidence,
+    }
+
+
 def classify_complexity(record):
+    return audit_complexity(record)["flags"]
+
+
+def _legacy_phase2b1_complexity_flags(record):
     flags = []
     spell_count = len(record["spells"])
     text = _combined_text_for_complexity(record)
@@ -886,6 +1290,45 @@ def classify_complexity(record):
     if not flags:
         flags.append("STANDARD_KIT")
     return sorted(set(flags))
+
+
+def _legacy_complexity_evidence(record):
+    evidence = []
+    spell_count = len(record["spells"])
+    if spell_count != 4:
+        evidence.append(
+            {
+                "flag": "EXTRA_ABILITY_STRUCTURE",
+                "evidence_classification": "CONFIRMED_COMPLEX_MECHANIC",
+                "source_field": "DDRAGON_SPELL_ARRAY",
+                "section_name": "spell_count",
+                "spell_id": NOT_EXPOSED,
+                "slot": NOT_EXPOSED,
+                "matched_text": f"{spell_count} spells",
+                "evidence_text": f"Data Dragon exposes {spell_count} spells",
+                "why": "legacy non-4-spell structure evidence",
+                "ddragon_version": record["ddragon_version"],
+            }
+        )
+    evidence.extend(
+        _scan_complexity_phrase_evidence(record, LEGACY_COMPLEXITY_PHRASE_RULES)
+    )
+    if record["metadata_warnings"]:
+        evidence.append(
+            {
+                "flag": "DATA_DRAGON_KIT_INCOMPLETE",
+                "evidence_classification": "UNRESOLVED",
+                "source_field": "DDRAGON_CHAMPION_DETAIL",
+                "section_name": "metadata_warnings",
+                "spell_id": NOT_EXPOSED,
+                "slot": NOT_EXPOSED,
+                "matched_text": ", ".join(record["metadata_warnings"]),
+                "evidence_text": f"metadata_warnings={record['metadata_warnings']}",
+                "why": "legacy missing Data Dragon fields evidence",
+                "ddragon_version": record["ddragon_version"],
+            }
+        )
+    return evidence
 
 
 def _metadata_warnings(summary_champion, detail_champion):
@@ -948,7 +1391,9 @@ def build_champion_record(
         "raw_summary_champion": dict(summary_champion or {}),
         "raw_champion_json": dict(detail_champion or {}),
     }
-    record["complexity_flags"] = classify_complexity(record)
+    complexity_audit = audit_complexity(record)
+    record["complexity_flags"] = complexity_audit["flags"]
+    record["complexity_evidence"] = complexity_audit["evidence"]
     return record
 
 
@@ -1017,18 +1462,77 @@ def _record_has_effect(record, effect_type):
     )
 
 
+def _placeholder_family(key):
+    normalized = _normalize_text(key)
+    if re.fullmatch(r"e\d+", normalized):
+        return "effectBurn_index_not_exposed"
+    if re.fullmatch(r"[af]\d+", normalized):
+        return "var_key_not_exposed"
+    if _contains_any(normalized, PLACEHOLDER_DISPLAY_HINTS):
+        return "formatting_or_display_placeholder"
+    if _contains_any(normalized, PLACEHOLDER_FORMULA_HINTS):
+        return "likely_formula_related_but_unresolved"
+    if "_" in str(key) or re.search(r"[A-Z]", str(key or "")):
+        return "calculated_or_custom_ddragon_placeholder"
+    return "unknown"
+
+
+def _placeholder_example(record, spell, placeholder):
+    return {
+        "champion_id": record["champion_id"],
+        "champion_name": record["name"],
+        "spell_id": spell["spell_id"],
+        "spell_name": spell["name"],
+        "slot": spell["inferred_slot"],
+        "field": placeholder["field"],
+        "placeholder": placeholder["placeholder"],
+        "key": placeholder["key"],
+    }
+
+
+def _complexity_baseline_audit_row(record):
+    previous_flags = _legacy_phase2b1_complexity_flags(record)
+    current_flags = record["complexity_flags"]
+    current_evidence = list(record.get("complexity_evidence", []))
+    legacy_evidence = _legacy_complexity_evidence(record)
+    current_non_standard = [
+        flag
+        for flag in current_flags
+        if flag not in {"STANDARD_KIT", "COMPLEX_KIT_UNDERMODELED"}
+    ]
+
+    if current_non_standard:
+        review_status = _complexity_review_classification(current_evidence)
+    else:
+        review_status = "FALSE_POSITIVE"
+
+    return {
+        "champion_id": record["champion_id"],
+        "champion_name": record["name"],
+        "previous_flags": previous_flags,
+        "current_flags": current_flags,
+        "review_status": review_status,
+        "current_evidence": current_evidence,
+        "legacy_evidence": legacy_evidence,
+    }
+
+
 def summarize_champion_knowledge(records, missing_detail_files=None):
     missing_detail_files = list(missing_detail_files or [])
     stat_counts = Counter()
     unknown_stat_fields = Counter()
     spell_count_distribution = Counter()
     placeholder_status_counts = Counter()
+    unknown_placeholder_family_counts = Counter()
     formula_status_counts = Counter()
     formula_fragment_status_counts = Counter()
     semantic_effect_counts = Counter()
     section_parse_counts = Counter()
     complexity_flag_counts = Counter()
+    complexity_audit_classification_counts = Counter()
     metadata_warning_counts = Counter()
+    unknown_placeholder_keys = {}
+    baseline_complexity_audit = []
 
     champions_with_normalized_stats = 0
     passive_records = 0
@@ -1072,6 +1576,31 @@ def summarize_champion_knowledge(records, missing_detail_files=None):
                 )
             for placeholder in spell["placeholder_resolution"]:
                 placeholder_status_counts[placeholder["resolution_status"]] += 1
+                if placeholder["resolution_status"] == "UNKNOWN_PLACEHOLDER":
+                    key = placeholder["key"]
+                    family = _placeholder_family(key)
+                    unknown_placeholder_family_counts[family] += 1
+                    entry = unknown_placeholder_keys.setdefault(
+                        key,
+                        {
+                            "key": key,
+                            "count": 0,
+                            "champion_ids": set(),
+                            "spell_ids": set(),
+                            "fields": Counter(),
+                            "families": Counter(),
+                            "examples": [],
+                        },
+                    )
+                    entry["count"] += 1
+                    entry["champion_ids"].add(record["champion_id"])
+                    entry["spell_ids"].add(spell["spell_id"])
+                    entry["fields"][placeholder["field"]] += 1
+                    entry["families"][family] += 1
+                    if len(entry["examples"]) < 3:
+                        entry["examples"].append(
+                            _placeholder_example(record, spell, placeholder)
+                        )
             formula_status_counts[spell["formula"]["status"]] += 1
             for fragment in spell["formula"]["fragments"]:
                 formula_fragment_status_counts[fragment["status"]] += 1
@@ -1079,7 +1608,32 @@ def summarize_champion_knowledge(records, missing_detail_files=None):
             for effect in spell["effects"]:
                 semantic_effect_counts[effect["effect_type"]] += 1
 
+        previous_flags = _legacy_phase2b1_complexity_flags(record)
+        if "COMPLEX_KIT_UNDERMODELED" in previous_flags:
+            row = _complexity_baseline_audit_row(record)
+            baseline_complexity_audit.append(row)
+            complexity_audit_classification_counts[row["review_status"]] += 1
+
     normal_4_spell_count = spell_count_distribution[4]
+    unknown_placeholder_key_audit = []
+    for entry in unknown_placeholder_keys.values():
+        unknown_placeholder_key_audit.append(
+            {
+                "key": entry["key"],
+                "count": entry["count"],
+                "champion_count": len(entry["champion_ids"]),
+                "spell_count": len(entry["spell_ids"]),
+                "fields": dict(entry["fields"]),
+                "families": dict(entry["families"]),
+                "primary_family": entry["families"].most_common(1)[0][0],
+                "examples": entry["examples"],
+            }
+        )
+    unknown_placeholder_key_audit.sort(
+        key=lambda item: (-item["count"], item["key"])
+    )
+    baseline_complexity_audit.sort(key=lambda item: item["champion_id"])
+
     return {
         "total_champions": len(records),
         "detail_files_loaded": len(records) - len(set(missing_detail_files)),
@@ -1094,11 +1648,15 @@ def summarize_champion_knowledge(records, missing_detail_files=None):
         "canonical_stat_coverage": stat_counts,
         "unknown_stat_fields": unknown_stat_fields,
         "placeholder_status_counts": placeholder_status_counts,
+        "unknown_placeholder_family_counts": unknown_placeholder_family_counts,
+        "unknown_placeholder_key_audit": unknown_placeholder_key_audit,
         "formula_status_counts": formula_status_counts,
         "formula_fragment_status_counts": formula_fragment_status_counts,
         "semantic_effect_counts": semantic_effect_counts,
         "section_parse_counts": section_parse_counts,
         "complexity_flag_counts": complexity_flag_counts,
+        "baseline_complexity_audit": baseline_complexity_audit,
+        "complexity_audit_classification_counts": complexity_audit_classification_counts,
         "metadata_warning_counts": metadata_warning_counts,
     }
 
@@ -1111,6 +1669,79 @@ def _format_counts(counter, limit=None):
     if limit:
         sorted_items = sorted_items[:limit]
     return ", ".join(f"{key}: {value}" for key, value in sorted_items)
+
+
+def _format_mapping(mapping):
+    if not mapping:
+        return "none"
+    return ", ".join(f"{key}: {value}" for key, value in sorted(mapping.items()))
+
+
+def _format_unknown_placeholder_key_audit(entries, limit=30):
+    lines = []
+    for entry in entries[:limit]:
+        examples = []
+        for example in entry["examples"]:
+            examples.append(
+                (
+                    f"{example['champion_name']} {example['slot']} "
+                    f"{example['spell_name']} {example['field']} "
+                    f"{example['placeholder']}"
+                )
+            )
+        lines.append(
+            (
+                f"- {entry['key']}: count={entry['count']} | "
+                f"champions={entry['champion_count']} | spells={entry['spell_count']} | "
+                f"family={entry['primary_family']} | fields={_format_mapping(entry['fields'])} | "
+                f"examples={examples or 'none'}"
+            )
+        )
+    if len(entries) > limit:
+        lines.append(f"- ... {len(entries) - limit} additional UNKNOWN keys omitted")
+    return lines or ["- none"]
+
+
+def _first_evidence_per_flag(evidence):
+    selected = []
+    seen = set()
+    for item in evidence:
+        flag = item.get("flag")
+        if flag in seen:
+            continue
+        seen.add(flag)
+        selected.append(item)
+    return selected
+
+
+def _format_complexity_evidence(item, prefix):
+    return (
+        f"  * {prefix} {item['flag']} [{item['evidence_classification']}] "
+        f"{item['source_field']} {item['section_name']} "
+        f"matched={item['matched_text']!r} evidence={item['evidence_text']!r} "
+        f"why={item['why']}"
+    )
+
+
+def _format_complexity_baseline_audit(rows):
+    lines = []
+    for row in rows:
+        lines.append(
+            (
+                f"- {row['champion_name']} ({row['champion_id']}): "
+                f"review={row['review_status']} | "
+                f"previous={row['previous_flags']} | current={row['current_flags']}"
+            )
+        )
+        current = _first_evidence_per_flag(row["current_evidence"])
+        legacy = _first_evidence_per_flag(row["legacy_evidence"])
+        if current:
+            for item in current:
+                lines.append(_format_complexity_evidence(item, "current"))
+        else:
+            for item in legacy:
+                lines.append(_format_complexity_evidence(item, "legacy-only"))
+    return lines or ["- none"]
 
 
 def select_representative_champions(catalog):
@@ -1153,15 +1784,33 @@ def select_representative_champions(catalog):
             )
         ),
     )
+    pick("shield", lambda record: _record_has_effect(record, "SHIELD"))
+    pick("healing", lambda record: _record_has_effect(record, "HEAL"))
     pick(
-        "healing_or_shield",
-        lambda record: _record_has_effect(record, "HEAL")
-        or _record_has_effect(record, "SHIELD"),
+        "copied_or_dynamic",
+        lambda record: "COPIED_OR_DYNAMIC_ABILITY" in record["complexity_flags"],
     )
     pick("true_damage", lambda record: _record_has_effect(record, "TRUE_DAMAGE"))
     pick(
+        "percent_health_damage",
+        lambda record: any(
+            _record_has_effect(record, effect)
+            for effect in (
+                "PERCENT_MAX_HEALTH_DAMAGE",
+                "PERCENT_CURRENT_HEALTH_DAMAGE",
+                "MISSING_HEALTH_DAMAGE",
+            )
+        ),
+    )
+    pick(
         "hard_cc",
         lambda record: any(_record_has_effect(record, effect) for effect in HARD_CC_TYPES),
+    )
+    pick(
+        "stealth_or_reveal",
+        lambda record: _record_has_effect(record, "STEALTH")
+        or _record_has_effect(record, "CAMOUFLAGE")
+        or _record_has_effect(record, "REVEAL"),
     )
     pick(
         "mixed_damage",
@@ -1202,6 +1851,7 @@ def render_champion_record_diagnostic(record):
             f"partype={record['partype']} | info={record['info']}"
         ),
         f"complexity flags: {record['complexity_flags']}",
+        f"complexity evidence: {record.get('complexity_evidence') or 'none'}",
         f"metadata warnings: {record['metadata_warnings'] or 'none'}",
         f"raw stats: {record['raw_stats'] or 'none'}",
         "normalized stats:",
@@ -1281,6 +1931,10 @@ def render_champion_knowledge_audit(catalog):
             f"{_format_counts(summary['placeholder_status_counts'])}"
         ),
         (
+            "UNKNOWN placeholder families: "
+            f"{_format_counts(summary['unknown_placeholder_family_counts'])}"
+        ),
+        (
             "Formula status counts: "
             f"{_format_counts(summary['formula_status_counts'])}"
         ),
@@ -1301,9 +1955,23 @@ def render_champion_knowledge_audit(catalog):
             f"{_format_counts(summary['complexity_flag_counts'])}"
         ),
         (
+            "Complexity baseline audit status: "
+            f"{_format_counts(summary['complexity_audit_classification_counts'])}"
+        ),
+        (
             "Metadata warnings: "
             f"{_format_counts(summary['metadata_warning_counts'])}"
         ),
+        "",
+        "Top UNKNOWN_PLACEHOLDER keys:",
+        *_format_unknown_placeholder_key_audit(
+            summary["unknown_placeholder_key_audit"],
+            limit=30,
+        ),
+        "",
+        "Phase 2B1 baseline complex champion audit:",
+        f"Previous complex-kit cases audited: {len(summary['baseline_complexity_audit'])}",
+        *_format_complexity_baseline_audit(summary["baseline_complexity_audit"]),
     ]
     return "\n".join(lines)
 

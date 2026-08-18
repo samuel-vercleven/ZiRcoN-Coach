@@ -40,6 +40,15 @@ RAW_CHAMPIONS = {
         "partype": "Energy",
         "stats": {"hp": 590, "attackdamage": 62},
     },
+    "PrecisionHero": {
+        "id": "PrecisionHero",
+        "key": "1003",
+        "name": "Precision Hero",
+        "title": "the conservative",
+        "tags": ["Support"],
+        "partype": "Mana",
+        "stats": {"hp": 560, "attackdamage": 54},
+    },
     "MissingDetailHero": {
         "id": "MissingDetailHero",
         "key": "1002",
@@ -163,6 +172,40 @@ RAW_CHAMPION_DETAILS = {
             _spell("ComplexHeroW", "W", "Révèle les ennemis.", "Révèle les ennemis."),
             _spell("ComplexHeroE", "E", "Se téléporte.", "Se téléporte."),
             _spell("ComplexHeroR", "R", "Transforme son kit.", "Transforme son kit."),
+        ],
+    },
+    "PrecisionHero": {
+        **RAW_CHAMPIONS["PrecisionHero"],
+        "passive": {
+            "name": "Strict Words",
+            "description": "La cible deja protegee par un bouclier gagne 30 armure.",
+            "image": {"full": "PrecisionHero_P.png"},
+        },
+        "spells": [
+            _spell(
+                "PrecisionHeroQ",
+                "Reduction",
+                "Reduit les degats subis de 30%.",
+                "Reduit les degats subis de 30%.",
+            ),
+            _spell(
+                "PrecisionHeroW",
+                "Split Percent",
+                "Inflige 100 degats puis gagne un bouclier egal a 10% de ses PV max.",
+                "Inflige 100 degats puis gagne un bouclier egal a 10% de ses PV max.",
+            ),
+            _spell(
+                "PrecisionHeroE",
+                "Vision",
+                "Octroie de la vision autour de vous.",
+                "Octroie de la vision autour de vous.",
+            ),
+            _spell(
+                "PrecisionHeroR",
+                "Generic Form",
+                "Prend une forme de cristal.",
+                "Prend une forme de cristal.",
+            ),
         ],
     },
 }
