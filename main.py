@@ -1,364 +1,173 @@
+import subprocess
 import sys
+from pathlib import Path
+from time import perf_counter
 
-
-# ============================================================
-# CONSOLE UTF-8
-# ============================================================
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 
-# ============================================================
-# RIOT API
-# ============================================================
-
-from riot.riot_api import (
-    get_account_by_riot_id,
-    get_match_ids_by_puuid,
-    get_match_details,
-    get_match_timeline,
-)
+PROJECT_ROOT = Path(__file__).resolve().parent
+CURRENT_PHASE = "Rune Knowledge Phase 2C1-B manual precision pass"
 
 
-# ============================================================
-# DATABASE
-# ============================================================
+TEST_COMMANDS = [
+    (
+        "Compilation Rune Knowledge",
+        [
+            sys.executable,
+            "-m",
+            "py_compile",
+            "knowledge/rune_knowledge.py",
+            "knowledge/rune_knowledge_synthetic_checks.py",
+            "knowledge/rune_knowledge_precision_checks.py",
+        ],
+    ),
+    (
+        "Tests synthétiques",
+        [
+            sys.executable,
+            "-m",
+            "knowledge.rune_knowledge_synthetic_checks",
+        ],
+    ),
+    (
+        "Tests de précision",
+        [
+            sys.executable,
+            "-m",
+            "knowledge.rune_knowledge_precision_checks",
+        ],
+    ),
+    (
+        "Audit réel Rune Knowledge",
+        [
+            sys.executable,
+            "-m",
+            "knowledge.rune_knowledge",
+        ],
+    ),
+]
 
-from database.database import (
-    initialize_database,
-    initialize_timeline_tables,
-    match_exists,
-    save_match,
-    timeline_exists,
-    save_timeline,
-    filter_match_ids_by_position,
-    get_player_stats,
-    get_timeline_database_stats,
-    get_local_account_by_riot_id,
-    get_local_match_ids_by_puuid,
-)
+
+FROZEN_FILES = {
+    "analysis/death_cost_analyzer.py",
+    "analysis/death_statistics.py",
+    "analysis/jungle_tempo_analyzer.py",
+    "analysis/tempo_statistics.py",
+    "analysis/objective_analyzer.py",
+    "analysis/objective_statistics.py",
+    "analysis/reset_analyzer.py",
+    "analysis/reset_statistics.py",
+    "analysis/itemization_analyzer.py",
+    "knowledge/item_knowledge.py",
+    "knowledge/item_knowledge_synthetic_checks.py",
+    "knowledge/item_knowledge_precision_checks.py",
+    "knowledge/champion_knowledge.py",
+    "knowledge/champion_knowledge_synthetic_checks.py",
+    "knowledge/champion_knowledge_precision_checks.py",
+}
 
 
-# ============================================================
-# CONFIGURATION
-# ============================================================
-
-GAME_NAME = "ZiRcoN1977"
-TAG_LINE = "EUW"
-
-SOLOQ_QUEUE_ID = 420
-MATCH_COUNT = 100
-ROLE_FILTER = "JUNGLE"
-
-
-# ============================================================
-# ACCOUNT
-# ============================================================
-
-def load_account():
-    """
-    Charge le compte Riot.
-
-    Si l'API Riot est indisponible, utilise les informations
-    déjà présentes dans la base locale.
-    """
-
-    account = get_account_by_riot_id(
-        GAME_NAME,
-        TAG_LINE,
+def _run(title, command):
+    start = perf_counter()
+    result = subprocess.run(
+        command,
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
     )
+    duration = perf_counter() - start
 
-    if account:
-        return account, False
+    if result.returncode == 0:
+        detail = ""
+        stdout_lines = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+        if stdout_lines and title != "Audit réel Rune Knowledge":
+            detail = f" | {stdout_lines[-1]}"
+        print(f"[PASS] {title} ({duration:.2f}s){detail}")
+        return True
 
-    account = get_local_account_by_riot_id(
-        GAME_NAME,
-        TAG_LINE,
-        queue_id=SOLOQ_QUEUE_ID,
+    print(f"[FAIL] {title} ({duration:.2f}s)")
+    if result.stdout.strip():
+        print(result.stdout.rstrip())
+    if result.stderr.strip():
+        print(result.stderr.rstrip())
+    return False
+
+
+def _git_changed_files():
+    result = subprocess.run(
+        ["git", "status", "--porcelain"],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
     )
+    if result.returncode != 0:
+        return []
 
-    if account:
-        return account, True
-
-    return None, True
-
-
-# ============================================================
-# MATCH IDS
-# ============================================================
-
-def load_match_ids(puuid, local_only=False):
-    """
-    Récupère les derniers matchs SoloQ.
-
-    Retourne :
-    - match_ids
-    - True si l'historique local est utilisé
-    """
-
-    if not local_only:
-        match_ids = get_match_ids_by_puuid(
-            puuid=puuid,
-            count=MATCH_COUNT,
-            queue=SOLOQ_QUEUE_ID,
-        )
-
-        if match_ids:
-            return match_ids, False
-
-    match_ids = get_local_match_ids_by_puuid(
-        puuid=puuid,
-        queue_id=SOLOQ_QUEUE_ID,
-        count=MATCH_COUNT,
-    )
-
-    return match_ids or [], True
-
-
-# ============================================================
-# SYNC MATCHS
-# ============================================================
-
-def sync_matches(match_ids, local_only=False):
-    """
-    Enregistre uniquement les matchs qui ne sont pas encore
-    présents dans la base.
-
-    Aucun affichage match par match.
-    """
-
-    result = {
-        "new": 0,
-        "existing": 0,
-        "failed": 0,
-    }
-
-    for match_id in match_ids:
-
-        if match_exists(match_id):
-            result["existing"] += 1
+    changed = []
+    for line in result.stdout.splitlines():
+        if len(line) < 4:
             continue
-
-        if local_only:
-            result["failed"] += 1
-            continue
-
-        match = get_match_details(match_id)
-
-        if not match:
-            result["failed"] += 1
-            continue
-
-        save_match(match)
-
-        result["new"] += 1
-
-    return result
+        path = line[3:].strip()
+        if " -> " in path:
+            path = path.split(" -> ", 1)[1]
+        changed.append(path.replace("\\", "/"))
+    return sorted(set(changed))
 
 
-# ============================================================
-# SYNC TIMELINES
-# ============================================================
+def _check_frozen_files():
+    changed = _git_changed_files()
+    frozen_changed = [path for path in changed if path in FROZEN_FILES]
 
-def sync_timelines(match_ids, local_only=False):
-    """
-    Télécharge uniquement les timelines manquantes.
+    if frozen_changed:
+        print("[FAIL] FROZEN guard")
+        for path in frozen_changed:
+            print(f"       {path}")
+        return False
 
-    Aucun affichage timeline par timeline.
-    """
+    print("[PASS] FROZEN guard - aucun module gelé modifié")
+    return True
 
-    result = {
-        "new": 0,
-        "existing": 0,
-        "failed": 0,
-    }
-
-    for match_id in match_ids:
-
-        if timeline_exists(match_id):
-            result["existing"] += 1
-            continue
-
-        if local_only:
-            result["failed"] += 1
-            continue
-
-        timeline = get_match_timeline(match_id)
-
-        if not timeline:
-            result["failed"] += 1
-            continue
-
-        save_timeline(
-            match_id,
-            timeline,
-        )
-
-        result["new"] += 1
-
-    return result
-
-
-# ============================================================
-# PROFILE
-# ============================================================
-
-def print_profile(puuid):
-    stats = get_player_stats(
-        puuid,
-        position=ROLE_FILTER,
-    )
-
-    if not stats:
-        print("Profil Jungle : aucune donnée.")
-        return
-
-    print()
-    print("PROFIL SOLOQ JUNGLE")
-    print("-------------------")
-
-    print(
-        f"{stats['games']} games | "
-        f"{stats['winrate']:.1f}% WR"
-    )
-
-    print(
-        f"KDA : "
-        f"{stats['kills']:.1f} / "
-        f"{stats['deaths']:.1f} / "
-        f"{stats['assists']:.1f}"
-    )
-
-    print(
-        f"CS/min {stats['cs_per_min']:.2f} | "
-        f"Gold/min {stats['gold_per_min']:.0f} | "
-        f"Dégâts/min {stats['damage_per_min']:.0f}"
-    )
-
-
-# ============================================================
-# MAIN
-# ============================================================
 
 def main():
+    print("=" * 60)
+    print("ZiRcoN Coach - validation de développement")
+    print("=" * 60)
+    print(f"Phase : {CURRENT_PHASE}")
+    print()
 
-    print("ZiRcoN Coach")
-    print("============")
+    start = perf_counter()
 
-    initialize_database()
-    initialize_timeline_tables()
+    for title, command in TEST_COMMANDS:
+        if not _run(title, command):
+            print()
+            print("STATUS : REVIEW_REQUIRED")
+            return 1
 
-    # --------------------------------------------------------
-    # ACCOUNT
-    # --------------------------------------------------------
+    if not _check_frozen_files():
+        print()
+        print("STATUS : REVIEW_REQUIRED")
+        return 1
 
-    account, local_only = load_account()
-
-    if not account:
-        print("Compte Riot introuvable.")
-        return
-
-    puuid = account["puuid"]
-
-    print(
-        f"Compte : "
-        f"{account['gameName']}#"
-        f"{account['tagLine']}"
-    )
-
-    if local_only:
-        print("Source : historique local")
-    else:
-        print("Source : Riot API")
-
-    # --------------------------------------------------------
-    # MATCHES
-    # --------------------------------------------------------
-
-    match_ids, local_history = load_match_ids(
-        puuid,
-        local_only=local_only,
-    )
-
-    if not match_ids:
-        print("Aucun match SoloQ disponible.")
-        return
-
-    print(
-        f"SoloQ trouvées : {len(match_ids)}"
-    )
-
-    match_sync = sync_matches(
-        match_ids,
-        local_only=local_history,
-    )
-
-    # --------------------------------------------------------
-    # JUNGLE
-    # --------------------------------------------------------
-
-    jungle_match_ids = filter_match_ids_by_position(
-        match_ids,
-        puuid,
-        ROLE_FILTER,
-    )
-
-    timeline_sync = sync_timelines(
-        jungle_match_ids,
-        local_only=local_history,
-    )
-
-    # --------------------------------------------------------
-    # SYNC SUMMARY
-    # --------------------------------------------------------
+    changed = _git_changed_files()
+    if changed:
+        print()
+        print("Fichiers locaux modifiés :")
+        for path in changed:
+            print(f"- {path}")
 
     print()
-    print("SYNCHRONISATION")
-    print("---------------")
-
-    print(
-        f"Matchs : "
-        f"{match_sync['new']} nouveaux | "
-        f"{match_sync['existing']} déjà présents | "
-        f"{match_sync['failed']} erreurs"
-    )
-
-    print(
-        f"Jungle : "
-        f"{len(jungle_match_ids)} games"
-    )
-
-    print(
-        f"Timelines : "
-        f"{timeline_sync['new']} nouvelles | "
-        f"{timeline_sync['existing']} déjà présentes | "
-        f"{timeline_sync['failed']} erreurs"
-    )
-
-    # --------------------------------------------------------
-    # DATABASE
-    # --------------------------------------------------------
-
-    timeline_stats = get_timeline_database_stats()
-
-    print(
-        f"Base timeline : "
-        f"{timeline_stats['timelines']} games | "
-        f"{timeline_stats['frames']} frames | "
-        f"{timeline_stats['events']} événements"
-    )
-
-    # --------------------------------------------------------
-    # PROFILE
-    # --------------------------------------------------------
-
-    print_profile(puuid)
-
-    print()
-    print("Prêt.")
+    print(f"Durée totale : {perf_counter() - start:.2f}s")
+    print("STATUS : PASS")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

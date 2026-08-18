@@ -12,7 +12,7 @@ from database.database import DB_PATH
 from riot.data_dragon import DDRAGON_BASE_URL, get_ddragon_versions
 
 
-RUNE_KNOWLEDGE_VERSION = "rune_knowledge_phase2c1_b_v1"
+RUNE_KNOWLEDGE_VERSION = "rune_knowledge_phase2c1_b_v2"
 DEFAULT_LOCALE = "fr_FR"
 UNKNOWN = "UNKNOWN"
 NOT_EXPOSED = "NOT_EXPOSED"
@@ -103,8 +103,6 @@ STAT_MODIFICATION_RULES = (
     ("ATTACK_SPEED", ("vitesse d'attaque",)),
     ("ABILITY_HASTE", ("acceleration de competence",)),
     ("ADAPTIVE_FORCE", ("force adaptative",)),
-    ("ARMOR", ("armure",)),
-    ("MAGIC_RESISTANCE", ("resistance magique",)),
     ("MANA", (" mana",)),
     ("ENERGY", ("energie",)),
     ("TENACITY", ("tenacite",)),
@@ -494,6 +492,116 @@ def _health_effect_types(normalized_text):
 
     return effects
 
+
+
+def _split_sentences_preserve_coordination(text):
+    """
+    Découpe uniquement aux frontières de phrase / ligne.
+
+    Contrairement à _split_fragments(), cette vue conserve les coordinations
+    comme "armure et résistance magique" afin de ne pas perdre un prédicat
+    commun placé après les deux stats.
+    """
+    text = str(text or "")
+    return [
+        _collapse_spaces(sentence)
+        for sentence in re.split(r"(?:\n+|(?<=[.!?])\s+)", text)
+        if _collapse_spaces(sentence)
+    ]
+
+
+def _defense_stat_relation(normalized_text, stat_name):
+    """Retourne une relation conservative pour ARMOR ou MAGIC_RESISTANCE."""
+    if stat_name == "ARMOR":
+        phrase = "armure"
+        self_gain_patterns = (
+            r"\bvous\s+(?:gagnez|obtenez|recevez)\b[^.;]{0,120}\barmure\b",
+            r"\bvous\s+augmentez\b[^.;]{0,80}\b(?:votre|vos)\s+armure\b",
+            r"\b(?:votre|vos)\s+armure\b[^.;]{0,100}\baugmente(?:nt)?\b",
+        )
+        target_reduction_patterns = (
+            r"\b(?:reduisez|reduit|reduire|diminuez|diminue|retirez|retire)\b"
+            r"[^.;]{0,80}\bl['’ ]?armure\b[^.;]{0,60}\b(?:cible|ennemi|ennemis)\b",
+            r"\b(?:cible|ennemi|ennemis)\b[^.;]{0,60}\b(?:perd|perdent)\b"
+            r"[^.;]{0,40}\barmure\b",
+        )
+        scaling_patterns = (
+            r"\d+(?:[,.]\d+)?%\s+(?:de|des)\s+(?:votre|vos)\s+armure\b",
+            r"\ben fonction de\b[^.;]{0,60}\b(?:votre|vos)\s+armure\b",
+            r"\bselon\b[^.;]{0,60}\b(?:votre|vos)\s+armure\b",
+        )
+    elif stat_name == "MAGIC_RESISTANCE":
+        phrase = "resistance magique"
+        self_gain_patterns = (
+            r"\bvous\s+(?:gagnez|obtenez|recevez)\b[^.;]{0,140}\bresistance magique\b",
+            r"\bvous\s+augmentez\b[^.;]{0,100}\b(?:votre|vos)\s+resistance magique\b",
+            r"\b(?:votre|vos)\s+resistance magique\b[^.;]{0,100}\baugmente(?:nt)?\b",
+        )
+        target_reduction_patterns = (
+            r"\b(?:reduisez|reduit|reduire|diminuez|diminue|retirez|retire)\b"
+            r"[^.;]{0,100}\bla resistance magique\b[^.;]{0,60}\b(?:cible|ennemi|ennemis)\b",
+            r"\b(?:cible|ennemi|ennemis)\b[^.;]{0,60}\b(?:perd|perdent)\b"
+            r"[^.;]{0,60}\bresistance magique\b",
+        )
+        scaling_patterns = (
+            r"\d+(?:[,.]\d+)?%\s+(?:de|des)\s+(?:votre|vos)\s+resistance magique\b",
+            r"\ben fonction de\b[^.;]{0,80}\b(?:votre|vos)\s+resistance magique\b",
+            r"\bselon\b[^.;]{0,80}\b(?:votre|vos)\s+resistance magique\b",
+        )
+    else:
+        return None
+
+    if phrase not in normalized_text:
+        return None
+
+    if any(re.search(pattern, normalized_text) for pattern in target_reduction_patterns):
+        return f"{stat_name}_REDUCTION_TARGET"
+
+    if any(re.search(pattern, normalized_text) for pattern in self_gain_patterns):
+        return f"{stat_name}_STAT_GAIN"
+
+    if any(re.search(pattern, normalized_text) for pattern in scaling_patterns):
+        return f"{stat_name}_SCALING_REFERENCE"
+
+    return f"{stat_name}_REFERENCE"
+
+
+def _defense_stat_sentence_effects(text, source_field, ddragon_version):
+    """
+    Analyse armure / résistance magique au niveau phrase entière.
+
+    Cette passe existe spécialement pour conserver les prédicats coordonnés,
+    par ex. "votre armure et votre résistance magique augmentent".
+    Une simple mention ne devient jamais automatiquement un gain de stat.
+    """
+    effects = []
+    seen = set()
+
+    for sentence in _split_sentences_preserve_coordination(text):
+        normalized = _normalize_text(sentence)
+        for stat_name in ("ARMOR", "MAGIC_RESISTANCE"):
+            effect_type = _defense_stat_relation(normalized, stat_name)
+            if not effect_type:
+                continue
+            key = (effect_type, sentence)
+            if key in seen:
+                continue
+            seen.add(key)
+            effects.append(
+                {
+                    "effect_type": effect_type,
+                    "source": "DDRAGON_RUNE_DESCRIPTION",
+                    "source_field": source_field,
+                    "confidence": "DESCRIPTION_EXPLICIT_STAT_RELATION",
+                    "evidence_text": sentence,
+                    "relation_scope": "SENTENCE_PRESERVED_COORDINATION",
+                    "ddragon_version": ddragon_version,
+                }
+            )
+
+    return effects
+
+
 def _semantic_effects_for_fragment(fragment, source_field, ddragon_version):
     effects = []
     normalized = _normalize_text(fragment)
@@ -568,16 +676,17 @@ def _semantic_effects_for_fragment(fragment, source_field, ddragon_version):
             }
         )
     for health_effect_type in _health_effect_types(normalized):
-            effects.append(
-                {
-                    "effect_type": health_effect_type,
-                    "source": "DDRAGON_RUNE_DESCRIPTION",
-                    "source_field": source_field,
-                    "confidence": "DESCRIPTION_EXPLICIT",
-                    "evidence_text": fragment,
-                    "ddragon_version": ddragon_version,
-                }
-            )
+        effects.append(
+            {
+                "effect_type": health_effect_type,
+                "source": "DDRAGON_RUNE_DESCRIPTION",
+                "source_field": source_field,
+                "confidence": "DESCRIPTION_EXPLICIT",
+                "evidence_text": fragment,
+                "ddragon_version": ddragon_version,
+            }
+        )
+
     for effect_type, phrases in SEMANTIC_RULES:
         if _contains_any(normalized, phrases):
             effects.append(
@@ -628,7 +737,11 @@ def extract_semantic_effects(text, source_field, ddragon_version, locale=DEFAULT
             }
         ]
 
-    effects = []
+    effects = _defense_stat_sentence_effects(
+        text,
+        source_field,
+        ddragon_version,
+    )
     unparsed_fragments = []
     for fragment in _split_fragments(text):
         fragment_effects = _semantic_effects_for_fragment(
@@ -642,7 +755,7 @@ def extract_semantic_effects(text, source_field, ddragon_version, locale=DEFAULT
             unparsed_fragments.append(fragment)
 
     unparsed_records = []
-    if unparsed_fragments and len(unparsed_fragments) < len(_split_fragments(text)):
+    if unparsed_fragments and effects:
         unparsed_records.append(
             {
                 "kind": PARTIALLY_STRUCTURED_RUNE_TEXT,
@@ -653,7 +766,7 @@ def extract_semantic_effects(text, source_field, ddragon_version, locale=DEFAULT
                 "ddragon_version": ddragon_version,
             }
         )
-    elif unparsed_fragments and not effects:
+    elif unparsed_fragments:
         unparsed_records.append(
             {
                 "kind": UNPARSED_RUNE_TEXT,

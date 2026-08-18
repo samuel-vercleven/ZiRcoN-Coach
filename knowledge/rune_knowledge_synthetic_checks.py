@@ -25,18 +25,6 @@ RAW_RUNES = [
             {
                 "runes": [
                     {
-                        "id": 8360,
-                        "key": "UnsealedSpellbook",
-                        "icon": "spellbook.png",
-                        "name": "Synthetic Spellbook",
-                        "shortDesc": "Vous obtenez une option tactique inconnue.",
-                        "longDesc": "Vous obtenez une option tactique inconnue.",
-                    }
-                ]
-            },
-            {
-                "runes": [
-                    {
                         "id": 8112,
                         "key": "Electrocute",
                         "icon": "electrocute.png",
@@ -81,6 +69,18 @@ RAW_RUNES = [
             {
                 "runes": [
                     {
+                        "id": 8360,
+                        "key": "UnsealedSpellbook",
+                        "icon": "spellbook.png",
+                        "name": "Synthetic Spellbook",
+                        "shortDesc": "Vous obtenez une option tactique inconnue.",
+                        "longDesc": "Vous obtenez une option tactique inconnue.",
+                    }
+                ]
+            },
+            {
+                "runes": [
+                    {
                         "id": MAGICAL_FOOTWEAR_PERK_ID,
                         "key": "MagicalFootwear",
                         "icon": "magical-footwear.png",
@@ -93,7 +93,7 @@ RAW_RUNES = [
                         ),
                     }
                 ]
-            }
+            },
         ],
     },
 ]
@@ -446,3 +446,31 @@ def test_unavailable_match_patch_is_explicit_not_latest():
     assert audit["link_status_counts"] == {"PATCH_CATALOG_UNAVAILABLE": 3}
     assert audit["catalog_versions_used"] == {}
     assert audit["unavailable_catalog_examples"][0]["game_version"] == "16.15.700.1"
+
+# ============================================================
+# TEST RUNNER
+# ============================================================
+
+def main():
+    tests = sorted(
+        (
+            value
+            for name, value in globals().items()
+            if name.startswith("test_") and callable(value)
+        ),
+        key=lambda test: test.__name__,
+    )
+
+    passed = 0
+    for test in tests:
+        test()
+        passed += 1
+
+    print(
+        "Rune Knowledge synthetic checks: "
+        f"PASS ({passed}/{len(tests)})"
+    )
+
+
+if __name__ == "__main__":
+    main()

@@ -222,6 +222,81 @@ def test_health_semantics_distinguish_gain_threshold_and_scaling():
 
 
 # ============================================================
+# ARMOR / MAGIC RESISTANCE SEMANTICS
+# ============================================================
+
+def test_defense_stats_distinguish_gain_reduction_scaling_and_reference():
+
+    combined_gain, _, _ = _effects_for_text(
+        "Votre armure et votre resistance magique "
+        "augmentent de 45 + 75% de vos resistances bonus."
+    )
+
+    assert "ARMOR_STAT_GAIN" in combined_gain
+    assert "MAGIC_RESISTANCE_STAT_GAIN" in combined_gain
+    assert "ARMOR_REFERENCE" not in combined_gain
+    assert "MAGIC_RESISTANCE_REFERENCE" not in combined_gain
+
+    conditioning, _, _ = _effects_for_text(
+        "Vous gagnez +8 armure et +8 resistance magique "
+        "et vous augmentez votre armure et votre resistance magique de 3%."
+    )
+
+    assert "ARMOR_STAT_GAIN" in conditioning
+    assert "MAGIC_RESISTANCE_STAT_GAIN" in conditioning
+
+    unflinching, _, _ = _effects_for_text(
+        "Vous obtenez +10 armure et resistance magique "
+        "quand vous etes victime d'un controle de foule."
+    )
+
+    assert "ARMOR_STAT_GAIN" in unflinching
+    assert "MAGIC_RESISTANCE_STAT_GAIN" in unflinching
+
+    armor_reduction, _, _ = _effects_for_text(
+        "Reduit l'armure de la cible de 20."
+    )
+
+    assert "ARMOR_REDUCTION_TARGET" in armor_reduction
+    assert "ARMOR_STAT_GAIN" not in armor_reduction
+
+    mr_reduction, _, _ = _effects_for_text(
+        "Reduit la resistance magique de la cible de 20."
+    )
+
+    assert "MAGIC_RESISTANCE_REDUCTION_TARGET" in mr_reduction
+    assert "MAGIC_RESISTANCE_STAT_GAIN" not in mr_reduction
+
+    armor_scaling, _, _ = _effects_for_text(
+        "Les degats augmentent de 10% de votre armure."
+    )
+
+    assert "ARMOR_SCALING_REFERENCE" in armor_scaling
+    assert "ARMOR_STAT_GAIN" not in armor_scaling
+
+    mr_scaling, _, _ = _effects_for_text(
+        "Le bouclier augmente de 10% de votre resistance magique."
+    )
+
+    assert "MAGIC_RESISTANCE_SCALING_REFERENCE" in mr_scaling
+    assert "MAGIC_RESISTANCE_STAT_GAIN" not in mr_scaling
+
+    armor_reference, _, _ = _effects_for_text(
+        "La cible possede beaucoup d'armure."
+    )
+
+    assert "ARMOR_REFERENCE" in armor_reference
+    assert "ARMOR_STAT_GAIN" not in armor_reference
+
+    mr_reference, _, _ = _effects_for_text(
+        "La cible possede beaucoup de resistance magique."
+    )
+
+    assert "MAGIC_RESISTANCE_REFERENCE" in mr_reference
+    assert "MAGIC_RESISTANCE_STAT_GAIN" not in mr_reference
+
+
+# ============================================================
 # SHIELD
 # ============================================================
 
