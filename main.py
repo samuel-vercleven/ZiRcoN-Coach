@@ -10,7 +10,7 @@ if hasattr(sys.stdout, "reconfigure"):
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent
-CURRENT_PHASE = "Rune Knowledge Phase 2C1-B manual precision pass"
+CURRENT_PHASE = "Rune Knowledge Phase 2C1-B full-catalog validation"
 
 
 TEST_COMMANDS = [
@@ -23,6 +23,7 @@ TEST_COMMANDS = [
             "knowledge/rune_knowledge.py",
             "knowledge/rune_knowledge_synthetic_checks.py",
             "knowledge/rune_knowledge_precision_checks.py",
+            "knowledge/rune_knowledge_full_audit.py",
         ],
     ),
     (
@@ -47,6 +48,14 @@ TEST_COMMANDS = [
             sys.executable,
             "-m",
             "knowledge.rune_knowledge",
+        ],
+    ),
+    (
+        "Audit exhaustif du catalogue de runes",
+        [
+            sys.executable,
+            "-m",
+            "knowledge.rune_knowledge_full_audit",
         ],
     ),
 ]
@@ -83,11 +92,32 @@ def _run(title, command):
     )
     duration = perf_counter() - start
 
+    stdout_lines = [
+        line.strip()
+        for line in result.stdout.splitlines()
+        if line.strip()
+    ]
+
     if result.returncode == 0:
         detail = ""
-        stdout_lines = [line.strip() for line in result.stdout.splitlines() if line.strip()]
-        if stdout_lines and title != "Audit réel Rune Knowledge":
+        if stdout_lines and title not in {
+            "Audit réel Rune Knowledge",
+            "Audit exhaustif du catalogue de runes",
+        }:
             detail = f" | {stdout_lines[-1]}"
+
+        if title == "Audit exhaustif du catalogue de runes":
+            status_line = next(
+                (
+                    line
+                    for line in reversed(stdout_lines)
+                    if line.startswith("STATUS :")
+                ),
+                "",
+            )
+            if status_line:
+                detail = f" | {status_line}"
+
         print(f"[PASS] {title} ({duration:.2f}s){detail}")
         return True
 
@@ -124,7 +154,11 @@ def _git_changed_files():
 
 def _check_frozen_files():
     changed = _git_changed_files()
-    frozen_changed = [path for path in changed if path in FROZEN_FILES]
+    frozen_changed = [
+        path
+        for path in changed
+        if path in FROZEN_FILES
+    ]
 
     if frozen_changed:
         print("[FAIL] FROZEN guard")
