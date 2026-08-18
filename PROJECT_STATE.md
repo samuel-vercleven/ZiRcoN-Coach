@@ -12,7 +12,8 @@
 Frozen means: no retuning/refactor without a demonstrated correctness or integration bug or explicit project review request.
 
 ## In development
-- No active analyzer/knowledge layer is currently under development.
+- Rune Knowledge Base Phase 2C1 is implemented and pending project review.
+- Status: REVIEW_REQUIRED.
 - Next major task remains for project review / TODO.md.
 
 ## Dataset
@@ -313,6 +314,79 @@ Permanent Phase 2B1 limitations:
 - Do not add champion-specific hacks to improve complexity coverage.
 - Do not modify Phase 2B1 without a demonstrated factual correctness bug, Riot/Data Dragon compatibility need, strictly necessary downstream integration change, or explicit project review request.
 
+## Rune Knowledge Base Phase 2C1
+Status: REVIEW_REQUIRED after initial implementation and real catalog/history audit.
+
+Purpose:
+- UI-agnostic, patch-aware factual knowledge layer for Data Dragon runes and Riot-observed perk selections.
+- Preserves rune trees/styles, slots, IDs, keys, icons, names, shortDesc, longDesc, cleaned descriptions, raw rune JSON, raw style/slot JSON, numeric fragments, condition text, conservative semantic evidence, unresolved text, and provenance.
+- Links Riot match `perks.styles[].selections[].perk` IDs to the static rune catalog.
+- Audits `perks.statPerks.offense`, `perks.statPerks.flex`, and `perks.statPerks.defense` separately.
+- Does not calculate rune values, shard values, formulas, champion stats, damage, Burst/TTK, composition effects, rune recommendations, item recommendations, or ML.
+
+Implementation:
+- Main module: knowledge/rune_knowledge.py.
+- Synthetic checks: knowledge/rune_knowledge_synthetic_checks.py.
+- Precision checks: knowledge/rune_knowledge_precision_checks.py.
+- Loads `runesReforged.json` from Data Dragon with explicit patch resolution statuses: LATEST, EXACT_VERSION, EXACT_PATCH, FALLBACK_LATEST, or NO_VERSIONS_AVAILABLE.
+- Current observed Data Dragon schema is a top-level list of style records.
+- Style keys: icon, id, key, name, slots.
+- Slot keys: runes.
+- Rune keys: icon, id, key, longDesc, name, shortDesc.
+- Semantic parsing is explicitly fr_FR-only; unsupported locales preserve raw text but do not run the French parser.
+- Conditions are structured as source text with `execution_status = NOT_EXECUTED`.
+- Numeric literals/ranges/placeholders are preserved with source field and Data Dragon version provenance.
+- Every rune formula is marked RUNE_FORMULA_INCOMPLETE because Data Dragon descriptions are not executable formulas.
+- Riot `var1`, `var2`, and `var3` are preserved as `RIOT_OBSERVED_UNINTERPRETED`; no meaning is inferred.
+- Data Dragon `runesReforged.json` does not expose stat shard meanings; observed statPerk IDs are kept by slot with NOT_EXPOSED meaning/value status.
+- Magical Footwear 8304 compatibility with frozen Itemization v22 is verified by source contract only: item 2422 is handled as RUNE_GRANT with DERIVED_INFERRED timing, not as an observed Riot purchase.
+
+Real Data Dragon / history audit baseline:
+- Command: python -m knowledge.rune_knowledge.
+- Locale: fr_FR.
+- Resolved Data Dragon version: 16.16.1.
+- Rune knowledge version: rune_knowledge_phase2c1_v1.
+- Total rune trees/styles: 5.
+- Total slots: 20.
+- Total rune records: 62.
+- Runes by style: Domination 12, Inspiration 12, Precision 13, Resolve 12, Sorcery 13.
+- Duplicate rune IDs: 0.
+- Invalid rune records: 0.
+- Formula status counts: 62 RUNE_FORMULA_INCOMPLETE.
+- Semantic parser statuses: 62 SUPPORTED.
+- Structure completeness: 18 FULLY_STRUCTURED, 44 PARTIALLY_STRUCTURED.
+- Unparsed/partial text records: 60 PARTIALLY_STRUCTURED_RUNE_TEXT, 12 UNPARSED_RUNE_TEXT.
+- Numeric fragments: 305 NUMERIC_LITERAL, 29 NUMERIC_RANGE.
+- Static statPerks present in runesReforged: none.
+- Magical Footwear static catalog record: 8304, key MagicalFootwear, name Chaussures magiques, style Inspiration, slot 1.
+- Historical match raw JSON audited: 104 matches.
+- Participants audited: 1040.
+- Participants with perks payload: 1040.
+- Rune selections observed: 6240.
+- Rune catalog link statuses: 6240 LINKED_RUNE_CATALOG, 0 UNKNOWN_PERK_ID.
+- Rune style link statuses: 2080 LINKED_RUNE_STYLE, 0 UNKNOWN_RUNE_STYLE_ID.
+- Riot `var1`/`var2`/`var3` observations: 6240 each.
+- Non-zero `var*` observations: var1 5927, var2 2324, var3 289.
+- statPerks status counts: offense/flex/defense each 1040 STAT_PERK_NOT_EXPOSED_BY_DDRAGON_RUNE_CATALOG.
+- statPerks.offense IDs: 5005 552, 5008 378, 5007 110.
+- statPerks.flex IDs: 5001 90, 5008 905, 5010 45.
+- statPerks.defense IDs: 5001 793, 5011 216, 5013 31.
+- Magical Footwear observed: 211 participant selections across 97 matches.
+- Magical Footwear itemization compatibility: PASS.
+
+Known Phase 2C1 limitations:
+- The layer is factual and auditable, not a gameplay recommendation engine.
+- Data Dragon rune descriptions are not complete executable formulas.
+- RUNE_FORMULA_INCOMPLETE is intentional for all 62 runes.
+- Numeric fragments are evidence, not computed values.
+- Conditions are stored as text and not evaluated.
+- Riot `var1`/`var2`/`var3` are telemetry only until a later validated formula layer interprets them.
+- Data Dragon does not expose stat shard meanings in `runesReforged.json`; do not infer shard names or values from memory.
+- Conservative semantic effects remain parser-derived evidence with source text, not advice.
+- PARTIALLY_STRUCTURED_RUNE_TEXT and UNPARSED_RUNE_TEXT must be explicitly handled or ignored by future consumers.
+- Magical Footwear 8304 only verifies compatibility with the frozen item grant model; no itemization logic was modified.
+- Phase 2C1 is not FROZEN and requires project review before any freeze decision.
+
 ## Architecture
 - main.py remains a dev/integration harness.
 - Final UI later with PySide6.
@@ -320,6 +394,7 @@ Permanent Phase 2B1 limitations:
 - Itemization v22 logic lives in analysis/itemization_analyzer.py; synthetic checks live in analysis/itemization_synthetic_checks.py.
 - Item Knowledge Base Phase 2A lives in knowledge/item_knowledge.py; synthetic checks live in knowledge/item_knowledge_synthetic_checks.py and knowledge/item_knowledge_precision_checks.py.
 - Champion Knowledge Base Phase 2B1 lives in knowledge/champion_knowledge.py; synthetic checks live in knowledge/champion_knowledge_synthetic_checks.py and knowledge/champion_knowledge_precision_checks.py.
+- Rune Knowledge Base Phase 2C1 lives in knowledge/rune_knowledge.py; synthetic checks live in knowledge/rune_knowledge_synthetic_checks.py and knowledge/rune_knowledge_precision_checks.py.
 
 ## Handoff rule
 Codex must update this file after each completed task.

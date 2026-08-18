@@ -1,35 +1,40 @@
 # ZiRcoN Coach - TODO
 
 ## Current task
-COMPLETED - Freeze Champion Knowledge Base Phase 2B1.
+COMPLETED - Phase 2C1 Rune Knowledge Base.
 
 ## Completion status
-PASS.
+REVIEW_REQUIRED.
 
-Project review validated Champion Knowledge Phase 2B1-C.
+Implemented factual, patch-aware Rune Knowledge Base Phase 2C1:
+- Data Dragon `runesReforged.json` schema inspected and documented.
+- Rune trees/styles, slots, IDs, names, keys, icons, shortDesc, longDesc, cleaned text, raw rune JSON, raw style/slot JSON, numeric fragments, condition text, parser evidence, and unresolved text are preserved.
+- All 62 runes are marked RUNE_FORMULA_INCOMPLETE by design.
+- fr_FR semantic parser contract is explicit; unsupported locales preserve raw text and skip French semantic parsing.
+- Conditions are structured as text with NOT_EXECUTED status.
+- Riot match `perks.styles[].selections[].perk` IDs are linked to the static Data Dragon catalog.
+- Riot `var1`, `var2`, and `var3` are preserved as RIOT_OBSERVED_UNINTERPRETED.
+- `perks.statPerks.offense/flex/defense` are audited separately and not assigned names or values from memory.
+- Magical Footwear 8304 compatibility with frozen Itemization v22 was verified without modifying itemization logic: item 2422 remains RUNE_GRANT with DERIVED_INFERRED timing only.
 
-Completed documentary freeze:
-- Champion Knowledge Base Phase 2B1 is now documented as FROZEN in PROJECT_STATE.md.
-- The durable freeze decision is recorded in DECISIONS.md.
-- LAST_RUN.md documents that this was a documentation-only freeze.
-- No Python files were modified.
-- No full audit was rerun; the validated Phase 2B1-C baseline remains authoritative.
+Validation completed:
+- Python compile passed for the new Rune Knowledge files.
+- 15 direct synthetic/precision checks passed.
+- Real Data Dragon catalogue audit passed.
+- Historical observed-rune audit passed on 104 matches / 1040 participants / 6240 rune selections.
 
-Frozen baseline to preserve:
-- 173 champions.
-- 692 spells.
-- all 20 mapped base/growth stat fields present for all 173 champions.
-- 4479 UNKNOWN_PLACEHOLDER preserved.
-- 692 FORMULA_INCOMPLETE by design.
-- semantic parse completeness: 61 FULLY_PARSED, 1297 PARTIALLY_PARSED, 199 COMPLETELY_UNPARSED.
-- complexity flags: 154 STANDARD_KIT, 19 COMPLEX_KIT_UNDERMODELED, 16 ALTERNATE_FORM_POSSIBLE, 3 COPIED_OR_DYNAMIC_ABILITY.
+Baseline requiring project review:
+- Data Dragon version: 16.16.1.
+- Rune records: 62.
+- Styles: 5.
+- Slots: 20.
+- Rune catalog link statuses: 6240 LINKED_RUNE_CATALOG, 0 UNKNOWN_PERK_ID.
+- statPerks are not exposed in `runesReforged.json`.
+- statPerks.offense: 5005 552, 5008 378, 5007 110.
+- statPerks.flex: 5001 90, 5008 905, 5010 45.
+- statPerks.defense: 5001 793, 5011 216, 5013 31.
+- Magical Footwear observed: 211 participant selections across 97 matches.
 
-Frozen semantic distinction:
-- TRANSFORMATION = something is transformed.
-- ALTERNATE_FORM_POSSIBLE = separate evidence that the champion itself owns or enters a form, posture, or kit state.
-
-Complexity flags are conservative warnings with provenance, not exhaustive truth.
-False negatives caused by Data Dragon wording limitations are accepted.
-Do not add champion-specific production hacks to improve complexity coverage.
-
-No next major task is defined here; next direction remains for project review.
+Do not start Phase 2D, rune formulas, stat shard meaning, Burst/TTK, damage,
+composition analysis, recommendations, or ML until project review defines the
+next task.
