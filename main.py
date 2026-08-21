@@ -17,21 +17,21 @@ if hasattr(sys.stdout, "reconfigure"):
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 CURRENT_PHASE = (
-    "Combat Resistance / Penetration Rules Foundation Phase 2E"
+    "Champion Spell Calculation Source Foundation Phase 2F"
 )
 
 
 TEST_COMMANDS = [
     (
-        "Compilation Combat Resistance",
+        "Compilation Champion Spell Source",
         [
             sys.executable,
             "-m",
             "py_compile",
-            "knowledge/combat_resistance_rules.py",
-            "knowledge/combat_resistance_synthetic_checks.py",
-            "knowledge/combat_resistance_precision_checks.py",
-            "knowledge/combat_resistance_full_audit.py",
+            "knowledge/champion_spell_source.py",
+            "knowledge/champion_spell_source_synthetic_checks.py",
+            "knowledge/champion_spell_source_precision_checks.py",
+            "knowledge/champion_spell_source_full_audit.py",
         ],
     ),
     (
@@ -39,7 +39,7 @@ TEST_COMMANDS = [
         [
             sys.executable,
             "-m",
-            "knowledge.combat_resistance_synthetic_checks",
+            "knowledge.champion_spell_source_synthetic_checks",
         ],
     ),
     (
@@ -47,15 +47,15 @@ TEST_COMMANDS = [
         [
             sys.executable,
             "-m",
-            "knowledge.combat_resistance_precision_checks",
+            "knowledge.champion_spell_source_precision_checks",
         ],
     ),
     (
-        "Audit complet Combat Resistance",
+        "Audit complet Champion Spell Source",
         [
             sys.executable,
             "-m",
-            "knowledge.combat_resistance_full_audit",
+            "knowledge.champion_spell_source_full_audit",
         ],
     ),
 ]
@@ -86,6 +86,10 @@ FROZEN_FILES = {
     "knowledge/champion_level_stats_synthetic_checks.py",
     "knowledge/champion_level_stats_precision_checks.py",
     "knowledge/champion_level_stats_full_audit.py",
+    "knowledge/combat_resistance_rules.py",
+    "knowledge/combat_resistance_synthetic_checks.py",
+    "knowledge/combat_resistance_precision_checks.py",
+    "knowledge/combat_resistance_full_audit.py",
 }
 
 
@@ -119,7 +123,7 @@ def _run(title, command):
     if result.returncode == 0:
         detail = ""
 
-        if title == "Audit complet Combat Resistance":
+        if title == "Audit complet Champion Spell Source":
             if status_line:
                 detail = f" | {status_line}"
         elif stdout_lines:

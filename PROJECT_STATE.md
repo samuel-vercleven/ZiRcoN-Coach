@@ -15,10 +15,21 @@
 Frozen means: no retuning/refactor without a demonstrated correctness or integration bug or explicit project review request.
 
 ## In development
-- No analyzer or knowledge/rules layer is currently under development.
-- Combat Resistance / Penetration Rules Foundation Phase 2E v1 is FROZEN after project review.
-- Next major task: project review to define the next factual combat-input layer.
-- Do not start Burst/TTK, composition recommendations, build recommendations, or ML until the next factual dependency is defined and validated.
+- Champion Spell Calculation Source Foundation Phase 2F is technically complete and awaiting project review; it is not FROZEN.
+- Combat Resistance / Penetration Rules Foundation Phase 2E v1 remains FROZEN.
+- Do not execute champion spell formulas, construct a Damage Engine, or begin Burst/TTK until project review defines and validates the next scope.
+
+## Champion Spell Calculation Source Foundation Phase 2F
+- Version: `champion_spell_source_phase2f_v1`.
+- Latest real runtime: `python main.py` PASS on 2026-08-22 (83.94s).
+- Source provenance: community export/datamine of Riot game files, pinned to `Haru-Kay/LeagueDatamines` commit `9245fd616059c6c658d1faa1029f0e18ea179154` (`LIVE 26.16 (#17)`), target patch 16.16 / Riot 26.16.
+- Frozen Champion Knowledge cross-check: `champion_knowledge_phase2b1_c_v1`, Data Dragon 16.16.1, locale fr_FR; 173 champions and 692 Q/W/E/R records.
+- Real source audit: 173/173 champions; 692/692 primary slots; 692 exact-key mappings; 0 objectPath fallbacks; 0 missing or ambiguous slots; 0 source failures.
+- Structure inventory: 631 slots with calculations, 61 without; 1,443 raw calculation records; 4,687 graph nodes; 25 uninterpreted calculation classes; 5,063 raw DataValues; 0 malformed graphs.
+- Validation: synthetic checks PASS 8/8, precision checks PASS 3/3, full audit PASS, FROZEN guard PASS.
+- Design boundary: preserves raw spell graphs and all observed fields/classes without evaluating formulas, stats, scaling, or damage.
+- Compatibility: `main.py` now guards all frozen Phase 2E files in addition to the existing frozen layers.
+- Remaining issue: project review must decide whether Phase 2F freezes and define any next factual dependency.
 
 ## Dataset
 - Main historical validation set: 87 Jungle games with exploitable timelines.

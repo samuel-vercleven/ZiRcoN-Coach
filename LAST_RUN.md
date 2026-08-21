@@ -1,73 +1,62 @@
 # LAST RUN
 
 ## Status
-PASS - Combat Resistance / Penetration Rules Foundation Phase 2E v1 accepted for freeze.
+REVIEW_REQUIRED
 
 ## Date
-2026-08-22 local
+2026-08-22 01:43 local
 
-## Validated code commit
-b82d0e6f916a0d6d4d0b5857408246c940b5b2ce - Build combat resistance rules phase 2E
-
-## Commands
-- `python main.py`
-- `python -m knowledge.combat_resistance_full_audit`
-- `git diff --check`
+## Command
+`python main.py` (executed through the existing `.venv` interpreter because `python` is not on this PowerShell PATH)
 
 ## Runtime
-- main harness completed successfully on the local Windows / .venv environment;
-- reported main duration: 0.45s;
-- full deterministic audit also completed independently with STATUS : PASS.
+- completed successfully;
+- 83.94s reported by the development harness.
 
-## Validation output
-- Compilation Combat Resistance: PASS.
-- Synthetic checks: PASS 12/12.
-- Precision checks: PASS 10/10.
-- Full audit: PASS.
-- FROZEN guard: PASS.
-- Final harness status: PASS.
+## Files changed
+- `knowledge/champion_spell_source.py`
+- `knowledge/champion_spell_source_synthetic_checks.py`
+- `knowledge/champion_spell_source_precision_checks.py`
+- `knowledge/champion_spell_source_full_audit.py`
+- `main.py`
+- `TODO.md`
+- `PROJECT_STATE.md`
+- `LAST_RUN.md`
 
-## Full-audit baseline
-- Version: `combat_resistance_phase2e_v1`.
-- Resistance multiplier sweep: 141 cases.
-- Armor matrix: 112 cases.
-- Magic resistance matrix: 112 cases.
-- Blocking issues: 0.
-- Review items: 0.
-- Resistance formula provenance: COMMUNITY_DOCUMENTED.
-- Penetration order provenance: COMMUNITY_DOCUMENTED.
-- Lethality 1:1 provenance: RIOT_OFFICIAL.
+## Tests executed
+- `py_compile` for all Phase 2F files and `main.py`: PASS.
+- Phase 2F synthetic checks: PASS 8/8.
+- Phase 2F precision checks: PASS 3/3.
+- Direct real pinned-source audit: PASS.
+- `python main.py` Phase 2F harness: PASS.
+- FROZEN guard: PASS; no frozen production module changed.
 
-## Project review decision
-- Phase 2E v1 is FROZEN.
-- Current lethality is 1:1 flat armor penetration.
-- Penetration cannot create negative resistance.
-- Resistance reduction can create negative resistance.
-- Bonus armor penetration requires a known base/bonus armor split.
-- Missing split remains explicit unresolved state.
-- Later modules should consume this generic rules layer rather than silently redefining it.
+## Errors encountered
+- Initial invocation failed because `python` is absent from PATH and the virtual environment's base interpreter is outside the sandbox.
+- Resolved by executing the existing `.venv` interpreter with the required local permission; no project-code change was needed.
 
-## Permanent limitations
-- no champion spell execution;
-- no item/rune effect execution;
-- no crits;
-- no damage amplification/reduction modifiers;
-- no shields;
-- no executes;
-- no healing;
-- no on-hit ordering;
-- no temporary champion-state execution;
-- no Burst/TTK;
-- no recommendations;
-- no ML.
+## Main analyzer results
+### Current analyzer
+- Phase 2F source catalog version: `champion_spell_source_phase2f_v1`.
+- Frozen Champion Knowledge cross-check: `champion_knowledge_phase2b1_c_v1`, Data Dragon 16.16.1 / fr_FR, 173 champions and 692 Data Dragon primary spell records.
+- Exact pinned source: `Haru-Kay/LeagueDatamines` commit `9245fd616059c6c658d1faa1029f0e18ea179154` (`LIVE 26.16 (#17)`), patch 16.16 / Riot 26.16.
+- Primary mapping: 692/692 exact key matches; 0 objectPath fallbacks; 0 missing/ambiguous slots.
+- Raw graph coverage: 631 slots with calculations, 61 without; 1,443 calculation records; 4,687 graph nodes; 25 classes; 5,063 DataValues.
+- Audit findings: 0 malformed graphs, 0 source failures, 0 blocking issues, 0 technical review items.
+- All classes and raw fields are preserved as uninterpreted source evidence; no formula, stat, or damage result is executed.
 
-## Files changed by freeze step
-- AGENTS.md
-- PROJECT_STATE.md
-- DECISIONS.md
-- TODO.md
-- LAST_RUN.md
-- main.py (FROZEN guard only)
+## Suspicious findings
+- none.
 
-## Next major task
-Project review to define the next factual combat-input layer.
+## Methodological concerns
+- LeagueDatamines is explicitly a community datamine/export of Riot game files, not a Riot Developer Portal endpoint.
+- Phase 2F validates source structure and provenance only; it does not validate executable spell semantics.
+
+## Remaining issues
+- Project review must decide whether Phase 2F is accepted as FROZEN and define the next factual scope.
+
+## Codex technical recommendation
+- Keep Phase 2F as a raw catalog until project review explicitly defines a narrowly scoped evaluator contract for a validated calculation-class subset.
+
+## Review request
+REVIEW_REQUIRED because only project review may freeze Phase 2F or authorize the next combat layer.
