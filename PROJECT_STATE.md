@@ -9,14 +9,15 @@
 - Item Knowledge Base: Phase 2A - FROZEN.
 - Champion Knowledge Base: Phase 2B1 - FROZEN.
 - Rune Knowledge Base: Phase 2C1-B - FROZEN.
+- Level-Resolved Champion Stat Formula Foundation: Phase 2D v4 - FROZEN.
 
 Frozen means: no retuning/refactor without a demonstrated correctness or integration bug or explicit project review request.
 
 ## In development
 - No analyzer or knowledge layer is currently under development.
-- Rune Knowledge Base Phase 2C1-B is FROZEN after project review.
-- Next major task: Level-Resolved Champion Stat Formula Foundation.
-- Do not start Combat / Damage Engine, Burst/TTK, composition recommendations, build recommendations, or ML before the factual stat/formula foundation is validated.
+- Level-Resolved Champion Stat Formula Foundation Phase 2D v4 is FROZEN after project review.
+- Next major task: project review to define the next factual combat-input / formula layer.
+- Do not start Combat / Damage Engine, Burst/TTK, composition recommendations, build recommendations, or ML until that next factual layer is defined and validated.
 
 ## Dataset
 - Main historical validation set: 87 Jungle games with exploitable timelines.
@@ -403,3 +404,56 @@ Freeze rule:
 
 ## Handoff rule
 Codex must update this file after each completed task.
+
+## Level-Resolved Champion Stat Formula Foundation Phase 2D v4
+Status: FROZEN by project review.
+
+Purpose:
+- Consume frozen Champion Knowledge Phase 2B1-C base/growth facts and resolve factual champion native stats at a requested standard Summoner's Rift level.
+- Provide a factual prerequisite for later combat/formula work without starting a Damage Engine.
+
+Validated scope:
+- 173 champions.
+- Standard levels 1-18: 3114 champion-level rows.
+- Data Dragon: 16.16.1.
+- Locale: fr_FR.
+- Level stats version: champion_level_stats_phase2d_v4.
+- Formula provenance: VALIDATED_COMMUNITY_FORMULA_WITH_RIOT_ANCHORS.
+- Standard growth expression:
+  `base + growth * (level - 1) * (0.7025 + 0.0175 * (level - 1))`.
+- Level-1 invariant: resolved growth stats equal base values.
+- Level-18 invariant: resolved growth stats equal `base + 17 * growth`.
+- Native growth fields resolved for health, health regen, resource, resource regen, attack damage, armor, magic resistance, and crit.
+- Flat move speed and attack range remain factual non-growth values.
+
+Attack Speed:
+- Attack Speed Ratio is not fabricated from Data Dragon base attack speed.
+- Ratio source is an immutable LIVE 26.16 Riot-game-file datamine snapshot:
+  `Haru-Kay/LeagueDatamines` commit `9245fd616059c6c658d1faa1029f0e18ea179154`.
+- Source status: PINNED_LEAGUE_DATAMINE_LIVE_26_16.
+- Attack ratios resolved: 173/173.
+- Cross-source Data Dragon / datamine mismatches: 0.
+- Attack-speed statuses across standard levels:
+  - 2907 RESOLVED_ATTACK_SPEED_WITH_RATIO;
+  - 173 RESOLVED_LEVEL1_ATTACK_SPEED;
+  - 34 RESOLVED_ZERO_GROWTH_ATTACK_SPEED.
+- Jhin native attack-speed growth remains an explicit special-case formula rather than abusing a zero datamined ratio.
+
+Validation:
+- Compilation: PASS.
+- Synthetic checks: PASS 7/7.
+- Precision checks: PASS 8/8.
+- Full catalog audit: PASS.
+- Blocking issues: 0.
+- Review items: 0.
+- FROZEN guard: PASS.
+
+Permanent limitations:
+- The numeric 0.7025 / 0.0175 coefficients are preserved as a community-documented formula with Riot terminology and numeric anchors; they are not mislabeled as a Riot Developer Portal publication.
+- Riot 26.1 allows the Top role quest to raise the level cap to 20, but Phase 2D does not freeze a native-stat growth coefficient contract above level 18.
+- Native growth stats at levels 19-20 remain `UNRESOLVED_TOP_QUEST_LEVEL_FORMULA`.
+- Flat non-growth facts may still be returned at levels 19-20.
+- This layer does not apply item stats, rune stats/effects, spell formulas, buffs/debuffs, penetration, shields, damage, Burst/TTK, recommendations, or ML.
+
+Freeze rule:
+- Do not modify Phase 2D production files unless there is a demonstrated factual correctness bug, source/patch compatibility requirement, strictly necessary downstream integration change, or explicit project review request.

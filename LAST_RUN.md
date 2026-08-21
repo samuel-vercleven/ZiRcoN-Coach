@@ -1,70 +1,67 @@
 # LAST RUN
 
 ## Status
-PASS - Rune Knowledge Phase 2C1-B accepted for freeze.
+PASS - Level-Resolved Champion Stat Formula Foundation Phase 2D v4 accepted for freeze.
 
 ## Date
-2026-08-19 local
+2026-08-22 local
 
 ## Validated code commit
-5efcbd1555195e473dfca7d33b4d8ab23268f3f6 - Validate rune knowledge full catalog semantics
+b051b9db74d9762874c68c7cb06ab1549f1f6d8b - Build level-resolved champion stats phase 2D
 
-## Command
-python main.py
+## Commands
+- `python main.py`
+- `python -m knowledge.champion_level_stats_full_audit`
 
 ## Runtime
-- completed successfully on the local Windows / .venv environment;
-- reported total duration: 10.73s.
+- main harness completed successfully on the local Windows / .venv environment;
+- reported main duration: 68.29s;
+- full catalog audit also completed independently with STATUS : PASS.
 
 ## Validation output
-- Compilation Rune Knowledge: PASS.
-- Synthetic checks: PASS 13/13.
-- Precision checks: PASS 10/10.
-- Real Rune Knowledge audit: PASS.
+- Compilation Champion Level Stats: PASS.
+- Synthetic checks: PASS 7/7.
+- Precision checks: PASS 8/8.
 - Full catalog audit: PASS.
 - FROZEN guard: PASS.
 - Final harness status: PASS.
 
 ## Full-catalog baseline
-- Rune knowledge version: rune_knowledge_phase2c1_b_v3.
-- Data Dragon version: 16.16.1.
+- Level stats version: `champion_level_stats_phase2d_v4`.
+- Champion Knowledge version: `champion_knowledge_phase2b1_c_v1`.
+- Data Dragon: 16.16.1.
 - Locale: fr_FR.
-- Runes audited: 62/62.
+- Champions: 173.
+- Standard rows 1-18: 3114.
+- Extended rows 19-20 audited for explicit non-extrapolation: 346.
+- Attack Speed Ratio source: `PINNED_LEAGUE_DATAMINE_LIVE_26_16`.
+- Attack ratio target/data patch: 16.16.
+- Attack Speed Ratios: 173/173 resolved.
+- Cross-source mismatches: 0.
+- Standard non-AS statuses: 24912 RESOLVED_STANDARD_GROWTH, 6228 RESOLVED_FLAT.
+- Attack Speed statuses: 2907 RESOLVED_ATTACK_SPEED_WITH_RATIO, 173 RESOLVED_LEVEL1_ATTACK_SPEED, 34 RESOLVED_ZERO_GROWTH_ATTACK_SPEED.
 - Blocking issues: 0.
-- Review cases: 0.
-- Legacy generic stat tags: 0.
-- Historical selections: 6240.
-- Historical matches: 104.
-- Historical participants: 1040.
-- Unknown historical perk IDs: 0.
-- Magical Footwear itemization compatibility: PASS.
+- Review items: 0.
 
 ## Project review decision
-- Rune Knowledge Phase 2C1-B is FROZEN.
-- The full-catalog audit was added specifically to prevent representative-test PASS from being mistaken for exhaustive catalog validation.
-- Broad generic stat semantics were refined before freeze.
-- No previously frozen production module was modified by the validated pass.
+- Phase 2D v4 is FROZEN for standard levels 1-18.
+- Attack Speed Ratio is sourced separately rather than inferred from Data Dragon base attack speed.
+- The freeze source is immutable `Haru-Kay/LeagueDatamines` commit `9245fd616059c6c658d1faa1029f0e18ea179154`, named `LIVE 26.16 (#17)`.
+- The 0.7025 / 0.0175 native growth expression is recorded as `VALIDATED_COMMUNITY_FORMULA_WITH_RIOT_ANCHORS`, not as a direct Riot Developer Portal coefficient publication.
+- Native growth at levels 19-20 remains intentionally unresolved.
 
 ## Permanent limitations
-- Data Dragon rune text is not an executable gameplay-rules contract.
-- All 62 rune formulas remain RUNE_FORMULA_INCOMPLETE.
-- Numeric fragments are evidence, not computed formulas.
-- Rune conditions remain NOT_EXECUTED.
-- Riot var1/var2/var3 remain RIOT_OBSERVED_UNINTERPRETED.
-- statPerk meanings/values remain NOT_EXPOSED from the validated static source.
-- Partial/unparsed text remains explicit uncertainty.
-- The frozen layer does not perform damage, Burst/TTK, composition analysis, recommendations, scoring, or ML.
+- Levels 19-20 native growth: `UNRESOLVED_TOP_QUEST_LEVEL_FORMULA`.
+- No item/rune stat application.
+- No champion spell execution/formulas.
+- No buffs/debuffs, penetration, shields, damage, Burst/TTK, recommendations, or ML.
 
-## Files changed by this docs-only freeze
+## Files changed by freeze step
 - PROJECT_STATE.md
 - DECISIONS.md
 - TODO.md
 - LAST_RUN.md
-
-## Python/code changes during docs freeze
-- none.
+- main.py (FROZEN guard only)
 
 ## Next major task
-Level-Resolved Champion Stat Formula Foundation.
-
-Do not start Combat / Damage Engine, Burst/TTK, composition recommendations, build recommendations, or ML until the level-stat foundation and subsequent required factual combat-input layers are validated.
+Project review to define the next factual combat-input / formula layer before Combat / Damage Engine work.

@@ -303,3 +303,73 @@ Rules:
 
 Status:
 FROZEN.
+
+## Level-Resolved Champion Stat Formula Foundation Phase 2D v4 - FROZEN
+Decision:
+Freeze Level-Resolved Champion Stat Formula Foundation Phase 2D v4 as the factual standard-level champion native-stat calculation layer.
+
+Scope:
+- frozen Champion Knowledge Phase 2B1-C as the base/growth input source;
+- native champion level-resolved stats for standard Summoner's Rift levels 1-18;
+- attack-speed calculation using a separate Attack Speed Ratio source;
+- explicit source and formula provenance;
+- explicit unknown/unsupported handling for non-frozen extended-level behavior.
+
+Validated baseline:
+- level stats version champion_level_stats_phase2d_v4;
+- Champion Knowledge version champion_knowledge_phase2b1_c_v1;
+- Data Dragon 16.16.1, fr_FR;
+- 173 champions;
+- 3114 standard champion-level rows;
+- 24912 RESOLVED_STANDARD_GROWTH non-AS rows;
+- 6228 RESOLVED_FLAT non-AS rows;
+- Attack Speed Ratio 173/173 resolved;
+- 2907 RESOLVED_ATTACK_SPEED_WITH_RATIO;
+- 173 RESOLVED_LEVEL1_ATTACK_SPEED;
+- 34 RESOLVED_ZERO_GROWTH_ATTACK_SPEED;
+- 0 Data Dragon / datamine cross-source mismatches;
+- synthetic checks 7/7 PASS;
+- precision checks 8/8 PASS;
+- full catalog audit PASS;
+- blocking issues 0;
+- review items 0;
+- FROZEN guard PASS.
+
+Attack Speed Ratio source decision:
+- do not infer `attackSpeedRatio = base attack speed`;
+- do not depend on a moving `/latest` static-data source for the freeze baseline;
+- use immutable `Haru-Kay/LeagueDatamines` commit `9245fd616059c6c658d1faa1029f0e18ea179154`, explicitly named `LIVE 26.16 (#17)`, as the patch-pinned Riot-game-file datamine source;
+- cross-check exposed base attack speed and attack-speed growth fields against Data Dragon 16.16.1;
+- preserve Jhin as an explicit native attack-speed special case.
+
+Formula provenance decision:
+- accept the 0.7025 / 0.0175 growth expression for standard levels 1-18 as `VALIDATED_COMMUNITY_FORMULA_WITH_RIOT_ANCHORS`;
+- do not describe those coefficients as directly published by the Riot Developer Portal;
+- retain level-1 and level-18 numeric invariants as validation anchors.
+
+Levels 19-20:
+- Riot 26.1 confirms a Top role quest can raise the level cap to 20;
+- Phase 2D does not claim the standard native-stat growth expression is authoritatively frozen above level 18;
+- native growth stats at levels 19-20 remain `UNRESOLVED_TOP_QUEST_LEVEL_FORMULA`;
+- this is an accepted scope boundary, not a blocker for the standard-level Phase 2D freeze.
+
+Out of scope:
+- spell damage formulas;
+- item/rune application;
+- temporary champion states and buffs;
+- resistance/penetration damage rules;
+- shields;
+- summoner-spell combat effects;
+- Damage Engine;
+- Burst / TTK;
+- composition/build/rune recommendations;
+- ML.
+
+Rules:
+- prefer unresolved/unsupported output over extrapolated certainty;
+- preserve immutable source provenance for Attack Speed Ratio;
+- do not reopen frozen Champion Knowledge to insert the missing ratio;
+- do not modify Phase 2D without a demonstrated correctness bug, patch/source compatibility need, strictly necessary downstream integration change, or explicit project review.
+
+Status:
+FROZEN.
