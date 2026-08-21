@@ -42,10 +42,30 @@ def build_audit():
     malformed = [spell for spell in primary_spells if spell["calculation_status"] == MALFORMED_CALCULATION_GRAPH]
     if malformed:
         review.append({"kind": "MALFORMED_CALCULATION_GRAPHS", "count": len(malformed)})
-    class_counts = Counter(node["calculation_class"] for spell in primary_spells for node in spell.get("calculation_nodes", []))
+    graph_nodes = [
+        node
+        for spell in primary_spells
+        for node in spell.get("calculation_nodes", [])
+    ]
+    class_nodes = [
+        node for node in graph_nodes
+        if node["calculation_class"] is not None
+    ]
+    classless_nodes = [
+        node for node in graph_nodes
+        if node["calculation_class"] is None
+    ]
+    class_counts = Counter(
+        node["calculation_class"]
+        for node in class_nodes
+        if isinstance(node["calculation_class"], str)
+    )
     return {
         "catalog": catalog,
         "primary_spells": primary_spells,
+        "graph_nodes": graph_nodes,
+        "class_nodes": class_nodes,
+        "classless_nodes": classless_nodes,
         "class_counts": class_counts,
         "blocking": blocking,
         "review": review,
@@ -73,9 +93,10 @@ def render_audit(audit):
         f"Exact key / objectPath maps: {audit['exact_key_count']} / {audit['object_path_count']}",
         f"Slots with/without calcs   : {audit['calculation_slots']} / {len(spells) - audit['calculation_slots']}",
         f"Calculation records         : {sum(len(spell.get('raw_calculation_names', [])) for spell in spells)}",
-        f"Calculation graph nodes     : {sum(len(spell.get('calculation_nodes', [])) for spell in spells)}",
+        f"Dictionary graph nodes      : {len(audit['graph_nodes'])}",
+        f"Nodes with / without ~class: {len(audit['class_nodes'])} / {len(audit['classless_nodes'])}",
         f"Unique calculation classes  : {len(audit['class_counts'])}",
-        f"Uninterpreted class nodes   : {sum(audit['class_counts'].values())}",
+        f"Uninterpreted class nodes   : {len(audit['class_nodes'])}",
         f"Raw DataValues              : {sum(len(spell.get('raw_data_values') or []) for spell in spells)}",
         f"Malformed graphs            : {len(audit['malformed'])}",
         f"Source failures             : {len(catalog['source_failures'])}",

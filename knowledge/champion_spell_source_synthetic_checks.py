@@ -5,6 +5,7 @@ from knowledge.champion_spell_source import (
     EXACT_OBJECT_PATH_MATCH,
     EXACT_PRIMARY_SPELL_PATH,
     NO_CALCULATIONS_EXPOSED,
+    NO_CALCULATION_CLASS_EXPOSED,
     PRIMARY_SPELL_OBJECT_NOT_FOUND,
     PRIMARY_SPELL_PATH_AMBIGUOUS,
     UNINTERPRETED_CALCULATION_CLASS,
@@ -61,14 +62,39 @@ def test_data_values_and_multiple_calculations_are_preserved():
 def test_recursive_nodes_unknown_classes_and_unknown_fields_are_preserved():
     graph = inventory_calculation_graph({"Root": {"unknownHash": 7, "child": {"~class": "FutureThing", "mDataValue": "X"}, "~class": "GameCalculation"}})
     assert graph["status"] == CALCULATIONS_EXPOSED
-    assert {node["calculation_class"] for node in graph["nodes"]} == {"GameCalculation", "FutureThing"}
-    assert all(node["interpretation_status"] == UNINTERPRETED_CALCULATION_CLASS for node in graph["nodes"])
+    assert {node["calculation_class"] for node in graph["nodes"]} == {None, "GameCalculation", "FutureThing"}
+    assert any(node["interpretation_status"] == NO_CALCULATION_CLASS_EXPOSED for node in graph["nodes"])
+    assert all(
+        node["interpretation_status"] == UNINTERPRETED_CALCULATION_CLASS
+        for node in graph["nodes"]
+        if node["calculation_class"] is not None
+    )
     assert any("unknownHash" in node["field_names"] for node in graph["nodes"])
 
 
 def test_calculation_free_spell_and_no_fallback_contract():
     record = build_champion_spell_source_record(_champion(), _base(), {"QPath": _spell("QPath")}, {})["primary_spells"][0]
     assert record["calculation_status"] == NO_CALCULATIONS_EXPOSED
+
+
+def test_classless_nodes_and_nested_raw_fields_are_inventoried():
+    graph = inventory_calculation_graph(
+        {"Formula": {"unclassified": {"unknownHash": 7}}}
+    )
+    assert len(graph["nodes"]) == 3
+    nested = next(
+        node for node in graph["nodes"]
+        if node["graph_path"] == "mSpellCalculations/Formula/unclassified"
+    )
+    assert nested["calculation_class"] is None
+    assert nested["raw_node_payload"] == {"unknownHash": 7}
+    assert nested["interpretation_status"] == NO_CALCULATION_CLASS_EXPOSED
+
+
+def test_empty_calculation_mapping_is_not_exposed():
+    graph = inventory_calculation_graph({})
+    assert graph["status"] == NO_CALCULATIONS_EXPOSED
+    assert graph["nodes"] == []
 
 
 def test_non_exact_patch_has_no_latest_or_previous_source_fallback():

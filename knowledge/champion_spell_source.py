@@ -39,6 +39,7 @@ CALCULATIONS_EXPOSED = "CALCULATIONS_EXPOSED"
 NO_CALCULATIONS_EXPOSED = "NO_CALCULATIONS_EXPOSED"
 MALFORMED_CALCULATION_GRAPH = "MALFORMED_CALCULATION_GRAPH"
 UNINTERPRETED_CALCULATION_CLASS = "UNINTERPRETED_CALCULATION_CLASS"
+NO_CALCULATION_CLASS_EXPOSED = "NO_CALCULATION_CLASS_EXPOSED"
 EXACT_PRIMARY_SPELL_PATH = "EXACT_PRIMARY_SPELL_PATH"
 EXACT_OBJECT_PATH_MATCH = "EXACT_OBJECT_PATH_MATCH"
 PRIMARY_SPELL_OBJECT_NOT_FOUND = "PRIMARY_SPELL_OBJECT_NOT_FOUND"
@@ -163,34 +164,37 @@ def _match_spell_object(spells_payload, expected_path):
 def _walk_calculation_nodes(value, path, nodes):
     if isinstance(value, dict):
         class_name = value.get("~class")
-        if class_name is not None:
-            named_refs = [
-                {"field": key, "value": item}
-                for key, item in value.items()
-                if "datavalue" in key.casefold() and isinstance(item, str)
-            ]
-            stat_refs = [
-                {"field": key, "value": item}
-                for key, item in value.items()
-                if key.casefold() in {"mstat", "mstatformula"}
-            ]
-            coefficient_fields = [
-                {"field": key, "value": item}
-                for key, item in value.items()
-                if any(token in key.casefold() for token in ("coefficient", "ratio", "multiplier"))
-            ]
-            nodes.append(
-                {
-                    "graph_path": path,
-                    "calculation_class": class_name,
-                    "field_names": sorted(value),
-                    "named_data_value_references": named_refs,
-                    "stat_references": stat_refs,
-                    "coefficient_fields": coefficient_fields,
-                    "raw_node_payload": copy.deepcopy(value),
-                    "interpretation_status": UNINTERPRETED_CALCULATION_CLASS,
-                }
-            )
+        named_refs = [
+            {"field": key, "value": item}
+            for key, item in value.items()
+            if "datavalue" in key.casefold() and isinstance(item, str)
+        ]
+        stat_refs = [
+            {"field": key, "value": item}
+            for key, item in value.items()
+            if key.casefold() in {"mstat", "mstatformula"}
+        ]
+        coefficient_fields = [
+            {"field": key, "value": item}
+            for key, item in value.items()
+            if any(token in key.casefold() for token in ("coefficient", "ratio", "multiplier"))
+        ]
+        nodes.append(
+            {
+                "graph_path": path,
+                "calculation_class": class_name,
+                "field_names": sorted(value),
+                "named_data_value_references": named_refs,
+                "stat_references": stat_refs,
+                "coefficient_fields": coefficient_fields,
+                "raw_node_payload": copy.deepcopy(value),
+                "interpretation_status": (
+                    UNINTERPRETED_CALCULATION_CLASS
+                    if class_name is not None
+                    else NO_CALCULATION_CLASS_EXPOSED
+                ),
+            }
+        )
         for key, item in value.items():
             _walk_calculation_nodes(item, f"{path}/{key}", nodes)
     elif isinstance(value, list):
@@ -214,6 +218,14 @@ def inventory_calculation_graph(raw_calculations):
             "nodes": [],
             "classes": [],
             "raw_calculations": copy.deepcopy(raw_calculations),
+        }
+    if not raw_calculations:
+        return {
+            "status": NO_CALCULATIONS_EXPOSED,
+            "calculation_keys": [],
+            "nodes": [],
+            "classes": [],
+            "raw_calculations": {},
         }
 
     nodes = []
