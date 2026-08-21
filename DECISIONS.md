@@ -392,3 +392,44 @@ Scope rule:
 
 Freeze:
 Not yet. Phase 2E requires implementation, tests, full audit, and project review.
+
+## Combat Resistance / Penetration Rules Foundation Phase 2E v1 - FROZEN
+Decision:
+Freeze Phase 2E v1 as the generic factual resistance/reduction/penetration rules layer.
+
+Reasons:
+- synthetic checks PASS 12/12;
+- precision checks PASS 10/10;
+- full deterministic audit PASS;
+- 141 resistance-multiplier sweep cases;
+- 112 armor matrix cases;
+- 112 magic-resistance matrix cases;
+- 0 blocking issues;
+- 0 review items;
+- frozen-layer guard PASS;
+- no previously frozen production module was modified.
+
+Core rules:
+- penetration must not fabricate negative resistance;
+- flat resistance reduction may produce negative resistance;
+- if reduction already yields non-positive resistance, later penetration layers do not create additional benefit;
+- percentage effects stack multiplicatively;
+- current lethality is 1:1 flat armor penetration;
+- bonus armor penetration requires a known base/bonus split;
+- explicit unresolved output is preferred to guessing missing armor components.
+
+Provenance decision:
+- Riot Patch 14.1 is the official source for current 1:1 lethality;
+- generic resistance formulas and penetration ordering remain explicitly community-documented;
+- do not relabel community formulas as Riot Developer Portal formulas.
+
+Accepted scope boundary:
+Phase 2E does not execute champion spells, item/rune effects, crits, damage modifiers, shields, executes, healing, on-hit ordering, Burst/TTK, recommendations, or ML.
+
+Rules:
+- use Phase 2E as a generic downstream dependency;
+- do not duplicate or silently redefine its resistance/penetration math in later modules;
+- do not modify Phase 2E without a demonstrated correctness bug, patch/rules compatibility need, strictly necessary downstream integration change, or explicit project review.
+
+Status:
+FROZEN.

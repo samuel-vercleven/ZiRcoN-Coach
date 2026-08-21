@@ -122,6 +122,8 @@ Rune Knowledge Base — Phase 2C1-B
 
 Level-Resolved Champion Stat Formula Foundation — Phase 2D v4
 
+Combat Resistance / Penetration Rules Foundation — Phase 2E v1
+
 Do not modify a frozen analyzer unless one of these is true:
 
 a concrete correctness bug is demonstrated;
@@ -152,20 +154,12 @@ Never silently modify a frozen analyzer.
 
 4. Current module under development
 
-Current factual layer:
+No analyzer or factual rules layer is currently under development.
 
-Combat Resistance / Penetration Rules Foundation — Phase 2E
+Combat Resistance / Penetration Rules Foundation Phase 2E v1 is FROZEN.
 
-Current design principle:
-
-Build a small deterministic generic rules layer before champion spell execution
-or a full Damage Engine.
-
-Phase 2E may model armor / magic resistance, reductions, penetration, current
-lethality, negative resistance, and post-mitigation resistance math.
-
-Phase 2E must not execute champion spells, item/rune effects, Burst/TTK,
-recommendations, or ML.
+The next major task must come from TODO.md after ChatGPT / project review.
+Codex must not invent the next major combat layer by itself.
 
 5. Methodology rules
 
@@ -824,6 +818,7 @@ Rune Knowledge Phase 2C1-B: FROZEN
 
 Level-Resolved Champion Stat Formula Foundation Phase 2D v4: FROZEN
 
-Combat Resistance / Penetration Rules Foundation Phase 2E: IN DEVELOPMENT
+Combat Resistance / Penetration Rules Foundation Phase 2E v1: FROZEN
 
-The current task must be taken from TODO.md.
+No new major layer should be inferred from this section.
+The current task must be taken from TODO.md after project review.

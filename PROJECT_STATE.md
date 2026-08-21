@@ -10,14 +10,15 @@
 - Champion Knowledge Base: Phase 2B1 - FROZEN.
 - Rune Knowledge Base: Phase 2C1-B - FROZEN.
 - Level-Resolved Champion Stat Formula Foundation: Phase 2D v4 - FROZEN.
+- Combat Resistance / Penetration Rules Foundation: Phase 2E v1 - FROZEN.
 
 Frozen means: no retuning/refactor without a demonstrated correctness or integration bug or explicit project review request.
 
 ## In development
-- Current factual layer: Combat Resistance / Penetration Rules Foundation Phase 2E.
-- Phase 2D v4 remains FROZEN and is now protected by the development harness FROZEN guard.
-- Phase 2E is limited to generic resistance/reduction/penetration math and post-mitigation physical/magic resistance handling.
-- Do not start champion spell execution, item/rune effect execution, Burst/TTK, composition recommendations, build recommendations, or ML during Phase 2E.
+- No analyzer or knowledge/rules layer is currently under development.
+- Combat Resistance / Penetration Rules Foundation Phase 2E v1 is FROZEN after project review.
+- Next major task: project review to define the next factual combat-input layer.
+- Do not start Burst/TTK, composition recommendations, build recommendations, or ML until the next factual dependency is defined and validated.
 
 ## Dataset
 - Main historical validation set: 87 Jungle games with exploitable timelines.
@@ -459,33 +460,62 @@ Freeze rule:
 - Do not modify Phase 2D production files unless there is a demonstrated factual correctness bug, source/patch compatibility requirement, strictly necessary downstream integration change, or explicit project review request.
 
 ## Combat Resistance / Penetration Rules Foundation Phase 2E
-Status: IN DEVELOPMENT.
+Status: FROZEN by project review.
 
 Purpose:
-- Define the deterministic generic resistance and penetration rules required before champion spell execution or a full Damage Engine.
-- Keep the layer independent of champion-specific, item-specific, and rune-specific effect execution.
+- Deterministic generic resistance/reduction/penetration math required before champion spell execution or a full Damage Engine.
+- UI-agnostic and independent from champion-specific, item-specific, and rune-specific effect execution.
 
-Planned factual contract:
-- armor and magic-resistance damage multipliers, including negative resistance;
-- flat then percentage resistance reduction;
-- percentage then flat penetration;
-- current lethality = 1:1 flat armor penetration;
-- percentage bonus armor penetration only when the base/bonus armor split is known;
-- multiplicative percentage stacking;
-- true damage bypasses armor/MR only within this resistance layer;
-- auditable calculation stages and provenance.
+Validated baseline:
+- Version: combat_resistance_phase2e_v1.
+- Synthetic checks: PASS 12/12.
+- Precision checks: PASS 10/10.
+- Full deterministic audit: PASS.
+- Resistance multiplier sweep: 141 cases.
+- Armor matrix: 112 cases.
+- Magic-resistance matrix: 112 cases.
+- Blocking issues: 0.
+- Review items: 0.
+- FROZEN guard: PASS.
 
-Out of scope:
-- champion spell formulas;
-- item/rune effect execution;
-- critical strikes;
-- damage modifiers;
-- shields;
-- executes;
-- healing;
-- on-hit ordering;
-- Burst/TTK;
-- recommendations;
-- ML.
+Validated factual contract:
+- positive armor/MR multiplier: `100 / (100 + R)`;
+- negative resistance branch preserved;
+- flat resistance reduction before percentage resistance reduction;
+- percentage penetration before flat penetration;
+- percentage reduction / penetration sources combine multiplicatively;
+- penetration cannot create negative effective resistance;
+- resistance reduction can create negative resistance;
+- current lethality rule: 1 lethality = 1 flat armor penetration;
+- percentage bonus armor penetration requires a known base/bonus armor split;
+- missing base/bonus split returns explicit `BONUS_ARMOR_COMPONENT_REQUIRED`;
+- true damage bypasses armor/MR within this resistance layer.
 
-Freeze decision remains pending project review after tests and full audit.
+Precision anchors:
+- 100 resistance -> 0.5 damage multiplier.
+- -100 resistance -> 1.5 damage multiplier.
+- 30% + 20% -> 44% combined effect.
+- 18 lethality -> 18 flat armor penetration.
+- 300 armor = 100 base + 200 bonus, then 30 flat reduction, 30% reduction, 45% bonus armor penetration, 10 flat penetration -> 122.3 effective armor.
+
+Provenance:
+- lethality 1:1: Riot official Patch 14.1.
+- resistance formulas and penetration ordering: explicitly marked COMMUNITY_DOCUMENTED rather than mislabeled as Riot Developer Portal formulas.
+
+Permanent limitations:
+- no champion spell formulas;
+- no item passive/active execution;
+- no rune execution;
+- no crit rules;
+- no damage amplification/reduction modifiers;
+- no shields;
+- no executes;
+- no healing;
+- no on-hit/on-attack ordering;
+- no temporary champion-state execution;
+- no Burst/TTK;
+- no recommendations;
+- no ML.
+
+Freeze rule:
+- Do not modify Phase 2E production files unless there is a demonstrated factual correctness bug, patch/rules compatibility requirement, strictly necessary downstream integration change, or explicit project review request.
