@@ -5,25 +5,34 @@ from time import perf_counter
 
 
 if hasattr(sys.stdout, "reconfigure"):
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    sys.stdout.reconfigure(
+        encoding="utf-8",
+        errors="replace",
+    )
+    sys.stderr.reconfigure(
+        encoding="utf-8",
+        errors="replace",
+    )
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent
-CURRENT_PHASE = "Rune Knowledge Phase 2C1-B refined stat semantics full-catalog validation"
+CURRENT_PHASE = (
+    "Level-Resolved Champion Stat Formula Foundation v4"
+)
 
 
 TEST_COMMANDS = [
     (
-        "Compilation Rune Knowledge",
+        "Compilation Champion Level Stats",
         [
             sys.executable,
             "-m",
             "py_compile",
-            "knowledge/rune_knowledge.py",
-            "knowledge/rune_knowledge_synthetic_checks.py",
-            "knowledge/rune_knowledge_precision_checks.py",
-            "knowledge/rune_knowledge_full_audit.py",
+            "knowledge/champion_attack_speed_source.py",
+            "knowledge/champion_level_stats.py",
+            "knowledge/champion_level_stats_synthetic_checks.py",
+            "knowledge/champion_level_stats_precision_checks.py",
+            "knowledge/champion_level_stats_full_audit.py",
         ],
     ),
     (
@@ -31,7 +40,7 @@ TEST_COMMANDS = [
         [
             sys.executable,
             "-m",
-            "knowledge.rune_knowledge_synthetic_checks",
+            "knowledge.champion_level_stats_synthetic_checks",
         ],
     ),
     (
@@ -39,23 +48,15 @@ TEST_COMMANDS = [
         [
             sys.executable,
             "-m",
-            "knowledge.rune_knowledge_precision_checks",
+            "knowledge.champion_level_stats_precision_checks",
         ],
     ),
     (
-        "Audit réel Rune Knowledge",
+        "Audit réel complet Champion Level Stats",
         [
             sys.executable,
             "-m",
-            "knowledge.rune_knowledge",
-        ],
-    ),
-    (
-        "Audit exhaustif du catalogue de runes",
-        [
-            sys.executable,
-            "-m",
-            "knowledge.rune_knowledge_full_audit",
+            "knowledge.champion_level_stats_full_audit",
         ],
     ),
 ]
@@ -77,6 +78,10 @@ FROZEN_FILES = {
     "knowledge/champion_knowledge.py",
     "knowledge/champion_knowledge_synthetic_checks.py",
     "knowledge/champion_knowledge_precision_checks.py",
+    "knowledge/rune_knowledge.py",
+    "knowledge/rune_knowledge_synthetic_checks.py",
+    "knowledge/rune_knowledge_precision_checks.py",
+    "knowledge/rune_knowledge_full_audit.py",
 }
 
 
@@ -98,34 +103,42 @@ def _run(title, command):
         if line.strip()
     ]
 
+    status_line = next(
+        (
+            line
+            for line in reversed(stdout_lines)
+            if line.startswith("STATUS :")
+        ),
+        "",
+    )
+
     if result.returncode == 0:
         detail = ""
-        if stdout_lines and title not in {
-            "Audit réel Rune Knowledge",
-            "Audit exhaustif du catalogue de runes",
-        }:
-            detail = f" | {stdout_lines[-1]}"
 
-        if title == "Audit exhaustif du catalogue de runes":
-            status_line = next(
-                (
-                    line
-                    for line in reversed(stdout_lines)
-                    if line.startswith("STATUS :")
-                ),
-                "",
-            )
+        if title == (
+            "Audit réel complet Champion Level Stats"
+        ):
             if status_line:
                 detail = f" | {status_line}"
+        elif stdout_lines:
+            detail = f" | {stdout_lines[-1]}"
 
-        print(f"[PASS] {title} ({duration:.2f}s){detail}")
+        print(
+            f"[PASS] {title} "
+            f"({duration:.2f}s){detail}"
+        )
         return True
 
-    print(f"[FAIL] {title} ({duration:.2f}s)")
+    print(
+        f"[FAIL] {title} "
+        f"({duration:.2f}s)"
+    )
+
     if result.stdout.strip():
         print(result.stdout.rstrip())
     if result.stderr.strip():
         print(result.stderr.rstrip())
+
     return False
 
 
@@ -138,22 +151,31 @@ def _git_changed_files():
         encoding="utf-8",
         errors="replace",
     )
+
     if result.returncode != 0:
         return []
 
     changed = []
+
     for line in result.stdout.splitlines():
         if len(line) < 4:
             continue
+
         path = line[3:].strip()
+
         if " -> " in path:
             path = path.split(" -> ", 1)[1]
-        changed.append(path.replace("\\", "/"))
+
+        changed.append(
+            path.replace("\\", "/")
+        )
+
     return sorted(set(changed))
 
 
 def _check_frozen_files():
     changed = _git_changed_files()
+
     frozen_changed = [
         path
         for path in changed
@@ -162,17 +184,25 @@ def _check_frozen_files():
 
     if frozen_changed:
         print("[FAIL] FROZEN guard")
+
         for path in frozen_changed:
             print(f"       {path}")
+
         return False
 
-    print("[PASS] FROZEN guard - aucun module gelé modifié")
+    print(
+        "[PASS] FROZEN guard - "
+        "aucun module gelé modifié"
+    )
     return True
 
 
 def main():
     print("=" * 60)
-    print("ZiRcoN Coach - validation de développement")
+    print(
+        "ZiRcoN Coach - "
+        "validation de développement"
+    )
     print("=" * 60)
     print(f"Phase : {CURRENT_PHASE}")
     print()
@@ -191,14 +221,19 @@ def main():
         return 1
 
     changed = _git_changed_files()
+
     if changed:
         print()
         print("Fichiers locaux modifiés :")
+
         for path in changed:
             print(f"- {path}")
 
     print()
-    print(f"Durée totale : {perf_counter() - start:.2f}s")
+    print(
+        f"Durée totale : "
+        f"{perf_counter() - start:.2f}s"
+    )
     print("STATUS : PASS")
     return 0
 
