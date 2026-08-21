@@ -38,6 +38,41 @@ PROJECT REVIEW - Define the next factual combat-input / formula layer.
 
 Before starting Combat / Damage Engine, decide and validate the next missing factual dependency. Do not jump directly to Burst/TTK, composition recommendations, build recommendations, or ML.
 
+## Completion status
+FROZEN.
+
+Validated freeze baseline:
+- Level stats version: `champion_level_stats_phase2d_v4`.
+- Champion Knowledge input: `champion_knowledge_phase2b1_c_v1`.
+- Data Dragon: 16.16.1.
+- Locale: fr_FR.
+- Champions: 173.
+- Standard level rows 1-18: 3114.
+- Synthetic checks: PASS 7/7.
+- Precision checks: PASS 8/8.
+- Full catalog audit: PASS.
+- Blocking issues: 0.
+- Review items: 0.
+- Attack Speed Ratio source: `PINNED_LEAGUE_DATAMINE_LIVE_26_16`.
+- Attack Speed Ratios: 173/173 resolved.
+- Cross-source mismatches: 0.
+- Standard attack-speed rows: 2907 ratio-resolved, 173 level-1 resolved, 34 zero-growth resolved.
+- FROZEN guard: PASS.
+
+Permanent limitations:
+- Standard native-stat formula is frozen for levels 1-18 only.
+- Formula provenance remains `VALIDATED_COMMUNITY_FORMULA_WITH_RIOT_ANCHORS`, not a claim that Riot Developer Portal publishes the numeric coefficients directly.
+- Levels 19-20 native growth remain `UNRESOLVED_TOP_QUEST_LEVEL_FORMULA`.
+- No item/rune application, champion spell formulas, buffs, penetration, shields, damage, Burst/TTK, recommendations, or ML is part of Phase 2D.
+
+Freeze rule:
+Do not modify Phase 2D unless there is a demonstrated factual correctness bug, patch/source compatibility requirement, strictly necessary downstream integration change, or explicit project review request.
+
+## Next major task
+PROJECT REVIEW - Define the next factual combat-input / formula layer.
+
+Before starting Combat / Damage Engine, decide and validate the next missing factual dependency. Do not jump directly to Burst/TTK, composition recommendations, build recommendations, or ML.
+
 ## Goal
 
 Harden Rune Knowledge Phase 2C1 before freeze.
