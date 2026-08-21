@@ -17,22 +17,21 @@ if hasattr(sys.stdout, "reconfigure"):
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 CURRENT_PHASE = (
-    "Level-Resolved Champion Stat Formula Foundation v4"
+    "Combat Resistance / Penetration Rules Foundation Phase 2E"
 )
 
 
 TEST_COMMANDS = [
     (
-        "Compilation Champion Level Stats",
+        "Compilation Combat Resistance",
         [
             sys.executable,
             "-m",
             "py_compile",
-            "knowledge/champion_attack_speed_source.py",
-            "knowledge/champion_level_stats.py",
-            "knowledge/champion_level_stats_synthetic_checks.py",
-            "knowledge/champion_level_stats_precision_checks.py",
-            "knowledge/champion_level_stats_full_audit.py",
+            "knowledge/combat_resistance_rules.py",
+            "knowledge/combat_resistance_synthetic_checks.py",
+            "knowledge/combat_resistance_precision_checks.py",
+            "knowledge/combat_resistance_full_audit.py",
         ],
     ),
     (
@@ -40,7 +39,7 @@ TEST_COMMANDS = [
         [
             sys.executable,
             "-m",
-            "knowledge.champion_level_stats_synthetic_checks",
+            "knowledge.combat_resistance_synthetic_checks",
         ],
     ),
     (
@@ -48,15 +47,15 @@ TEST_COMMANDS = [
         [
             sys.executable,
             "-m",
-            "knowledge.champion_level_stats_precision_checks",
+            "knowledge.combat_resistance_precision_checks",
         ],
     ),
     (
-        "Audit réel complet Champion Level Stats",
+        "Audit complet Combat Resistance",
         [
             sys.executable,
             "-m",
-            "knowledge.champion_level_stats_full_audit",
+            "knowledge.combat_resistance_full_audit",
         ],
     ),
 ]
@@ -82,6 +81,11 @@ FROZEN_FILES = {
     "knowledge/rune_knowledge_synthetic_checks.py",
     "knowledge/rune_knowledge_precision_checks.py",
     "knowledge/rune_knowledge_full_audit.py",
+    "knowledge/champion_attack_speed_source.py",
+    "knowledge/champion_level_stats.py",
+    "knowledge/champion_level_stats_synthetic_checks.py",
+    "knowledge/champion_level_stats_precision_checks.py",
+    "knowledge/champion_level_stats_full_audit.py",
 }
 
 
@@ -115,9 +119,7 @@ def _run(title, command):
     if result.returncode == 0:
         detail = ""
 
-        if title == (
-            "Audit réel complet Champion Level Stats"
-        ):
+        if title == "Audit complet Combat Resistance":
             if status_line:
                 detail = f" | {status_line}"
         elif stdout_lines:

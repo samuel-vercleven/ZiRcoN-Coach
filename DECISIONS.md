@@ -373,3 +373,22 @@ Rules:
 
 Status:
 FROZEN.
+
+## Project review - Next factual layer after Phase 2D
+Decision:
+The next major factual layer is Combat Resistance / Penetration Rules Foundation Phase 2E.
+
+Reason:
+- Phase 2D now provides native champion stats by standard level.
+- A future Damage Engine still lacks a validated generic contract for armor, magic resistance, resistance reduction, penetration, lethality, and post-mitigation resistance math.
+- This generic math is more foundational than executing any one champion spell and can be validated independently.
+
+Scope rule:
+- Phase 2E must remain generic and deterministic.
+- It must not execute champion spells, item passives, rune effects, crits, shields, damage modifiers, or Burst/TTK.
+- Current lethality uses Riot Patch 14.1's 1:1 flat armor penetration rule.
+- Community-documented resistance formulas/order retain explicit community provenance.
+- Phase 2D and all earlier frozen layers remain untouched.
+
+Freeze:
+Not yet. Phase 2E requires implementation, tests, full audit, and project review.

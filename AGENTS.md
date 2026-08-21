@@ -102,13 +102,25 @@ Do not perform a large refactor of main.py unless explicitly requested.
 
 3. Frozen modules
 
-The following analyzers are considered stable and FROZEN:
+The following production analyzers / knowledge layers are considered stable and FROZEN:
 
 Death Analyzer — v11
 
 Jungle Tempo / Pathing Analyzer — v17
 
 Objective Analyzer — v20
+
+Recall / Reset Analyzer — v21
+
+Build / Itemization Analyzer — v22 Phase 1
+
+Item Knowledge Base — Phase 2A
+
+Champion Knowledge Base — Phase 2B1
+
+Rune Knowledge Base — Phase 2C1-B
+
+Level-Resolved Champion Stat Formula Foundation — Phase 2D v4
 
 Do not modify a frozen analyzer unless one of these is true:
 
@@ -140,23 +152,20 @@ Never silently modify a frozen analyzer.
 
 4. Current module under development
 
-Current active analyzer:
+Current factual layer:
 
-Recall / Reset Analyzer — v21
+Combat Resistance / Penetration Rules Foundation — Phase 2E
 
 Current design principle:
 
-Riot data in this project does not expose a perfect ground-truth recall lifecycle.
+Build a small deterministic generic rules layer before champion spell execution
+or a full Damage Engine.
 
-Therefore:
+Phase 2E may model armor / magic resistance, reductions, penetration, current
+lethality, negative resistance, and post-mitigation resistance math.
 
-use a SHOP / RESET PROXY based on purchase-event clustering;
-
-separate post-death shop sequences from voluntary reset proxies;
-
-never describe the proxy as an exact recall unless the data explicitly supports it;
-
-current Gold near the reset is contextual / exploratory, not automatic evidence of a bad recall.
+Phase 2E must not execute champion spells, item/rune effects, Burst/TTK,
+recommendations, or ML.
 
 5. Methodology rules
 
@@ -803,6 +812,18 @@ Jungle Tempo / Pathing v17: FROZEN
 
 Objective Analyzer v20: FROZEN
 
-Recall / Reset Analyzer v21: IN VALIDATION
+Recall / Reset Analyzer v21: FROZEN
 
-The current task should be taken from TODO.md, not inferred from this section.
+Build / Itemization Analyzer v22 Phase 1: FROZEN
+
+Item Knowledge Phase 2A: FROZEN
+
+Champion Knowledge Phase 2B1: FROZEN
+
+Rune Knowledge Phase 2C1-B: FROZEN
+
+Level-Resolved Champion Stat Formula Foundation Phase 2D v4: FROZEN
+
+Combat Resistance / Penetration Rules Foundation Phase 2E: IN DEVELOPMENT
+
+The current task must be taken from TODO.md.
