@@ -124,6 +124,8 @@ Level-Resolved Champion Stat Formula Foundation — Phase 2D v4
 
 Combat Resistance / Penetration Rules Foundation — Phase 2E v1
 
+Champion Spell Calculation Source Foundation — Phase 2F v1
+
 Do not modify a frozen analyzer unless one of these is true:
 
 a concrete correctness bug is demonstrated;
@@ -154,12 +156,11 @@ Never silently modify a frozen analyzer.
 
 4. Current module under development
 
-No analyzer or factual rules layer is currently under development.
+Executable Combat Formula Foundation Phase 2G is under development as explicitly authorized by TODO.md.
 
-Combat Resistance / Penetration Rules Foundation Phase 2E v1 is FROZEN.
+Champion Spell Calculation Source Foundation Phase 2F v1 is FROZEN.
 
-The next major task must come from TODO.md after ChatGPT / project review.
-Codex must not invent the next major combat layer by itself.
+Phase 2G must preserve explicit unsupported/unresolved states and must not invent formula, stat, damage, or activation semantics.
 
 5. Methodology rules
 
@@ -819,6 +820,8 @@ Rune Knowledge Phase 2C1-B: FROZEN
 Level-Resolved Champion Stat Formula Foundation Phase 2D v4: FROZEN
 
 Combat Resistance / Penetration Rules Foundation Phase 2E v1: FROZEN
+
+Champion Spell Calculation Source Foundation Phase 2F v1: FROZEN
 
 No new major layer should be inferred from this section.
 The current task must be taken from TODO.md after project review.

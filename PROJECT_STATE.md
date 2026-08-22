@@ -11,15 +11,17 @@
 - Rune Knowledge Base: Phase 2C1-B - FROZEN.
 - Level-Resolved Champion Stat Formula Foundation: Phase 2D v4 - FROZEN.
 - Combat Resistance / Penetration Rules Foundation: Phase 2E v1 - FROZEN.
+- Champion Spell Calculation Source Foundation: Phase 2F v1 - FROZEN.
 
 Frozen means: no retuning/refactor without a demonstrated correctness or integration bug or explicit project review request.
 
 ## In development
-- Champion Spell Calculation Source Foundation Phase 2F, including its graph-inventory precision correction, is technically complete and awaiting project review; it is not FROZEN.
-- Combat Resistance / Penetration Rules Foundation Phase 2E v1 remains FROZEN.
-- Do not execute champion spell formulas, construct a Damage Engine, or begin Burst/TTK until project review defines and validates the next scope.
+- Executable Combat Formula Foundation Phase 2G is authorized by the current TODO and under development.
+- All formula, stat, damage, and activation semantics must remain unsupported when evidence is insufficient.
+- Full Burst/TTK, recommendations, ML, and gameplay simulation remain out of scope.
 
 ## Champion Spell Calculation Source Foundation Phase 2F
+- Status: FROZEN by project review.
 - Version: `champion_spell_source_phase2f_v1`.
 - Latest real runtime: `python main.py` PASS on 2026-08-22 (83.69s).
 - Source provenance: community export/datamine of Riot game files, pinned to `Haru-Kay/LeagueDatamines` commit `9245fd616059c6c658d1faa1029f0e18ea179154` (`LIVE 26.16 (#17)`), target patch 16.16 / Riot 26.16.
@@ -30,7 +32,7 @@ Frozen means: no retuning/refactor without a demonstrated correctness or integra
 - Validation: synthetic checks PASS 10/10, precision checks PASS 4/4, full audit PASS, FROZEN guard PASS.
 - Design boundary: preserves raw spell graphs and all observed fields/classes without evaluating formulas, stats, scaling, or damage.
 - Compatibility: `main.py` now guards all frozen Phase 2E files in addition to the existing frozen layers.
-- Remaining issue: project review must decide whether Phase 2F freezes and define any next factual dependency.
+- Freeze baseline: the accepted v1 source/structure contract is read-only for Phase 2G.
 
 ## Dataset
 - Main historical validation set: 87 Jungle games with exploitable timelines.

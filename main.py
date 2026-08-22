@@ -90,6 +90,10 @@ FROZEN_FILES = {
     "knowledge/combat_resistance_synthetic_checks.py",
     "knowledge/combat_resistance_precision_checks.py",
     "knowledge/combat_resistance_full_audit.py",
+    "knowledge/champion_spell_source.py",
+    "knowledge/champion_spell_source_synthetic_checks.py",
+    "knowledge/champion_spell_source_precision_checks.py",
+    "knowledge/champion_spell_source_full_audit.py",
 }
 
 

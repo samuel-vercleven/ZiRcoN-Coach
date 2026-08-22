@@ -106,6 +106,30 @@ Rules:
 Status:
 FROZEN.
 
+## Champion Spell Calculation Source Foundation Phase 2F v1 - FROZEN
+Decision:
+Freeze Phase 2F v1 as the patch-pinned, lossless champion primary-spell calculation-source catalog.
+
+Accepted baseline:
+- source version `champion_spell_source_phase2f_v1`;
+- immutable `Haru-Kay/LeagueDatamines` commit `9245fd616059c6c658d1faa1029f0e18ea179154`, label `LIVE 26.16 (#17)`;
+- Data Dragon 16.16.1 / Riot 26.16, locale fr_FR;
+- 173/173 champions and 692/692 primary Q/W/E/R mappings;
+- 1,443 raw calculation records, 5,063 raw DataValues, and 5,318 dictionary graph nodes;
+- 4,687 nodes with `~class`, 631 without `~class`, 25 non-null classes;
+- 0 source failures, missing/ambiguous mappings, or malformed graphs;
+- synthetic checks PASS 10/10, precision checks PASS 4/4, real audit PASS.
+
+Permanent rules:
+- the source is a community datamine/export of Riot game files, not a Riot Developer Portal endpoint;
+- raw graph structure, unknown fields, classless dictionaries, and provenance remain lossless and auditable;
+- Phase 2F does not execute or semantically interpret formulas;
+- downstream layers must consume Phase 2F rather than copy or redefine its source mapping;
+- do not modify Phase 2F without a demonstrated correctness/source compatibility bug, strictly necessary integration change, or explicit project review.
+
+Status:
+FROZEN.
+
 ## Item Knowledge Base Phase 2A - FROZEN
 Decision:
 Freeze Item Knowledge Base Phase 2A as the factual, patch-aware item knowledge layer.
