@@ -328,6 +328,8 @@ A caller must be able to inspect how the number was obtained.
 
 6. Checkpoint A - Full calculation-class taxonomy
 
+Checkpoint status: COMPLETED - dynamic 25-class / 109-signature real audit PASS.
+
 Create a dedicated taxonomy/audit layer.
 
 Suggested files:
@@ -477,6 +479,8 @@ Catalog champion spell calculation class semantics
 
 7. Checkpoint B - Rank/value indexing foundation
 
+Checkpoint status: COMPLETED - explicit pinned 0..6 and 1..6 contracts; full array audit PASS.
+
 Do not blindly assume that every values-array uses the same indexing convention.
 
 Create a generic source-value resolver.
@@ -589,6 +593,8 @@ Add spell rank value resolution foundation
 
 8. Checkpoint C - DataValue registry and named-reference resolver
 
+Checkpoint status: COMPLETED - exact case-sensitive registry and 1,829-reference audit PASS.
+
 Create a deterministic per-spell DataValue registry.
 
 Suggested file:
@@ -650,6 +656,8 @@ Suggested commit:
 Resolve pinned spell DataValue references
 
 9. Checkpoint D - Stat-reference semantics
+
+Checkpoint status: COMPLETED - 16 raw IDs inventoried; all remain explicitly unresolved because no mapping was proven.
 
 Some executable formula nodes may reference internal stat identifiers such as mStat.
 
@@ -759,6 +767,8 @@ Map validated champion spell stat references
 
 10. Checkpoint E - Generic formula evaluation result model
 
+Checkpoint status: COMPLETED - structured typed outcomes preserve children, provenance, context, and unresolved reasons.
+
 Create a reusable evaluation result model.
 
 Suggested file:
@@ -832,6 +842,8 @@ SOURCE_VERSION_MISMATCH
 Do not use None alone to represent why evaluation failed.
 
 11. Checkpoint F - Safe recursive formula evaluator
+
+Checkpoint status: COMPLETED - 1,443-calculation real audit PASS with conservative partial/unsupported statuses.
 
 Create:
 
@@ -996,6 +1008,8 @@ Suggested commit:
 Build conservative champion spell formula evaluator
 
 12. Checkpoint G - Static combat-stat snapshot foundation
+
+Checkpoint status: COMPLETED - 4,844 real snapshots across 173 champions and discovered SR items PASS.
 
 Create a generic combat-state layer that combines only factual static inputs.
 
@@ -1191,6 +1205,8 @@ Build static combat stat snapshot foundation
 
 13. Checkpoint H - Formula evaluation with real combat context
 
+Checkpoint status: COMPLETED - caller-selected adapter and 1,443-calculation runtime audit PASS.
+
 Integrate checkpoint F evaluator with checkpoint G combat snapshots.
 
 Create an adapter such as:
@@ -1268,6 +1284,8 @@ Suggested commit:
 Connect spell formulas to static combat context
 
 14. Checkpoint I - Damage-formula evidence classifier
+
+Checkpoint status: COMPLETED - 692-spell semantic audit PASS; candidates and mixed/contextual types remain separate.
 
 Only after generic formula execution works, build a SEPARATE conservative semantic classifier.
 
@@ -1395,6 +1413,8 @@ Classify champion spell damage evidence conservatively
 
 15. Checkpoint J - Damage component resolver
 
+Checkpoint status: COMPLETED - 849 candidates audited; only fully supported arithmetic/evidence/state emits raw damage.
+
 Create:
 
 knowledge/champion_spell_damage_resolver.py
@@ -1487,6 +1507,8 @@ Resolve validated champion spell damage components
 
 16. Checkpoint K - Integrate frozen Combat Resistance Phase 2E
 
+Checkpoint status: COMPLETED - thin adapter and physical/magic/true synthetic regression PASS.
+
 Create a thin adapter instead of duplicating resistance math.
 
 Suggested file:
@@ -1558,6 +1580,8 @@ Suggested commit:
 Connect spell damage components to combat resistance
 
 17. Checkpoint L - End-to-end supported spell combat API
+
+Checkpoint status: COMPLETED - single-cast API preserves components and defaults totals to non-composable.
 
 Create a single stable high-level API.
 
@@ -1653,6 +1677,8 @@ Do not simulate a full combo sequence automatically in core production logic dur
 
 18. Checkpoint M - Spell cooldown/resource factual resolver
 
+Checkpoint status: COMPLETED - 692 spells audited; resource type remains unresolved unless supplied explicitly.
+
 If all earlier core checkpoints are technically healthy, continue in the same Sol task.
 
 Do not stop simply because the damage path is complete.
@@ -1715,6 +1741,8 @@ Resolve factual spell cast stats
 
 19. Checkpoint N - Pinned catalog cache for development speed
 
+Checkpoint status: COMPLETED - optional exact-key gzip cache with checksum; ignored local storage.
+
 The real source audit currently requires many exact pinned source fetches.
 
 Without modifying frozen Phase 2F semantics, add an optional local cache layer for its returned catalog.
@@ -1764,6 +1792,8 @@ Suggested commit:
 Add pinned spell catalog development cache
 
 20. Checkpoint O - Representative precision suite
+
+Checkpoint status: COMPLETED - 48 requested/diverse champion probes plus independent arithmetic derivation PASS.
 
 Create a broad representative test suite across real pinned champions.
 
@@ -1836,6 +1866,8 @@ mitigation result if applicable.
 Avoid circular tests that calculate expected results by calling the same production evaluator.
 
 21. Checkpoint P - Full cross-layer audit
+
+Checkpoint status: COMPLETED - real cross-layer audit PASS / REVIEW_REQUIRED FOR FREEZE; no technical failures.
 
 Create a top-level audit:
 

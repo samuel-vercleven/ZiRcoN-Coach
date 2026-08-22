@@ -17,11 +17,11 @@ if hasattr(sys.stdout, "reconfigure"):
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 CURRENT_PHASE = (
-    "Champion Spell Calculation Source Foundation Phase 2F"
+    "Executable Combat Formula Foundation Phase 2G"
 )
 
 
-TEST_COMMANDS = [
+LEGACY_PHASE2F_TEST_COMMANDS = [
     (
         "Compilation Champion Spell Source",
         [
@@ -58,6 +58,51 @@ TEST_COMMANDS = [
             "knowledge.champion_spell_source_full_audit",
         ],
     ),
+]
+
+# Phase 2G replaces the retained Phase 2F reference stack above.
+PHASE2G_FILES = sorted(
+    str(path.relative_to(PROJECT_ROOT))
+    for path in (PROJECT_ROOT / "knowledge").glob("*.py")
+    if any(token in path.name for token in ("combat", "champion_spell"))
+    and "champion_spell_source" not in path.name
+)
+SYNTHETIC_MODULES = [
+    "knowledge.champion_spell_formula_taxonomy_synthetic_checks",
+    "knowledge.champion_spell_value_resolver_synthetic_checks",
+    "knowledge.champion_spell_data_value_resolver_synthetic_checks",
+    "knowledge.champion_spell_stat_reference_synthetic_checks",
+    "knowledge.champion_spell_formula_evaluator_synthetic_checks",
+    "knowledge.combat_stat_snapshot_synthetic_checks",
+    "knowledge.champion_spell_formula_runtime_synthetic_checks",
+    "knowledge.champion_spell_damage_evidence_synthetic_checks",
+    "knowledge.champion_spell_damage_resolver_synthetic_checks",
+    "knowledge.spell_damage_mitigation_synthetic_checks",
+    "knowledge.spell_combat_runtime_synthetic_checks",
+    "knowledge.champion_spell_cast_stats_synthetic_checks",
+]
+PRECISION_MODULES = [
+    "knowledge.champion_spell_value_resolver_precision_checks",
+    "knowledge.champion_spell_formula_evaluator_precision_checks",
+    "knowledge.combat_stat_snapshot_precision_checks",
+    "knowledge.champion_spell_damage_resolver_precision_checks",
+]
+AUDIT_MODULES = [
+    "knowledge.champion_spell_formula_taxonomy_full_audit",
+    "knowledge.champion_spell_value_resolver_full_audit",
+    "knowledge.champion_spell_data_value_resolver_full_audit",
+    "knowledge.champion_spell_stat_reference_full_audit",
+    "knowledge.champion_spell_formula_evaluator_full_audit",
+    "knowledge.champion_spell_formula_runtime_full_audit",
+    "knowledge.champion_spell_cast_stats_full_audit",
+    "knowledge.combat_formula_representative_checks",
+    "knowledge.combat_formula_foundation_full_audit",
+]
+TEST_COMMANDS = [
+    ("Compilation Phase 2G", [sys.executable, "-m", "py_compile", *PHASE2G_FILES]),
+    *[(f"Synthetic {module.rsplit('.', 1)[-1]}", [sys.executable, "-m", module]) for module in SYNTHETIC_MODULES],
+    *[(f"Precision {module.rsplit('.', 1)[-1]}", [sys.executable, "-m", module]) for module in PRECISION_MODULES],
+    *[(f"Audit {module.rsplit('.', 1)[-1]}", [sys.executable, "-m", module]) for module in AUDIT_MODULES],
 ]
 
 

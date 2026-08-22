@@ -106,6 +106,22 @@ Rules:
 Status:
 FROZEN.
 
+## Executable Combat Formula Foundation Phase 2G - durable policies
+
+Decision:
+Accept the following as the technical policies implemented for project review; this entry does not declare Phase 2G FROZEN.
+
+- Formula arithmetic executability and semantic identity as damage are separate decisions. A resolved calculation is not automatically damage.
+- Unknown classes, signatures, stat enums, owners, activation conditions, and rank shapes remain explicit unsupported/unresolved results; coverage must not be increased through guessing.
+- Pinned DataValue arrays use separately audited source contracts: rank-indexed 0..6 arrays and cast-cost rank-indexed 1..6 arrays. Generic arrays do not inherit those contracts implicitly.
+- Static combat snapshots apply only structured, unconditional `DDRAGON_STATS` item facts. Description-derived or conditional item/rune effects are excluded from executable arithmetic.
+- Combat mitigation delegates to frozen Phase 2E and never duplicates or pre-applies resistance/penetration formulas.
+- Multiple spell components remain separate. A total is emitted only when a caller supplies an explicitly validated composability decision; ordinary single-cast resolution defaults to `COMPONENTS_RESOLVED_TOTAL_NOT_COMPOSABLE`.
+- The optional spell-source cache is keyed to source/schema/commit/Data Dragon/locale, checksum-validated, ignored by Git, and may never substitute data from another patch.
+
+Status:
+PASS / REVIEW_REQUIRED FOR FREEZE.
+
 ## Champion Spell Calculation Source Foundation Phase 2F v1 - FROZEN
 Decision:
 Freeze Phase 2F v1 as the patch-pinned, lossless champion primary-spell calculation-source catalog.
