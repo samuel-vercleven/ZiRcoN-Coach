@@ -114,9 +114,12 @@ Accept the following as the technical policies implemented for project review; t
 - Formula arithmetic executability and semantic identity as damage are separate decisions. A resolved calculation is not automatically damage.
 - Unknown classes, signatures, stat enums, owners, activation conditions, and rank shapes remain explicit unsupported/unresolved results; coverage must not be increased through guessing.
 - Pinned DataValue arrays use separately audited source contracts: rank-indexed 0..6 arrays and cast-cost rank-indexed 1..6 arrays. Generic arrays do not inherit those contracts implicitly.
-- Static combat snapshots apply only structured, unconditional `DDRAGON_STATS` item facts. Description-derived or conditional item/rune effects are excluded from executable arithmetic.
+- Static combat snapshots apply only structured, unconditional `DDRAGON_STATS` item facts. Every relevant excluded fact is preserved as structured evidence and makes only its dependent stat partial; an excluded contribution is never silently converted to exact zero.
+- Independent percentage-penetration sources remain separate until frozen Phase 2E combines them multiplicatively; adapters must not pre-sum them.
+- Executable calculation contracts are exact structural signatures with pinned provenance. An added or missing field fails closed to `UNSUPPORTED_SIGNATURE`, even when the calculation class is known.
+- Calculation-key text is supporting evidence only. High-confidence damage identity requires component-local structural linkage between a typed tooltip field and an exact pinned calculation key.
 - Combat mitigation delegates to frozen Phase 2E and never duplicates or pre-applies resistance/penetration formulas.
-- Multiple spell components remain separate. A total is emitted only when a caller supplies an explicitly validated composability decision; ordinary single-cast resolution defaults to `COMPONENTS_RESOLVED_TOTAL_NOT_COMPOSABLE`.
+- Multiple spell components remain separate. A total is emitted only for a structured `COMPOSABILITY_VALIDATED` decision that covers every component, contains evidence, and carries `PROJECT_VALIDATED` provenance. Caller assertions and the legacy boolean are insufficient.
 - The optional spell-source cache is keyed to source/schema/commit/Data Dragon/locale, checksum-validated, ignored by Git, and may never substitute data from another patch.
 
 Status:

@@ -4,80 +4,66 @@
 PASS / REVIEW_REQUIRED FOR FREEZE
 
 ## Date
-2026-08-22 02:33 local
+2026-08-22 23:38 local
 
 ## Command
-`python main.py` (project `.venv`, unbuffered; full output captured in `logs/latest_full_run.txt`)
+`python main.py` through the project `.venv`; complete terminal output captured in `logs/latest_full_run.txt`.
 
 ## Runtime
 - completed successfully;
-- 76.17s reported by the final development harness;
-- top real cross-layer audit: 69.61s.
+- 314.31s reported by the development harness.
 
 ## Files changed
-- New Phase 2G taxonomy, rank/DataValue/stat-reference, evaluator, snapshot, formula-runtime, damage-evidence/resolution, mitigation, cast-stat, cache, representative-check, and top-audit modules under `knowledge/`.
-- `main.py`, `.gitignore`, `AGENTS.md`, `PROJECT_STATE.md`, `TODO.md`, `DECISIONS.md`, and `LAST_RUN.md`.
-- No frozen production or validation module changed.
+- Phase 2G formula taxonomy/evaluator and validation files;
+- Phase 2G combat snapshot, damage evidence/resolution, mitigation, cast/runtime, representative, and top-audit files;
+- `main.py`, `TODO.md`, `PROJECT_STATE.md`, `DECISIONS.md`, and `LAST_RUN.md`;
+- no FROZEN production or validation file changed.
 
 ## Tests executed
-- Phase 2F freeze harness before Phase 2G: PASS; synthetic 10/10, precision 4/4, real source audit PASS, FROZEN guard PASS.
 - Phase 2G compilation: PASS.
-- Phase 2G synthetic checks: PASS 44/44 across 12 modules.
-- Phase 2G precision checks: PASS 8/8 across 4 modules.
-- Taxonomy, value, DataValue, stat reference, evaluator, formula runtime, cast metadata, representative, snapshot, damage evidence, damage resolver, and top cross-layer real audits: PASS.
+- All 12 synthetic modules: PASS.
+- All 4 precision modules: PASS.
+- Taxonomy, value, DataValue, stat-reference, evaluator, formula-runtime, snapshot, damage-evidence, damage-resolver, mitigation, cast-stat, representative, and top cross-layer real audits: PASS.
 - Final `python main.py`: PASS.
-- Final FROZEN guard: PASS.
-- `git diff --check`: PASS after final documentation updates.
-
-Checkpoint commits created before the final documentation commit:
-- `d549eca` Freeze champion spell calculation source phase 2F
-- `fac8f22` Catalog champion spell calculation class semantics
-- `92b1f87` Add spell value and DataValue resolution foundation
-- `dfce8db` Map validated champion spell stat references
-- `a380aca` Build conservative champion spell formula evaluator
-- `4fc7c72` Build static combat stat snapshot foundation
-- `08080ee` Connect spell formulas to static combat context
-- `472b4e8` Classify champion spell damage evidence conservatively
-- `64a66a1` Resolve validated champion spell damage components
-- `a35cce0` Connect spell damage components to combat resistance
-- `a83d94c` Add spell combat runtime and cast stat resolution
-- `f399640` Harden pinned spell value and cache contracts
-- `cecbf9e` Add representative and cross-layer combat audits
+- FROZEN guard: PASS.
+- `git diff --check`: PASS.
 
 ## Errors encountered
-- Initial direct execution of four check files failed to import `knowledge` because package checks must run with `python -m`; rerun correctly and all passed.
-- Real inspection exposed incorrect assumed field names (`mName/mValues`, `mSubparts`, and `mNamedGameCalculation`). Contracts were corrected to actual pinned shapes (`name/values`, `mPart1/mPart2`, and `mSpellCalculationKey`) before checkpoint commits.
-- Cast cost arrays use a distinct pinned rank-1..6 shape; this was audited and separated from rank-0..6 arrays.
+- The first top-audit attempt exposed a `None` spell-calculation table in a representative probe; the Phase 2G probe now treats the frozen source's explicit `null` as no calculations, then the audit passed.
+- `git push origin main` was rejected before network egress by the safety reviewer because the specific GitHub destination was not explicitly authorized. The three tested commits remain local and clean.
 
 ## Main analyzer results
 ### Current analyzer
-- Version: `combat_formula_foundation_phase2g_v1`.
-- Pinned invariants: 173 champions, 692 slots, 1,443 calculations, 5,318 graph nodes, 25 classes, exact commit `9245fd616059c6c658d1faa1029f0e18ea179154`, Data Dragon 16.16.1/fr_FR.
-- Taxonomy: 109 signatures; occurrence statuses 1,677 executable, 561 partially validated, 1,226 structural container, 1,223 unresolved semantics.
-- DataValue references: 1,464 resolved, 361 not found, 4 unsupported shape (1,829 total).
-- Stat references: 885 occurrences, 16 IDs, 0 mapped, 16 unresolved.
-- Evaluator: 79 RESOLVED, 1,037 PARTIALLY_RESOLVED, 110 UNSUPPORTED_SIGNATURE, 217 UNSUPPORTED_CLASS.
-- Static snapshots: 4,844/4,844 resolved; six actual purchasable SR representative items discovered dynamically.
-- Damage evidence across 692 spells: 283 high confidence, 235 multiple candidates, 135 no candidate, 39 insufficient evidence; 849 candidate components.
-- Raw damage: 1 resolved, 848 unresolved. Post-mitigation: 1 resolved through frozen Phase 2E; 0 totals declared composable and 1 resolved set retained as not safely composable.
-- Cast facts: cooldown 680 resolved / 12 missing; raw cost 568 resolved / 124 missing; range 661 resolved / 31 missing.
-- Representative suite: 48 real champion/slot probes including Shyvana, Bel'Veth, Dr. Mundo, Viego, and Rammus; independent manual result 57.0 matched expected 57.0.
+- Version: `combat_formula_foundation_phase2g_v2`.
+- Pinned invariants: 173 champions, 692 primary slots, 1,443 calculations, 5,318 graph nodes, 25 classes, 109 observed signatures, exact source commit `9245fd616059c6c658d1faa1029f0e18ea179154`, Data Dragon 16.16.1/fr_FR.
+- Exact executable signatures: six (`Number`, `NamedDataValue`, `Sum`, `Product`, core `GameCalculation`, `NamedGameCalculation`); 0 arithmetic evaluations under an unregistered signature.
+- DataValue references: 1,464 resolved, 361 not found, 4 unsupported shapes.
+- Stat references: 885 occurrences / 16 IDs / 0 mapped; all 16 remain unresolved.
+- Evaluator: 13 RESOLVED, 720 PARTIALLY_RESOLVED, 493 UNSUPPORTED_SIGNATURE, 217 UNSUPPORTED_CLASS.
+- Snapshot audit: 6,920 rows; 4,844 fully resolved and 2,076 partial.
+- Excluded/partial static facts: 692 each for description-derived ability haste, lethality, armor penetration %, and magic penetration %. Structured AD remains exact when AH is partial.
+- Percentage penetration regression: sources 30% and 20% preserved separately, combined by frozen Phase 2E to 44%; 100 armor becomes 56 effective armor.
+- Damage evidence over 692 spells: 345 high confidence, 195 multiple candidates, 125 not identified, 27 insufficient.
+- Evidence tiers: 791 component-local structural links, 40 key-name-only candidates, 4 spell-level-type-only cases; no high-confidence key-name-only case.
+- Raw damage: 0 resolved / 831 unresolved. Post-mitigation real damage: 0 resolved. Real composable totals: 0.
+- Cast facts: base cooldown 680 resolved / 12 missing; adjusted cooldown 680 resolved / 12 unresolved; cost 568 resolved / 124 missing; range 661 resolved / 31 missing.
+- Real probes passed for description-derived lethality/AH, exact penetration multiplicity, multi-signature classes, supported and unsupported signatures, a key-name-only damage candidate, and Rammus without champion-specific logic.
 
 ## Suspicious findings
-- Pinned DataValue references include 361 exact names absent from their per-spell registry and 4 unsupported shapes; none are fuzzy-matched.
-- Only one candidate damage component currently clears semantic, arithmetic, activation, and non-negative numeric requirements. This is low coverage but not a technical failure.
+- None that violate the hardened contracts.
+- Coverage fell as expected: exact root formulas from 79 to 13 and real raw damage from 1 to 0.
 
 ## Methodological concerns
-- Numeric stat enums and ownership lack sufficient authoritative evidence; all 16 remain unresolved.
-- Calculation-key plus frozen Champion Knowledge evidence identifies candidates, but conditional states, mixed/contextual damage, ticks, alternate forms, and component additivity remain unsupported unless explicitly proven.
-- Description-derived item stats and all rune effects remain excluded from executable snapshots.
+- Numeric stat enums and ownership still lack authoritative evidence, so all remain unresolved.
+- Tooltip linkage identifies candidate components but does not establish formula arithmetic, activation, tick count, or composability.
 
 ## Remaining issues
-- Project review must decide whether the technically clean Phase 2G milestone should be frozen.
-- Higher formula/damage coverage requires new evidence for class semantics and stat enum/owner mappings; thresholds or inference rules must not be weakened to obtain it.
+- Project review must decide whether Phase 2G should be frozen.
+- No known technical blocker remains in the requested pre-freeze hardening scope.
+- Push remains pending explicit authorization for `https://github.com/samuel-vercleven/ZiRcoN-Coach.git` (`origin/main`).
 
 ## Codex technical recommendation
-- Review the unresolved stat-reference evidence and the conservative damage-semantic boundary before any freeze decision. Do not start a new phase from this run.
+- Review the stricter exact-signature, per-stat completeness, structural damage-evidence, and project-validated composability contracts before the freeze decision. Do not start a new phase from this run.
 
 ## Review request
-REVIEW_REQUIRED only for the Phase 2G freeze/product decision; no known technical failure remains.
+REVIEW_REQUIRED for the Phase 2G freeze decision only.

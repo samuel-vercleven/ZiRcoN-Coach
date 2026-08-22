@@ -22,20 +22,22 @@ Frozen means: no retuning/refactor without a demonstrated correctness or integra
 
 ## Executable Combat Formula Foundation Phase 2G
 - Status: `PASS / REVIEW_REQUIRED FOR FREEZE`; Phase 2G is not declared FROZEN by Codex.
-- Version: `combat_formula_foundation_phase2g_v1`.
-- Latest real runtime: `python main.py` PASS on 2026-08-22 (76.17s); FROZEN guard PASS.
+- Version: `combat_formula_foundation_phase2g_v2` pre-freeze hardening.
+- Latest real runtime: `python main.py` PASS on 2026-08-22 (314.31s); every Phase 2G synthetic, precision, individual real audit, top audit, and FROZEN guard passed.
 - Frozen inputs remained unchanged: Item 2A-C v1, Champion 2B1-C v1, Rune 2C1-B v3, Level Stats 2D v4, Resistance 2E v1, and Spell Source 2F v1.
 - Pinned source invariants: 173 champions, 692 Q/W/E/R slots, 1,443 calculations, 5,318 graph nodes, 25 classes, Data Dragon 16.16.1/fr_FR, exact commit `9245fd616059c6c658d1faa1029f0e18ea179154`.
-- Taxonomy: 109 structural signatures; all observed class occurrences classified, with unsupported semantics retained explicitly.
+- Taxonomy: 109 observed structural signatures and six exact executable signatures. Arithmetic is fail-closed for any unregistered field/signature; no arithmetic occurred under an unregistered signature.
 - DataValue audit: 1,464/1,829 exact references resolved; 361 not found and 4 unsupported shapes; no fuzzy matching.
 - Stat-reference audit: 885 occurrences across 16 IDs; 0 mapped and 16 unresolved because no authoritative enum/owner mapping was established.
-- Formula evaluator: 79 RESOLVED, 1,037 PARTIALLY_RESOLVED, 110 UNSUPPORTED_SIGNATURE, 217 UNSUPPORTED_CLASS; 0 unexpected exceptions.
-- Static snapshots: 4,844/4,844 resolved across all 173 champions, levels 1/6/11/18, no items and six actual purchasable SR item representatives.
-- Damage evidence: 283 high-confidence spell records, 235 multiple candidates, 135 no candidate, 39 insufficient evidence; 849 candidate components preserved separately.
-- Damage execution: 1 RAW_DAMAGE_RESOLVED and 848 DAMAGE_UNRESOLVED; the one resolved component also passed frozen Phase 2E mitigation. No real totals were auto-composed.
-- Cast metadata: cooldown 680/692 resolved, raw cost 568/692 resolved, range 661/692 resolved; resource type remains unresolved unless explicitly supplied.
+- Formula evaluator: 13 RESOLVED, 720 PARTIALLY_RESOLVED, 493 UNSUPPORTED_SIGNATURE, 217 UNSUPPORTED_CLASS; 0 unexpected exceptions.
+- Static snapshot audit: 6,920 rows across all 173 champions and levels 1/6/11/18 with representative item sets; 4,844 fully resolved and 2,076 partial. Description-derived ability haste, lethality, armor penetration %, and magic penetration % are explicitly excluded/partial rather than silently represented as zero.
+- Percentage penetration preserves source multiplicity; the deterministic 30% + 20% regression passes as 44% and 56 effective armor from 100 through frozen Phase 2E.
+- Damage evidence across 692 spells: 345 high confidence, 195 multiple candidates, 125 not identified, 27 insufficient. Evidence tiers: 791 component-local structural links, 40 key-name-only candidates, and 4 spell-level-type-only cases.
+- Damage execution: 0 RAW_DAMAGE_RESOLVED and 831 DAMAGE_UNRESOLVED; consequently 0 post-mitigation real components and 0 real totals. Key text alone can never emit raw damage.
+- Cast metadata: cooldown 680/692 resolved, adjusted cooldown 680 resolved / 12 unresolved, raw cost 568/692 resolved, range 661/692 resolved. Incomplete ability haste withholds adjusted cooldown without invalidating independent exact facts.
+- Total composability requires a structured `COMPOSABILITY_VALIDATED` decision covering every component, carrying evidence and `PROJECT_VALIDATED` provenance. A bare boolean or caller assertion cannot emit a total.
 - Optional `.cache/zircon` catalog cache is exact-keyed and checksum-validated; it is ignored and never changes Phase 2F semantics.
-- Known limitations: no validated stat enum mapping; conditional mechanics, item/rune effects, ticks, alternate forms, mixed damage, and totals remain unresolved unless exact evidence and caller state exist.
+- Known limitations: no validated stat enum mapping; conditional mechanics, excluded description-derived item stats, rune effects, ticks, alternate forms, mixed damage, and totals remain unresolved unless exact evidence and project-validated contracts exist.
 
 ## Champion Spell Calculation Source Foundation Phase 2F
 - Status: FROZEN by project review.
