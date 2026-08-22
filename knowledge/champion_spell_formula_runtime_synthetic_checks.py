@@ -1,5 +1,6 @@
 from knowledge.champion_spell_formula_runtime import evaluate_spell_calculation
 from knowledge.champion_spell_source import CHAMPION_SPELL_SOURCE_VERSION
+from knowledge.combat_stat_snapshot import STATIC_STAT_PARTIAL
 
 
 def main():
@@ -7,7 +8,10 @@ def main():
     result=evaluate_spell_calculation(spell,"Amount",spell_rank=1,max_rank=5,source_snapshot={"stats":{}})
     assert result["result"].value==12.5 and result["calculation_key"]=="Amount"
     assert result["provenance"]["source_path"]=="fixture/Q"
-    print("Spell formula runtime synthetic checks: PASS (2/2)")
+    partial_snapshot={"status":"SNAPSHOT_PARTIAL","stats":{"attack_damage_total":100,"ability_haste":None},"stat_resolution":{"ability_haste":{"status":STATIC_STAT_PARTIAL}}}
+    independent=evaluate_spell_calculation(spell,"Amount",spell_rank=1,max_rank=5,source_snapshot=partial_snapshot)
+    assert independent["result"].value==12.5
+    print("Spell formula runtime synthetic checks: PASS (3/3)")
 
 
 if __name__=="__main__": main()
