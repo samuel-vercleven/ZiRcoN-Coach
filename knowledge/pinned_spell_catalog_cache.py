@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import gzip
+import hashlib
 import json
 from pathlib import Path
 
@@ -34,14 +35,19 @@ def load_cached_catalog(path=CACHE_PATH):
             payload = json.load(handle)
     except (OSError, ValueError, json.JSONDecodeError):
         return None
-    return payload.get("catalog") if payload.get("key") == cache_key() else None
+    catalog=payload.get("catalog")
+    if payload.get("key") != cache_key() or catalog is None:
+        return None
+    checksum=hashlib.sha256(json.dumps(catalog,ensure_ascii=False,sort_keys=True,separators=(",",":")).encode("utf-8")).hexdigest()
+    return catalog if payload.get("sha256")==checksum else None
 
 
 def save_cached_catalog(catalog, path=CACHE_PATH):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     with gzip.open(path, "wt", encoding="utf-8", compresslevel=6) as handle:
-        json.dump({"key": cache_key(), "catalog": catalog}, handle, ensure_ascii=False)
+        checksum=hashlib.sha256(json.dumps(catalog,ensure_ascii=False,sort_keys=True,separators=(",",":")).encode("utf-8")).hexdigest()
+        json.dump({"key": cache_key(), "sha256":checksum, "catalog": catalog}, handle, ensure_ascii=False)
 
 
 def get_pinned_spell_catalog(use_cache=True):

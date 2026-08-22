@@ -9,6 +9,7 @@ RANK_INDEXING_UNRESOLVED = "RANK_INDEXING_UNRESOLVED"
 VALUE_MISSING = "VALUE_MISSING"
 NON_NUMERIC_VALUE = "NON_NUMERIC_VALUE"
 PINNED_RANK_0_TO_6 = "PINNED_RANK_0_TO_6"
+PINNED_RANK_1_TO_6 = "PINNED_RANK_1_TO_6"
 
 def resolve_rank_value(values, rank, max_rank, indexing_contract=None):
     if (isinstance(rank, bool) or not isinstance(rank, int) or rank < 0
@@ -21,6 +22,10 @@ def resolve_rank_value(values, rank, max_rank, indexing_contract=None):
         if len(values) != 7 or max_rank > 6:
             return {"status": VALUE_SHAPE_UNSUPPORTED, "value": None, "rank": rank, "length": len(values), "indexing_contract": indexing_contract}
         index = rank
+    elif indexing_contract == PINNED_RANK_1_TO_6:
+        if len(values) != 6 or rank < 1 or max_rank > 6:
+            return {"status": VALUE_SHAPE_UNSUPPORTED, "value": None, "rank": rank, "length": len(values), "indexing_contract": indexing_contract}
+        index = rank - 1
     elif len(values) == 1:
         index = 0
     elif len(values) == max_rank + 1:
