@@ -12,18 +12,19 @@
 - Level-Resolved Champion Stat Formula Foundation: Phase 2D v4 - FROZEN.
 - Combat Resistance / Penetration Rules Foundation: Phase 2E v1 - FROZEN.
 - Champion Spell Calculation Source Foundation: Phase 2F v1 - FROZEN.
+- Executable Combat Formula Foundation: Phase 2G v2 - FROZEN.
 
 Frozen means: no retuning/refactor without a demonstrated correctness or integration bug or explicit project review request.
 
 ## In development
-- Executable Combat Formula Foundation Phase 2G is technically complete and awaiting project review for any freeze decision.
-- All formula, stat, damage, and activation semantics must remain unsupported when evidence is insufficient.
-- Full Burst/TTK, recommendations, ML, and gameplay simulation remain out of scope.
+- No production module is currently under development.
+- The next major task requires project review and a new TODO.md.
+- Burst/TTK, item/rune execution, combo engine, recommendations, ML, UI, and Phase 2H remain out of scope until explicitly authorized.
 
-## Executable Combat Formula Foundation Phase 2G
-- Status: `PASS / REVIEW_REQUIRED FOR FREEZE`; Phase 2G is not declared FROZEN by Codex.
-- Version: `combat_formula_foundation_phase2g_v2` pre-freeze hardening.
-- Latest real runtime: `python main.py` PASS on 2026-08-22 (314.31s); every Phase 2G synthetic, precision, individual real audit, top audit, and FROZEN guard passed.
+## Executable Combat Formula Foundation Phase 2G v2
+- Status: FROZEN by project review.
+- Version: `combat_formula_foundation_phase2g_v2`.
+- Latest real runtime: `python main.py` PASS on 2026-08-23 (325.65s); every Phase 2G synthetic, precision, individual real audit, top audit, and FROZEN guard passed after freeze.
 - Frozen inputs remained unchanged: Item 2A-C v1, Champion 2B1-C v1, Rune 2C1-B v3, Level Stats 2D v4, Resistance 2E v1, and Spell Source 2F v1.
 - Pinned source invariants: 173 champions, 692 Q/W/E/R slots, 1,443 calculations, 5,318 graph nodes, 25 classes, Data Dragon 16.16.1/fr_FR, exact commit `9245fd616059c6c658d1faa1029f0e18ea179154`.
 - Taxonomy: 109 observed structural signatures and six exact executable signatures. Arithmetic is fail-closed for any unregistered field/signature; no arithmetic occurred under an unregistered signature.
@@ -38,6 +39,7 @@ Frozen means: no retuning/refactor without a demonstrated correctness or integra
 - Total composability requires a structured `COMPOSABILITY_VALIDATED` decision covering every component, carrying evidence and `PROJECT_VALIDATED` provenance. A bare boolean or caller assertion cannot emit a total.
 - Optional `.cache/zircon` catalog cache is exact-keyed and checksum-validated; it is ignored and never changes Phase 2F semantics.
 - Known limitations: no validated stat enum mapping; conditional mechanics, excluded description-derived item stats, rune effects, ticks, alternate forms, mixed damage, and totals remain unresolved unless exact evidence and project-validated contracts exist.
+- Freeze rule: do not modify the Phase 2G files protected by `main.py` without a demonstrated correctness/integration bug or explicit project review request. Do not infer Phase 2H from this freeze.
 
 ## Champion Spell Calculation Source Foundation Phase 2F
 - Status: FROZEN by project review.

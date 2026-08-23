@@ -17,7 +17,7 @@ if hasattr(sys.stdout, "reconfigure"):
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 CURRENT_PHASE = (
-    "Executable Combat Formula Foundation Phase 2G"
+    "Executable Combat Formula Foundation Phase 2G v2 (FROZEN)"
 )
 
 
@@ -143,6 +143,49 @@ FROZEN_FILES = {
     "knowledge/champion_spell_source_synthetic_checks.py",
     "knowledge/champion_spell_source_precision_checks.py",
     "knowledge/champion_spell_source_full_audit.py",
+    "knowledge/champion_spell_cast_stats.py",
+    "knowledge/champion_spell_cast_stats_full_audit.py",
+    "knowledge/champion_spell_cast_stats_synthetic_checks.py",
+    "knowledge/champion_spell_damage_evidence.py",
+    "knowledge/champion_spell_damage_evidence_full_audit.py",
+    "knowledge/champion_spell_damage_evidence_synthetic_checks.py",
+    "knowledge/champion_spell_damage_resolver.py",
+    "knowledge/champion_spell_damage_resolver_full_audit.py",
+    "knowledge/champion_spell_damage_resolver_precision_checks.py",
+    "knowledge/champion_spell_damage_resolver_synthetic_checks.py",
+    "knowledge/champion_spell_data_value_resolver.py",
+    "knowledge/champion_spell_data_value_resolver_full_audit.py",
+    "knowledge/champion_spell_data_value_resolver_synthetic_checks.py",
+    "knowledge/champion_spell_formula_evaluator.py",
+    "knowledge/champion_spell_formula_evaluator_full_audit.py",
+    "knowledge/champion_spell_formula_evaluator_precision_checks.py",
+    "knowledge/champion_spell_formula_evaluator_synthetic_checks.py",
+    "knowledge/champion_spell_formula_runtime.py",
+    "knowledge/champion_spell_formula_runtime_full_audit.py",
+    "knowledge/champion_spell_formula_runtime_synthetic_checks.py",
+    "knowledge/champion_spell_formula_taxonomy.py",
+    "knowledge/champion_spell_formula_taxonomy_full_audit.py",
+    "knowledge/champion_spell_formula_taxonomy_synthetic_checks.py",
+    "knowledge/champion_spell_stat_reference.py",
+    "knowledge/champion_spell_stat_reference_full_audit.py",
+    "knowledge/champion_spell_stat_reference_synthetic_checks.py",
+    "knowledge/champion_spell_value_resolver.py",
+    "knowledge/champion_spell_value_resolver_full_audit.py",
+    "knowledge/champion_spell_value_resolver_precision_checks.py",
+    "knowledge/champion_spell_value_resolver_synthetic_checks.py",
+    "knowledge/combat_formula_foundation_full_audit.py",
+    "knowledge/combat_formula_representative_checks.py",
+    "knowledge/combat_formula_types.py",
+    "knowledge/combat_stat_snapshot.py",
+    "knowledge/combat_stat_snapshot_full_audit.py",
+    "knowledge/combat_stat_snapshot_precision_checks.py",
+    "knowledge/combat_stat_snapshot_synthetic_checks.py",
+    "knowledge/pinned_spell_catalog_cache.py",
+    "knowledge/spell_combat_runtime.py",
+    "knowledge/spell_combat_runtime_synthetic_checks.py",
+    "knowledge/spell_damage_mitigation.py",
+    "knowledge/spell_damage_mitigation_full_audit.py",
+    "knowledge/spell_damage_mitigation_synthetic_checks.py",
 }
 
 

@@ -106,10 +106,10 @@ Rules:
 Status:
 FROZEN.
 
-## Executable Combat Formula Foundation Phase 2G - durable policies
+## Executable Combat Formula Foundation Phase 2G v2 - FROZEN
 
 Decision:
-Accept the following as the technical policies implemented for project review; this entry does not declare Phase 2G FROZEN.
+Freeze Executable Combat Formula Foundation Phase 2G v2 after the accepted pre-freeze hardening and full Phase 2G validation stack.
 
 - Formula arithmetic executability and semantic identity as damage are separate decisions. A resolved calculation is not automatically damage.
 - Unknown classes, signatures, stat enums, owners, activation conditions, and rank shapes remain explicit unsupported/unresolved results; coverage must not be increased through guessing.
@@ -122,8 +122,26 @@ Accept the following as the technical policies implemented for project review; t
 - Multiple spell components remain separate. A total is emitted only for a structured `COMPOSABILITY_VALIDATED` decision that covers every component, contains evidence, and carries `PROJECT_VALIDATED` provenance. Caller assertions and the legacy boolean are insufficient.
 - The optional spell-source cache is keyed to source/schema/commit/Data Dragon/locale, checksum-validated, ignored by Git, and may never substitute data from another patch.
 
+Accepted baseline:
+- version `combat_formula_foundation_phase2g_v2`;
+- 173 champions, 692 primary Q/W/E/R slots, 1,443 calculations, 5,318 graph nodes, 25 classes, and 109 observed structural signatures;
+- six exact executable signatures only; 0 arithmetic evaluations under unregistered signatures;
+- evaluator: 13 RESOLVED, 720 PARTIALLY_RESOLVED, 493 UNSUPPORTED_SIGNATURE, 217 UNSUPPORTED_CLASS;
+- snapshots: 6,920 audited rows, 4,844 fully resolved, 2,076 partial;
+- damage evidence: 345 high confidence, 195 multiple candidates, 125 not identified, 27 insufficient, and 0 high-confidence key-name-only cases;
+- raw/post-mitigation real damage and composable real totals: 0 / 0 / 0, accepted as the precise result rather than a coverage failure;
+- full synthetic, precision, real-audit, `python main.py`, FROZEN guard, and diff validation: PASS.
+
+Freeze rules:
+- do not infer stat enums, owner mappings, activation, tick, damage, or composability semantics to raise coverage;
+- per-stat completeness remains mandatory; description-derived static item facts stay explicit partial/unknown when excluded from exact arithmetic;
+- percentage penetration multiplicity remains preserved and is delegated to frozen Phase 2E;
+- high-confidence damage identity requires component-local structural evidence;
+- exact totals require a `PROJECT_VALIDATED` composability decision;
+- do not begin Phase 2H or any new combat layer without project review.
+
 Status:
-PASS / REVIEW_REQUIRED FOR FREEZE.
+FROZEN.
 
 ## Champion Spell Calculation Source Foundation Phase 2F v1 - FROZEN
 Decision:

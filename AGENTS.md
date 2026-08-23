@@ -126,6 +126,8 @@ Combat Resistance / Penetration Rules Foundation — Phase 2E v1
 
 Champion Spell Calculation Source Foundation — Phase 2F v1
 
+Executable Combat Formula Foundation — Phase 2G v2
+
 Do not modify a frozen analyzer unless one of these is true:
 
 a concrete correctness bug is demonstrated;
@@ -156,11 +158,11 @@ Never silently modify a frozen analyzer.
 
 4. Current module under development
 
-Executable Combat Formula Foundation Phase 2G is under development as explicitly authorized by TODO.md.
+No production module is currently under development.
 
-Champion Spell Calculation Source Foundation Phase 2F v1 is FROZEN.
+Executable Combat Formula Foundation Phase 2G v2 is FROZEN by project review. Its explicit unsupported/unresolved contracts are part of the freeze baseline.
 
-Phase 2G must preserve explicit unsupported/unresolved states and must not invent formula, stat, damage, or activation semantics.
+Do not infer or begin Phase 2H. The next major task requires project review and a new TODO.md.
 
 5. Methodology rules
 
@@ -822,6 +824,8 @@ Level-Resolved Champion Stat Formula Foundation Phase 2D v4: FROZEN
 Combat Resistance / Penetration Rules Foundation Phase 2E v1: FROZEN
 
 Champion Spell Calculation Source Foundation Phase 2F v1: FROZEN
+
+Executable Combat Formula Foundation Phase 2G v2: FROZEN
 
 No new major layer should be inferred from this section.
 The current task must be taken from TODO.md after project review.
