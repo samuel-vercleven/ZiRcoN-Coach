@@ -30,7 +30,7 @@ PASS / REVIEW_REQUIRED FOR FREEZE
 
 ## Errors encountered
 - The first top-audit attempt exposed a `None` spell-calculation table in a representative probe; the Phase 2G probe now treats the frozen source's explicit `null` as no calculations, then the audit passed.
-- `git push origin main` was rejected before network egress by the safety reviewer because the specific GitHub destination was not explicitly authorized. The three tested commits remain local and clean.
+- The first `git push origin main` attempt was rejected before network egress because the specific GitHub destination was not explicitly authorized. After explicit user authorization, the tested commits were pushed successfully to `origin/main`.
 
 ## Main analyzer results
 ### Current analyzer
@@ -60,7 +60,6 @@ PASS / REVIEW_REQUIRED FOR FREEZE
 ## Remaining issues
 - Project review must decide whether Phase 2G should be frozen.
 - No known technical blocker remains in the requested pre-freeze hardening scope.
-- Push remains pending explicit authorization for `https://github.com/samuel-vercleven/ZiRcoN-Coach.git` (`origin/main`).
 
 ## Codex technical recommendation
 - Review the stricter exact-signature, per-stat completeness, structural damage-evidence, and project-validated composability contracts before the freeze decision. Do not start a new phase from this run.
