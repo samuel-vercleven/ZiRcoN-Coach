@@ -128,6 +128,8 @@ Champion Spell Calculation Source Foundation — Phase 2F v1
 
 Executable Combat Formula Foundation — Phase 2G v2
 
+Champion Spell Stat Reference Semantics Foundation — Phase 2H v1
+
 Do not modify a frozen analyzer unless one of these is true:
 
 a concrete correctness bug is demonstrated;
@@ -158,11 +160,9 @@ Never silently modify a frozen analyzer.
 
 4. Current module under development
 
-Current active layer:
+No production module is currently under development.
 
-Champion Spell Stat Reference Semantics Foundation — Phase 2H v1
-
-Phase 2H is technically complete and requires project review for freeze.
+Champion Spell Stat Reference Semantics Foundation Phase 2H v1 is FROZEN by project review. Its explicit unresolved and non-executable contracts are part of the freeze baseline.
 
 Do not infer or begin Phase 2I. The next major task requires project review and a new TODO.md.
 
@@ -829,7 +829,7 @@ Champion Spell Calculation Source Foundation Phase 2F v1: FROZEN
 
 Executable Combat Formula Foundation Phase 2G v2: FROZEN
 
-Champion Spell Stat Reference Semantics Foundation Phase 2H v1: REVIEW_REQUIRED FOR FREEZE
+Champion Spell Stat Reference Semantics Foundation Phase 2H v1: FROZEN
 
 The current task should be taken from TODO.md, not inferred from this section.
 

@@ -1,22 +1,22 @@
 # LAST RUN
 
 ## Status
-PASS / REVIEW_REQUIRED FOR FREEZE
+PASS
 
 ## Date
-2026-08-31 16:57 local
+2026-08-31 17:10 local
 
 ## Command
 `python main.py` through the project `.venv`; complete terminal output captured in `logs/latest_full_run.txt`.
 
 ## Runtime
 - completed successfully;
-- 2.34s reported by the final post-commit development harness run.
+- 2.02s reported by the official freeze validation run.
 
 ## Files changed
 - New Phase 2H provenance, inventory, semantic mapping/composition, synthetic, precision, research, inventory-audit, and full-audit modules under `knowledge/`.
-- `main.py`: Phase 2H current harness; Phase 2G and all earlier layers remain protected by the existing FROZEN guard.
-- `PROJECT_STATE.md`, `DECISIONS.md`, `TODO.md`, and `LAST_RUN.md`: Phase 2H evidence boundary and review state.
+- `main.py`: Phase 2H current harness; Phase 2G and all earlier layers remain protected, and all seven Phase 2H production/validation files now join the FROZEN guard.
+- `AGENTS.md`, `PROJECT_STATE.md`, `DECISIONS.md`, `TODO.md`, and `LAST_RUN.md`: official Phase 2H v1 freeze state.
 - Checkpoint commits already created: `1ba23ed` (inventory) and `988f190` (validated semantics); the final audit/documentation commit contains this report.
 - No FROZEN production or validation file changed.
 
@@ -26,7 +26,7 @@ PASS / REVIEW_REQUIRED FOR FREEZE
 - Precision checks: PASS 31/31 across 6 stat fixtures and 4 formula fixtures.
 - Public-source provenance audit: PASS.
 - Exact pinned inventory audit: PASS.
-- Full real stat-semantics audit: PASS / REVIEW_REQUIRED FOR FREEZE.
+- Full real stat-semantics audit: PASS (its historical `REVIEW_REQUIRED FOR FREEZE` suffix is preserved by the now-frozen validation module; project review accepted the freeze).
 - Final `python main.py`: PASS.
 - FROZEN guard: PASS, 0 frozen modifications.
 - `git diff --check`: PASS.
@@ -48,7 +48,7 @@ PASS / REVIEW_REQUIRED FOR FREEZE
 - Ownership: caster 0, target 0, source-level 0, context-dependent 0, unresolved 569.
 - Composition: 0 real fully resolved references; 467 reach the owner gate, 101 stop on stat ID, and 1 stops on formula ID. Six snapshot fields are structurally composable only after future owner proof.
 - AbilityResource: 8 separate class nodes, one explicit raw ID 4, all `RESOURCE_ENUM_RESEARCH_ONLY`.
-- Phase 2G frozen version: `combat_formula_foundation_phase2g_v2`; behavior and frozen counts unchanged.
+- Phase 2H v1 is FROZEN by accepted project review; all seven Phase 2H files are guarded and Phase 2G frozen behavior and counts remain unchanged.
 
 ## Suspicious findings
 - Public formula tables disagree: historical HextechDocs labels formula 2 as total, while exact pinned Akshan/Diana fixtures and current leaguebuilder support bonus. Formula 1 has incompatible bonus/total claims and only one non-discriminating pinned occurrence.
@@ -60,12 +60,11 @@ PASS / REVIEW_REQUIRED FOR FREEZE
 - Missing serialized enum fields are preserved distinctly from explicit zero; zero remains a legitimate value.
 
 ## Remaining issues
-- Project review must decide whether the conservative Phase 2H v1 evidence boundary is ready to freeze.
-- Formula 1, raw IDs 13-16, resource enum semantics, and all owner identities remain non-executable.
+- Formula 1, raw IDs 13-16, resource enum semantics, and all owner identities remain non-executable by the accepted freeze baseline.
 - Phase 2I was not started.
 
 ## Codex technical recommendation
 - Review the recorded evidence and contradictions as-is; do not increase coverage without new patch-specific owner or enum proof.
 
 ## Review request
-REVIEW_REQUIRED FOR FREEZE because Phase 2H cannot self-declare FROZEN; unresolved contracts are explicit and non-blocking for this technical completion.
+NONE. Phase 2H v1 is FROZEN by accepted project review; its unresolved contracts remain explicit.

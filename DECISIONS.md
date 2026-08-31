@@ -106,7 +106,7 @@ Rules:
 Status:
 FROZEN.
 
-## Phase 2H stat-reference semantic evidence boundary
+## Champion Spell Stat Reference Semantics Foundation Phase 2H v1 - FROZEN
 
 Decision:
 - treat exact pinned `GlobalStatsUIData.json` identities as primary raw-stat evidence, but require independent exact spell/mechanic evidence before a mapping becomes execution-eligible;
@@ -114,7 +114,7 @@ Decision:
 - expose convenience maps from `VALIDATED` records only;
 - never infer missing enum positions or ownership from frequency, champion archetype, damage type, coefficient magnitude, calculation key, or adjacent integers.
 
-Accepted Phase 2H v1 mappings pending freeze review:
+Accepted frozen Phase 2H v1 mappings:
 - execution-eligible stats: `1 -> ARMOR`, `2 -> ATTACK_DAMAGE`, `12 -> HEALTH`;
 - `STRONGLY_SUPPORTED`, non-executable stats: 4, 6, 7, 8, 9, 10, 18, 29, and 31 with their direct pinned UI identities;
 - unresolved stats: 13, 14, 15, and 16;
@@ -134,8 +134,13 @@ Provenance rule:
 - `UInt8`/memory-layout evidence proves structure only;
 - historical community tables that conflict with exact 26.16 fixtures remain recorded as contradictions rather than silently discarded.
 
+Freeze rule:
+- do not modify Phase 2H production or validation files without a demonstrated correctness/integration bug or explicit project review request;
+- do not promote strongly supported, contradicted, or unresolved semantics to execution eligibility without new patch-specific proof;
+- do not start Phase 2I without project review and a new TODO.
+
 Status:
-Implemented and technically validated; REVIEW_REQUIRED FOR FREEZE. Phase 2H is not self-declared frozen and Phase 2I has not started.
+FROZEN by project review. Phase 2I has not started.
 
 ## Executable Combat Formula Foundation Phase 2G v2 - FROZEN
 

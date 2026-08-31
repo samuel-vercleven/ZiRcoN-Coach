@@ -223,6 +223,13 @@ FROZEN_FILES = {
     "knowledge/spell_damage_mitigation.py",
     "knowledge/spell_damage_mitigation_full_audit.py",
     "knowledge/spell_damage_mitigation_synthetic_checks.py",
+    "knowledge/champion_spell_stat_semantics.py",
+    "knowledge/champion_spell_stat_semantics_sources.py",
+    "knowledge/champion_spell_stat_semantics_synthetic_checks.py",
+    "knowledge/champion_spell_stat_semantics_precision_checks.py",
+    "knowledge/champion_spell_stat_semantics_research_audit.py",
+    "knowledge/champion_spell_stat_semantics_inventory_audit.py",
+    "knowledge/champion_spell_stat_semantics_full_audit.py",
 }
 
 

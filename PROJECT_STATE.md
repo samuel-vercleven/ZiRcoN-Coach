@@ -14,16 +14,18 @@
 - Champion Spell Calculation Source Foundation: Phase 2F v1 - FROZEN.
 - Executable Combat Formula Foundation: Phase 2G v2 - FROZEN.
 
+- Champion Spell Stat Reference Semantics Foundation: Phase 2H v1 - FROZEN.
+
 Frozen means: no retuning/refactor without a demonstrated correctness or integration bug or explicit project review request.
 
 ## In development
-- Champion Spell Stat Reference Semantics Foundation Phase 2H v1 is technically complete and `REVIEW_REQUIRED FOR FREEZE`.
-- Phase 2H is not frozen until project review accepts the evidence boundary.
+- No production module is currently under development.
+- The next major task requires project review and a new TODO.md.
 - Phase 2I, stat execution, Burst/TTK, item/rune execution, combo engine, recommendations, ML, and UI remain out of scope.
 
 ## Champion Spell Stat Reference Semantics Foundation Phase 2H v1
-- Status: `PASS / REVIEW_REQUIRED FOR FREEZE`; version `champion_spell_stat_semantics_phase2h_v1`.
-- Latest real runtime: `python main.py` PASS on 2026-08-31 (2.34s); compile, 21/21 synthetic checks, 31/31 precision assertions, research audit, exact inventory audit, full semantics audit, and FROZEN guard all passed.
+- Status: FROZEN by project review; version `champion_spell_stat_semantics_phase2h_v1`.
+- Latest official-freeze runtime: `python main.py` PASS on 2026-08-31 (2.02s); compile, 21/21 synthetic checks, 31/31 precision assertions, research audit, exact inventory audit, full semantics audit, and the expanded FROZEN guard all passed.
 - Exact source remains Phase 2F commit `9245fd616059c6c658d1faa1029f0e18ea179154`, Data Dragon 16.16.1/fr_FR. Public provenance is recorded with immutable commits where available; structural `UInt8` evidence is not treated as enum meaning.
 - Inventory invariant: 885 field occurrences = 569 `mStat` + 316 explicit `mStatFormula`; 16 explicit raw stat IDs: `[1, 2, 4, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 18, 29, 31]`.
 - Execution-eligible stat mappings: `1 -> ARMOR`, `2 -> ATTACK_DAMAGE`, `12 -> HEALTH`; 468/569 occurrences (82.25%).
@@ -34,8 +36,8 @@ Frozen means: no retuning/refactor without a demonstrated correctness or integra
 - Six Phase 2G fields can be composed only after future owner proof: armor/armor bonus, AD total/bonus, and max/bonus health. Internal `BASE_STAT` is not equated to Phase 2G native-at-level fields.
 - AbilityResource is isolated: 8 class nodes, one explicit raw `mAbilityResource=4`, all `RESOURCE_ENUM_RESEARCH_ONLY`.
 - Safety audit: 0 key-name-only mappings admitted, 0 ambiguous/contradicted mappings in execution maps, 0 owner assumptions, 0 FROZEN modifications.
-- Compatibility: all Phase 2G v2 production and validation files remain unchanged; `main.py` now runs only the Phase 2H validation stack plus the existing FROZEN guard.
-- Remaining limitation: evidence does not support freezing the unresolved IDs, formula 1, resource enum, or any owner identity as executable semantics. Project review decides whether the conservative v1 boundary is acceptable for freeze.
+- Compatibility: all Phase 2G v2 production and validation files remain unchanged; `main.py` guards all seven Phase 2H production/validation files and runs only the Phase 2H validation stack plus the FROZEN guard.
+- Accepted frozen limitation: IDs 13-16, formula 1, resource enum semantics, and all owner identities remain non-executable. Do not expand coverage without a reviewed, patch-specific proof.
 
 ## Executable Combat Formula Foundation Phase 2G v2
 - Status: FROZEN by project review.

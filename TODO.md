@@ -124,7 +124,7 @@ git log origin/main..HEAD --oneline
 
 # 3. Completion status
 
-`COMPLETED / REVIEW_REQUIRED FOR FREEZE`
+`COMPLETED / FROZEN`
 
 Phase 2H v1 is implemented and technically validated. The final stack covers compilation, 21/21 synthetic checks, 31/31 precision assertions, provenance research, the exact 885-occurrence inventory, the full real semantics audit, `python main.py`, and the FROZEN guard.
 
@@ -138,4 +138,4 @@ Validated execution-map semantics remain deliberately limited to:
 
 Raw stat IDs 13, 14, 15, and 16, formula value 1, resource enum semantics, and all real owner identities remain non-executable or unresolved. Phase 2G v2 was not modified. Phase 2I was not started.
 
-Project review decides whether Phase 2H v1 is ready to freeze.
+Project review accepted Phase 2H v1 for freeze. All seven Phase 2H production and validation files are protected by the `main.py` FROZEN guard. Phase 2I was not started.
