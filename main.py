@@ -17,7 +17,7 @@ if hasattr(sys.stdout, "reconfigure"):
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 CURRENT_PHASE = (
-    "Executable Combat Formula Foundation Phase 2G v2 (FROZEN)"
+    "Champion Spell Stat Reference Semantics Foundation Phase 2H v1"
 )
 
 
@@ -107,6 +107,43 @@ TEST_COMMANDS = [
     *[(f"Synthetic {module.rsplit('.', 1)[-1]}", [sys.executable, "-m", module]) for module in SYNTHETIC_MODULES],
     *[(f"Precision {module.rsplit('.', 1)[-1]}", [sys.executable, "-m", module]) for module in PRECISION_MODULES],
     *[(f"Audit {module.rsplit('.', 1)[-1]}", [sys.executable, "-m", module]) for module in AUDIT_MODULES],
+]
+
+
+# Phase 2H is a provenance/semantics harness only.  The retained Phase 2G
+# command definitions above remain useful history, while Phase 2G production
+# and validation files stay protected by FROZEN_FILES below.
+PHASE2H_FILES = [
+    "knowledge/champion_spell_stat_semantics_sources.py",
+    "knowledge/champion_spell_stat_semantics.py",
+    "knowledge/champion_spell_stat_semantics_synthetic_checks.py",
+    "knowledge/champion_spell_stat_semantics_precision_checks.py",
+    "knowledge/champion_spell_stat_semantics_research_audit.py",
+    "knowledge/champion_spell_stat_semantics_inventory_audit.py",
+    "knowledge/champion_spell_stat_semantics_full_audit.py",
+]
+TEST_COMMANDS = [
+    ("Compilation Phase 2H", [sys.executable, "-m", "py_compile", *PHASE2H_FILES]),
+    (
+        "Synthetic champion_spell_stat_semantics",
+        [sys.executable, "-m", "knowledge.champion_spell_stat_semantics_synthetic_checks"],
+    ),
+    (
+        "Precision champion_spell_stat_semantics",
+        [sys.executable, "-m", "knowledge.champion_spell_stat_semantics_precision_checks"],
+    ),
+    (
+        "Research audit champion_spell_stat_semantics",
+        [sys.executable, "-m", "knowledge.champion_spell_stat_semantics_research_audit"],
+    ),
+    (
+        "Inventory audit champion_spell_stat_semantics",
+        [sys.executable, "-m", "knowledge.champion_spell_stat_semantics_inventory_audit"],
+    ),
+    (
+        "Full audit champion_spell_stat_semantics",
+        [sys.executable, "-m", "knowledge.champion_spell_stat_semantics_full_audit"],
+    ),
 ]
 
 
@@ -219,9 +256,8 @@ def _run(title, command):
     if result.returncode == 0:
         detail = ""
 
-        if title == "Audit complet Champion Spell Source":
-            if status_line:
-                detail = f" | {status_line}"
+        if status_line:
+            detail = f" | {status_line}"
         elif stdout_lines:
             detail = f" | {stdout_lines[-1]}"
 

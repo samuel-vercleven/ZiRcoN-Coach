@@ -91,6 +91,15 @@ def main():
     assert weak == STRONGLY_SUPPORTED; checks += 1
     assert finalize_candidate_status(VALIDATED, [{"tier": "A"}, {"tier": "B"}], [{"blocking": True}]) == CONTRADICTED; checks += 1
 
+    contradiction_rows = [{
+        "raw_mStat": 2,
+        "champion_id": "Malphite",
+        "slot": "E",
+        "graph_path": "mSpellCalculations/EDamageCalc/mFormulaParts/1",
+    }]
+    contradicted_candidate = build_stat_semantic_records([2], contradiction_rows)[2]
+    assert contradicted_candidate["status"] == CONTRADICTED and not contradicted_candidate["execution_eligible"]; checks += 1
+
     unknown_formula = compose_snapshot_reference(
         2, 99, OWNER_VALIDATED_CASTER, stat_records, formula_records,
         caster_snapshot=_snapshot(attack_damage_bonus=50.0),

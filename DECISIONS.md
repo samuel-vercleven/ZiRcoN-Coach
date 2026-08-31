@@ -106,6 +106,37 @@ Rules:
 Status:
 FROZEN.
 
+## Phase 2H stat-reference semantic evidence boundary
+
+Decision:
+- treat exact pinned `GlobalStatsUIData.json` identities as primary raw-stat evidence, but require independent exact spell/mechanic evidence before a mapping becomes execution-eligible;
+- keep `mStat` identity, `mStatFormula` base/bonus/total semantics, and owner identity as separate records;
+- expose convenience maps from `VALIDATED` records only;
+- never infer missing enum positions or ownership from frequency, champion archetype, damage type, coefficient magnitude, calculation key, or adjacent integers.
+
+Accepted Phase 2H v1 mappings pending freeze review:
+- execution-eligible stats: `1 -> ARMOR`, `2 -> ATTACK_DAMAGE`, `12 -> HEALTH`;
+- `STRONGLY_SUPPORTED`, non-executable stats: 4, 6, 7, 8, 9, 10, 18, 29, and 31 with their direct pinned UI identities;
+- unresolved stats: 13, 14, 15, and 16;
+- formula 0 is `TOTAL_STAT` and formula 2 is `BONUS_STAT` for the exact pinned stat branch;
+- formula 1 remains `CONTRADICTED` because the single pinned occurrence does not distinguish the incompatible historical/current public claims.
+
+Ownership and execution boundary:
+- all 569 real `mStat` occurrences remain `OWNER_UNRESOLVED`;
+- no stat-reference occurrence is fully composable without owner proof;
+- Phase 2H may identify a compatible frozen Phase 2G snapshot field, but does not execute stat calculation classes or modify Phase 2G;
+- Phase 2G native-at-level fields are not automatically equivalent to internal `BASE_STAT` semantics;
+- `AbilityResourceByCoefficientCalculationPart` remains a separate `RESOURCE_ENUM_RESEARCH_ONLY` branch.
+
+Provenance rule:
+- immutable repository commits are recorded where available;
+- official Riot patch notes are mechanic anchors, not internal enum documentation;
+- `UInt8`/memory-layout evidence proves structure only;
+- historical community tables that conflict with exact 26.16 fixtures remain recorded as contradictions rather than silently discarded.
+
+Status:
+Implemented and technically validated; REVIEW_REQUIRED FOR FREEZE. Phase 2H is not self-declared frozen and Phase 2I has not started.
+
 ## Executable Combat Formula Foundation Phase 2G v2 - FROZEN
 
 Decision:

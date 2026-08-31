@@ -158,11 +158,13 @@ Never silently modify a frozen analyzer.
 
 4. Current module under development
 
-No production module is currently under development.
+Current active layer:
 
-Executable Combat Formula Foundation Phase 2G v2 is FROZEN by project review. Its explicit unsupported/unresolved contracts are part of the freeze baseline.
+Champion Spell Stat Reference Semantics Foundation — Phase 2H v1
 
-Do not infer or begin Phase 2H. The next major task requires project review and a new TODO.md.
+Phase 2H is technically complete and requires project review for freeze.
+
+Do not infer or begin Phase 2I. The next major task requires project review and a new TODO.md.
 
 5. Methodology rules
 
@@ -827,5 +829,36 @@ Champion Spell Calculation Source Foundation Phase 2F v1: FROZEN
 
 Executable Combat Formula Foundation Phase 2G v2: FROZEN
 
-No new major layer should be inferred from this section.
-The current task must be taken from TODO.md after project review.
+Champion Spell Stat Reference Semantics Foundation Phase 2H v1: REVIEW_REQUIRED FOR FREEZE
+
+The current task should be taken from TODO.md, not inferred from this section.
+
+## Repository data policy
+
+This is a private GitHub repository.
+
+The following project-analysis data is explicitly allowed to be committed:
+
+- Riot match IDs;
+- game timestamps;
+- game/analyzer statistics;
+- analyzer audit results;
+- detailed validation reports;
+- LAST_RUN.md;
+- PROJECT_STATE.md;
+- TODO.md;
+- diagnostic metadata required to review ZiRcoN Coach.
+
+Do not block a commit/push merely because these files contain League of Legends
+match-history metadata.
+
+The following remain strictly forbidden:
+
+- `.env`;
+- Riot API keys;
+- API tokens;
+- passwords;
+- GitHub credentials;
+- `.venv/`;
+- `*.db`;
+- authentication secrets of any kind.

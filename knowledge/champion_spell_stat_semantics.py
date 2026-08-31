@@ -455,6 +455,16 @@ def build_stat_semantic_records(observed_ids, stat_rows=()):
                 else "ID absent from the exact pinned GlobalStatsUIData table; no enum position inferred."
             ),
         }
+    if stat_rows:
+        contradiction_results = audit_stat_mapping_contradictions(records, stat_rows)
+        for raw_stat_id, result in contradiction_results.items():
+            if not result["contradictions"]:
+                continue
+            record = records[raw_stat_id]
+            record["contradictions"].extend(copy.deepcopy(result["contradictions"]))
+            record["contradiction_count"] = len(record["contradictions"])
+            record["status"] = CONTRADICTED
+            record["execution_eligible"] = False
     return records
 
 
@@ -602,9 +612,7 @@ def build_formula_semantic_records(raw_formula_ids, stat_rows=()):
     return records
 
 
-def get_validated_stat_mapping(records=None):
-    if records is None:
-        records = build_stat_semantic_records(PINNED_GLOBAL_STAT_UI_MAPPING)
+def get_validated_stat_mapping(records):
     return {
         raw_id: record["semantic_stat"]
         for raw_id, record in records.items()
@@ -612,9 +620,7 @@ def get_validated_stat_mapping(records=None):
     }
 
 
-def get_validated_stat_formula_mapping(records=None):
-    if records is None:
-        records = build_formula_semantic_records((0, 1, 2))
+def get_validated_stat_formula_mapping(records):
     return {
         raw_id: record["semantic_formula"]
         for raw_id, record in records.items()

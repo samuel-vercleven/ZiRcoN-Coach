@@ -203,4 +203,3 @@ def source_registry_digest():
 def get_source_record(source_id):
     record = SOURCE_REGISTRY.get(source_id)
     return None if record is None else json.loads(json.dumps(record))
-

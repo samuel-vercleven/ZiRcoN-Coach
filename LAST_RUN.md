@@ -1,58 +1,71 @@
 # LAST RUN
 
 ## Status
-PASS
+PASS / REVIEW_REQUIRED FOR FREEZE
 
 ## Date
-2026-08-23 02:43 local
+2026-08-31 16:57 local
 
 ## Command
 `python main.py` through the project `.venv`; complete terminal output captured in `logs/latest_full_run.txt`.
 
 ## Runtime
 - completed successfully;
-- 325.65s reported by the development harness.
+- 2.34s reported by the final post-commit development harness run.
 
 ## Files changed
-- `main.py`: Phase 2G v2 FROZEN guard expanded to all 43 approved production/validation files.
-- `AGENTS.md`, `PROJECT_STATE.md`, `DECISIONS.md`, and `TODO.md`: official Phase 2G v2 freeze state and next-step boundary.
-- `LAST_RUN.md`: this freeze report.
-- No Phase 2G production or validation behavior changed.
+- New Phase 2H provenance, inventory, semantic mapping/composition, synthetic, precision, research, inventory-audit, and full-audit modules under `knowledge/`.
+- `main.py`: Phase 2H current harness; Phase 2G and all earlier layers remain protected by the existing FROZEN guard.
+- `PROJECT_STATE.md`, `DECISIONS.md`, `TODO.md`, and `LAST_RUN.md`: Phase 2H evidence boundary and review state.
+- Checkpoint commits already created: `1ba23ed` (inventory) and `988f190` (validated semantics); the final audit/documentation commit contains this report.
+- No FROZEN production or validation file changed.
 
 ## Tests executed
-- Phase 2G compilation: PASS.
-- All 12 synthetic modules: PASS.
-- All 4 precision modules: PASS.
-- Taxonomy, value, DataValue, stat-reference, evaluator, formula-runtime, snapshot, damage-evidence, damage-resolver, mitigation, cast-stat, representative, and top cross-layer real audits: PASS.
+- Phase 2H `py_compile`: PASS.
+- Synthetic checks: PASS 21/21.
+- Precision checks: PASS 31/31 across 6 stat fixtures and 4 formula fixtures.
+- Public-source provenance audit: PASS.
+- Exact pinned inventory audit: PASS.
+- Full real stat-semantics audit: PASS / REVIEW_REQUIRED FOR FREEZE.
 - Final `python main.py`: PASS.
-- Phase 2G FROZEN guard: PASS; 43 Phase 2G files protected.
+- FROZEN guard: PASS, 0 frozen modifications.
 - `git diff --check`: PASS.
 
 ## Errors encountered
-- none.
+- none in the final run.
 
 ## Main analyzer results
 ### Current analyzer
-- Phase 2G v2 is FROZEN by accepted project review.
-- Pinned baseline: 173 champions, 692 primary slots, 1,443 calculations, 5,318 graph nodes, 25 classes, 109 signatures, Data Dragon 16.16.1/fr_FR, commit `9245fd616059c6c658d1faa1029f0e18ea179154`.
-- Six exact executable signatures; 0 arithmetic evaluations under unregistered signatures.
-- Evaluator: 13 RESOLVED, 720 PARTIALLY_RESOLVED, 493 UNSUPPORTED_SIGNATURE, 217 UNSUPPORTED_CLASS.
-- Snapshots: 6,920 audited rows; 4,844 resolved and 2,076 partial.
-- Damage evidence: 345 high confidence, 195 multiple candidates, 125 not identified, 27 insufficient; no high-confidence key-name-only case.
-- Real raw/post-mitigation damage and composable totals: 0 / 0 / 0; accepted as the precise frozen coverage.
-- Percentage penetration remains multiplicative: 30% + 20% = 44% through frozen Phase 2E.
+- Version: `champion_spell_stat_semantics_phase2h_v1`.
+- Exact source: `Haru-Kay/LeagueDatamines@9245fd616059c6c658d1faa1029f0e18ea179154`, patch 26.16; Data Dragon 16.16.1/fr_FR.
+- Other recorded sources: `LeagueToolkit/lol-meta-classes@6222976776a9ca18fc63945930f22b8b03b30144`, `moonshadow565/calcrev@40f21c06e5cfc10750bb44b39d1f2d4e3567a6dc`, `CommunityDragon/CDTB@b52d04fa986a1620f31bd3ca8f9dbbea169b1641`, `OsOmE1/leaguebuilder@1ae51c26bdde36e178174b98f7c65a52d55f10fa`, HextechDocs, and official Riot patch notes 9.2, 9.24, 26.1, and 26.2. Exact URLs and limitations are in the sources module.
+- Inventory: 885 occurrences = 569 `mStat` + 316 explicit `mStatFormula`; 16 explicit IDs `[1, 2, 4, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 18, 29, 31]`.
+- Effective formula values: `[0, 1, 2]`; explicit serialized values `[1, 2]`.
+- Validated stats: `{1: ARMOR, 2: ATTACK_DAMAGE, 12: HEALTH}`; execution-eligible coverage 468/569 (82.25%).
+- Strongly supported/non-executable: IDs `[4, 6, 7, 8, 9, 10, 18, 29, 31]`.
+- Ambiguous/contradicted stat IDs: none; unresolved `[13, 14, 15, 16]`.
+- Validated formulas: `{0: TOTAL_STAT, 2: BONUS_STAT}`, covering 568/569 (99.82%); formula 1 is contradicted and excluded.
+- Ownership: caster 0, target 0, source-level 0, context-dependent 0, unresolved 569.
+- Composition: 0 real fully resolved references; 467 reach the owner gate, 101 stop on stat ID, and 1 stops on formula ID. Six snapshot fields are structurally composable only after future owner proof.
+- AbilityResource: 8 separate class nodes, one explicit raw ID 4, all `RESOURCE_ENUM_RESEARCH_ONLY`.
+- Phase 2G frozen version: `combat_formula_foundation_phase2g_v2`; behavior and frozen counts unchanged.
 
 ## Suspicious findings
-- none.
+- Public formula tables disagree: historical HextechDocs labels formula 2 as total, while exact pinned Akshan/Diana fixtures and current leaguebuilder support bonus. Formula 1 has incompatible bonus/total claims and only one non-discriminating pinned occurrence.
+- Four pinned `mStat` IDs (13-16) are absent from the exact pinned `GlobalStatsUIData` table; no positional inference was admitted.
 
 ## Methodological concerns
-- Stat enums/owners, conditional mechanics, ticks, alternate forms, excluded description-derived item facts, rune execution, and composability without `PROJECT_VALIDATED` evidence remain explicitly unresolved.
+- The exact stat UI table is a community datamine/export of Riot files, not Riot Developer API documentation.
+- Structural `UInt8` and reverse-engineered call topology do not prove enum meaning or owner identity.
+- Missing serialized enum fields are preserved distinctly from explicit zero; zero remains a legitimate value.
 
 ## Remaining issues
-- No active implementation task. The next major task requires project review.
+- Project review must decide whether the conservative Phase 2H v1 evidence boundary is ready to freeze.
+- Formula 1, raw IDs 13-16, resource enum semantics, and all owner identities remain non-executable.
+- Phase 2I was not started.
 
 ## Codex technical recommendation
-- Preserve the frozen Phase 2G contracts and start no successor layer without an explicit reviewed TODO.
+- Review the recorded evidence and contradictions as-is; do not increase coverage without new patch-specific owner or enum proof.
 
 ## Review request
-NONE.
+REVIEW_REQUIRED FOR FREEZE because Phase 2H cannot self-declare FROZEN; unresolved contracts are explicit and non-blocking for this technical completion.
