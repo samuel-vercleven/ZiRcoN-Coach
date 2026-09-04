@@ -1,130 +1,51 @@
-from __future__ import annotations
-
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (
-    QFrame,
-    QHBoxLayout,
-    QLabel,
-    QMainWindow,
-    QPushButton,
-    QStackedWidget,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtCore import QThreadPool
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QMainWindow, QProgressBar, QPushButton, QStackedWidget, QVBoxLayout, QWidget
 
 from app.bootstrap import AppContext
+from ui.components.status_badge import StatusBadge
 from ui.pages.dashboard_page import DashboardPage
 from ui.pages.match_detail_page import MatchDetailPage
 from ui.pages.matches_page import MatchesPage
 from ui.pages.progress_page import ProgressPage
 from ui.pages.settings_page import SettingsPage
+from ui.workers import FunctionWorker
 
 
 class MainWindow(QMainWindow):
-    PAGE_DASHBOARD = 0
-    PAGE_MATCHES = 1
-    PAGE_PROGRESS = 2
-    PAGE_SETTINGS = 3
-    PAGE_MATCH_DETAIL = 4
-
-    def __init__(self, context: AppContext, parent=None) -> None:
-        super().__init__(parent)
-        self.context = context
-
-        self.setWindowTitle("ZiRcoN Coach — V0.1 Alpha")
-        self.resize(1260, 780)
-        self.setMinimumSize(980, 640)
-
-        central = QWidget()
-        root = QHBoxLayout(central)
-        root.setContentsMargins(0, 0, 0, 0)
-        root.setSpacing(0)
-
-        sidebar = QFrame()
-        sidebar.setObjectName("Sidebar")
-        sidebar.setFixedWidth(190)
-        side_layout = QVBoxLayout(sidebar)
-        side_layout.setContentsMargins(16, 22, 16, 16)
-        side_layout.setSpacing(8)
-
-        brand = QLabel("ZiRcoN Coach")
-        brand.setObjectName("Brand")
-        side_layout.addWidget(brand)
-
-        self.nav_buttons: list[QPushButton] = []
-        for text, index in (
-            ("Dashboard", self.PAGE_DASHBOARD),
-            ("Matches", self.PAGE_MATCHES),
-            ("Progress", self.PAGE_PROGRESS),
-            ("Settings", self.PAGE_SETTINGS),
-        ):
-            button = QPushButton(text)
-            button.setCheckable(True)
-            button.clicked.connect(lambda _checked=False, i=index: self.navigate(i))
-            self.nav_buttons.append(button)
-            side_layout.addWidget(button)
-
-        side_layout.addStretch(1)
-
-        alpha = QLabel("V0.1 Alpha")
-        alpha.setObjectName("Muted")
-        side_layout.addWidget(alpha)
-
-        root.addWidget(sidebar)
-
-        self.stack = QStackedWidget()
-
-        self.dashboard_page = DashboardPage(context.local_data)
-        self.matches_page = MatchesPage(context.local_data)
-        self.progress_page = ProgressPage(context.local_data)
-        self.settings_page = SettingsPage(context.local_data)
-        self.match_detail_page = MatchDetailPage(context.local_data)
-
-        self.stack.addWidget(self.dashboard_page)
-        self.stack.addWidget(self.matches_page)
-        self.stack.addWidget(self.progress_page)
-        self.stack.addWidget(self.settings_page)
-        self.stack.addWidget(self.match_detail_page)
-
-        self.dashboard_page.open_match.connect(self.open_match)
-        self.matches_page.open_match.connect(self.open_match)
-        self.match_detail_page.back_requested.connect(
-            lambda: self.navigate(self.PAGE_MATCHES)
-        )
-
-        root.addWidget(self.stack, 1)
-        self.setCentralWidget(central)
-
-        self.statusBar().showMessage(self._initial_status())
-        self.navigate(self.PAGE_DASHBOARD)
-
-    def _initial_status(self) -> str:
-        try:
-            status = self.context.local_data.status()
-        except Exception:
-            return "Local data unavailable"
-
-        if status.db_available:
-            return f"Local data loaded • {status.match_count} match(es)"
-        return "No local database found • Settings remains available"
-
-    def navigate(self, index: int) -> None:
-        if index == self.PAGE_DASHBOARD:
-            self.dashboard_page.refresh()
-        elif index == self.PAGE_MATCHES:
-            self.matches_page.refresh()
-        elif index == self.PAGE_PROGRESS:
-            self.progress_page.refresh()
-        elif index == self.PAGE_SETTINGS:
-            self.settings_page.refresh()
-
-        self.stack.setCurrentIndex(index)
-
-        for button_index, button in enumerate(self.nav_buttons):
-            button.setChecked(button_index == index)
-
-    def open_match(self, match_id: str) -> None:
-        self.match_detail_page.load_match(match_id)
-        self.stack.setCurrentIndex(self.PAGE_MATCH_DETAIL)
-        for button in self.nav_buttons:
-            button.setChecked(False)
+    PAGE_DASHBOARD, PAGE_MATCHES, PAGE_PROGRESS, PAGE_SETTINGS, PAGE_MATCH_DETAIL = range(5)
+    def __init__(self, context: AppContext, parent=None):
+        super().__init__(parent); self.context = context; self.sync_worker = None
+        self.setWindowTitle("ZiRcoN Coach — V0.1 Alpha"); self.resize(1400, 850); self.setMinimumSize(1100, 700)
+        central = QWidget(); outer = QHBoxLayout(central); outer.setContentsMargins(0, 0, 0, 0); outer.setSpacing(0)
+        sidebar = QFrame(); sidebar.setObjectName("Sidebar"); sidebar.setFixedWidth(210); side = QVBoxLayout(sidebar); side.setContentsMargins(20, 25, 20, 18); side.setSpacing(8)
+        brand = QLabel("ZiRcoN Coach"); brand.setObjectName("Brand"); side.addWidget(brand); accent = QLabel("TRUSTED POST-GAME"); accent.setObjectName("BrandAccent"); side.addWidget(accent); side.addSpacing(24)
+        self.nav_buttons = []
+        for text, index in (("◈  Dashboard", 0), ("▤  Matches", 1), ("⌁  Progress", 2), ("⚙  Settings", 3)):
+            button = QPushButton(text); button.setCheckable(True); button.clicked.connect(lambda checked=False, i=index: self.navigate(i)); side.addWidget(button); self.nav_buttons.append(button)
+        side.addStretch(); frozen = QLabel("V0.1 ALPHA\nBackend frozen → Phase 2I"); frozen.setObjectName("Muted"); side.addWidget(frozen); outer.addWidget(sidebar)
+        workspace = QWidget(); work = QVBoxLayout(workspace); work.setContentsMargins(0, 0, 0, 0); work.setSpacing(0)
+        topbar = QFrame(); topbar.setObjectName("Topbar"); top = QHBoxLayout(topbar); top.setContentsMargins(25, 12, 24, 12); self.page_title = QLabel("Dashboard"); self.page_title.setObjectName("SectionTitle"); top.addWidget(self.page_title); top.addStretch(); self.player = QLabel(); self.player.setObjectName("Muted"); top.addWidget(self.player); self.api = StatusBadge("UNKNOWN"); top.addWidget(self.api); self.sync_text = QLabel("Local data"); self.sync_text.setObjectName("Muted"); top.addWidget(self.sync_text); self.sync_button = QPushButton("Sync"); self.sync_button.setObjectName("PrimaryButton"); self.sync_button.clicked.connect(self.start_sync); top.addWidget(self.sync_button); work.addWidget(topbar)
+        self.progress = QProgressBar(); self.progress.setRange(0, 100); self.progress.setValue(0); self.progress.setVisible(False); work.addWidget(self.progress)
+        self.stack = QStackedWidget(); self.dashboard_page = DashboardPage(context.local_data, context.assets); self.matches_page = MatchesPage(context.local_data, context.assets); self.progress_page = ProgressPage(context.local_data, context.assets); self.settings_page = SettingsPage(context.local_data, context.settings, context.sync); self.match_detail_page = MatchDetailPage(context.local_data, context.analysis, context.assets)
+        for page in (self.dashboard_page, self.matches_page, self.progress_page, self.settings_page, self.match_detail_page): self.stack.addWidget(page)
+        self.dashboard_page.open_match.connect(self.open_match); self.matches_page.open_match.connect(self.open_match); self.match_detail_page.back_requested.connect(lambda: self.navigate(self.PAGE_MATCHES)); self.settings_page.settings_changed.connect(self.refresh_all); work.addWidget(self.stack, 1); outer.addWidget(workspace, 1); self.setCentralWidget(central); self.navigate(0); self.refresh_header()
+    def refresh_header(self):
+        try: player, status = self.context.local_data.player(), self.context.local_data.status(); self.player.setText(player.riot_id); self.api.set_status(status.api_status); self.statusBar().showMessage(f"Local-first • {status.match_count} match(es) • {status.latest_match_date}")
+        except Exception: self.player.setText("Local player unavailable"); self.api.set_status("UNKNOWN")
+    def navigate(self, index):
+        pages = [self.dashboard_page, self.matches_page, self.progress_page, self.settings_page]
+        if index < 4: pages[index].refresh()
+        self.stack.setCurrentIndex(index); names = ["Dashboard", "Match history", "Progress", "Settings & data", "Post-game"]
+        self.page_title.setText(names[index]); [button.setChecked(i == index) for i, button in enumerate(self.nav_buttons)]
+    def open_match(self, match_id):
+        self.match_detail_page.load_match(match_id); self.stack.setCurrentIndex(self.PAGE_MATCH_DETAIL); self.page_title.setText("Post-game analysis"); [button.setChecked(False) for button in self.nav_buttons]
+    def start_sync(self):
+        if self.sync_worker: return
+        self.sync_button.setEnabled(False); self.progress.setVisible(True); self.progress.setValue(1); self.sync_text.setText("Starting sync…")
+        worker = FunctionWorker(self.context.sync.sync, with_progress=True); worker.signals.progress.connect(self._sync_progress); worker.signals.result.connect(self._sync_result); worker.signals.error.connect(lambda message: self._sync_failed(message)); worker.signals.finished.connect(self._sync_finished); self.sync_worker = worker; QThreadPool.globalInstance().start(worker)
+    def _sync_progress(self, message, value): self.sync_text.setText(message); self.progress.setValue(value)
+    def _sync_result(self, result): self.sync_text.setText(result.get("message", result.get("status", "Complete"))); self.api.set_status("VALID" if result.get("status") in ("COMPLETE", "PARTIAL") else result.get("status", "ERROR")); self.refresh_all()
+    def _sync_failed(self, message): self.sync_text.setText(message); self.api.set_status("ERROR")
+    def _sync_finished(self): self.sync_worker = None; self.sync_button.setEnabled(True); self.progress.setVisible(False)
+    def refresh_all(self):
+        self.dashboard_page.refresh(); self.matches_page.refresh(); self.progress_page.refresh(); self.settings_page.refresh(); self.refresh_header()

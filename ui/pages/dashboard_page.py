@@ -1,129 +1,62 @@
-from __future__ import annotations
-
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import (
-    QFrame,
-    QGridLayout,
-    QHBoxLayout,
-    QLabel,
-    QPushButton,
-    QTableWidget,
-    QTableWidgetItem,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
 
+from services.asset_service import AssetService
 from services.local_data import LocalDataService
+from ui.components.asset_icon import AssetIcon
+from ui.components.empty_state import EmptyState
+from ui.components.match_card import MatchCard
 from ui.components.stat_card import StatCard
+from ui.components.status_badge import StatusBadge
 
 
 class DashboardPage(QWidget):
     open_match = Signal(str)
 
-    def __init__(self, service: LocalDataService, parent=None) -> None:
-        super().__init__(parent)
-        self._service = service
-
-        root = QVBoxLayout(self)
-        root.setContentsMargins(26, 22, 26, 22)
-        root.setSpacing(18)
-
-        title = QLabel("Dashboard")
-        title.setObjectName("PageTitle")
-        root.addWidget(title)
-
-        self.player_label = QLabel("Local player")
-        self.player_label.setObjectName("Muted")
-        root.addWidget(self.player_label)
-
-        cards = QGridLayout()
-        cards.setHorizontalSpacing(12)
-        cards.setVerticalSpacing(12)
-
-        self.games_card = StatCard("Games")
-        self.winrate_card = StatCard("Win rate")
-        self.kda_card = StatCard("KDA")
-        self.cs_card = StatCard("CS / min")
-
-        cards.addWidget(self.games_card, 0, 0)
-        cards.addWidget(self.winrate_card, 0, 1)
-        cards.addWidget(self.kda_card, 0, 2)
-        cards.addWidget(self.cs_card, 0, 3)
-        root.addLayout(cards)
-
-        recent_title_row = QHBoxLayout()
-        recent_title = QLabel("Recent matches")
-        recent_title.setStyleSheet("font-size: 17px; font-weight: 700;")
-        recent_title_row.addWidget(recent_title)
-        recent_title_row.addStretch(1)
-        root.addLayout(recent_title_row)
-
-        self.table = QTableWidget(0, 6)
-        self.table.setHorizontalHeaderLabels(
-            ["Champion", "Result", "K / D / A", "CS/min", "Duration", "Played"]
-        )
-        self.table.verticalHeader().setVisible(False)
-        self.table.setAlternatingRowColors(True)
-        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
-        self.table.cellDoubleClicked.connect(self._open_row)
-        self.table.horizontalHeader().setStretchLastSection(True)
-        root.addWidget(self.table, 1)
-
-        hint = QLabel("Double-click a match to open the post-game detail.")
-        hint.setObjectName("Muted")
-        root.addWidget(hint)
-
+    def __init__(self, service: LocalDataService, assets: AssetService, parent=None):
+        super().__init__(parent); self.service, self.assets = service, assets
+        root = QVBoxLayout(self); root.setContentsMargins(26, 20, 26, 22); root.setSpacing(16)
+        scroll = QScrollArea(); scroll.setWidgetResizable(True)
+        content = QWidget(); self.layout = QVBoxLayout(content); self.layout.setContentsMargins(0, 0, 8, 0); self.layout.setSpacing(16)
+        self.hero = QFrame(); self.hero.setObjectName("HeroCard"); hero = QHBoxLayout(self.hero); hero.setContentsMargins(20, 18, 20, 18)
+        self.profile_icon = AssetIcon(assets, 72); hero.addWidget(self.profile_icon)
+        identity = QVBoxLayout(); self.player_name = QLabel("Local player"); self.player_name.setObjectName("HeroName")
+        self.rank = QLabel("Rank unavailable"); self.rank.setObjectName("HeroRank"); self.profile_meta = QLabel(); self.profile_meta.setObjectName("Muted")
+        identity.addWidget(self.player_name); identity.addWidget(self.rank); identity.addWidget(self.profile_meta); hero.addLayout(identity, 1)
+        self.profile_status = StatusBadge("LOCAL"); hero.addWidget(self.profile_status)
+        self.layout.addWidget(self.hero)
+        cards = QGridLayout(); cards.setSpacing(10)
+        self.cards = [StatCard("LOADED GAMES"), StatCard("WIN RATE"), StatCard("KDA"), StatCard("CS / MIN"), StatCard("DEATHS / GAME")]
+        for index, card in enumerate(self.cards): cards.addWidget(card, 0, index)
+        self.layout.addLayout(cards)
+        recent_header = QHBoxLayout(); title = QLabel("Recent matches"); title.setObjectName("SectionTitle"); recent_header.addWidget(title); recent_header.addStretch()
+        self.form = QLabel(); self.form.setObjectName("Muted"); recent_header.addWidget(self.form); self.layout.addLayout(recent_header)
+        self.match_host = QWidget(); self.match_layout = QVBoxLayout(self.match_host); self.match_layout.setContentsMargins(0, 0, 0, 0); self.match_layout.setSpacing(8)
+        self.layout.addWidget(self.match_host); self.layout.addStretch(); scroll.setWidget(content); root.addWidget(scroll)
         self.refresh()
 
-    def refresh(self) -> None:
+    def _clear_matches(self):
+        while self.match_layout.count():
+            item = self.match_layout.takeAt(0)
+            if item.widget(): item.widget().deleteLater()
+
+    def refresh(self):
+        self._clear_matches()
         try:
-            player = self._service.player()
-            progress = self._service.progress()
-            matches = self._service.matches()[:5]
-        except Exception as exc:
-            self.player_label.setText(f"Local data unavailable: {exc}")
-            self.table.setRowCount(0)
-            return
-
-        self.player_label.setText(player.riot_id or "Local player")
-        self.games_card.set_value(str(progress.total_games))
-        self.winrate_card.set_value(
-            "—" if progress.win_rate is None else f"{progress.win_rate:.1f}%"
-        )
-        self.kda_card.set_value("—" if progress.kda is None else f"{progress.kda:.2f}")
-        self.cs_card.set_value(
-            "—" if progress.cs_per_min is None else f"{progress.cs_per_min:.2f}"
-        )
-
-        self.table.setRowCount(len(matches))
-        for row, match in enumerate(matches):
-            duration = (
-                f"{match.duration_seconds // 60}:{match.duration_seconds % 60:02d}"
-                if match.duration_seconds
-                else "—"
-            )
-            cs_min = "—" if match.cs_per_min is None else f"{match.cs_per_min:.1f}"
-            values = [
-                match.champion,
-                "Victory" if match.result == "WIN" else "Defeat",
-                match.kda_text,
-                cs_min,
-                duration,
-                match.played_at,
-            ]
-            for column, value in enumerate(values):
-                item = QTableWidgetItem(str(value))
-                item.setData(256, match.match_id)
-                self.table.setItem(row, column, item)
-
-        self.table.resizeColumnsToContents()
-
-    def _open_row(self, row: int, _column: int) -> None:
-        item = self.table.item(row, 0)
-        if item is None:
-            return
-        match_id = item.data(256)
-        if match_id:
-            self.open_match.emit(str(match_id))
+            player, progress, matches = self.service.player(), self.service.progress(), self.service.matches()[:6]
+        except Exception:
+            self.match_layout.addWidget(EmptyState("Local data unavailable", "Settings remains available; no network is required to open the app.")); return
+        self.player_name.setText(player.riot_id); self.rank.setText(f"{player.rank}{f' • {player.lp} LP' if player.lp is not None else ''}")
+        self.profile_meta.setText(f"Level {player.summoner_level or 'UNAVAILABLE'}  •  Ranked Solo/Duo  •  Local-first")
+        self.profile_status.set_status(player.profile_status)
+        self.profile_icon.load("profileicon", player.profile_icon_id, fallback=player.riot_id)
+        values = [str(progress.total_games), "—" if progress.win_rate is None else f"{progress.win_rate:.1f}%",
+                  "—" if progress.kda is None else f"{progress.kda:.2f}", "—" if progress.cs_per_min is None else f"{progress.cs_per_min:.1f}",
+                  "—" if progress.deaths_per_match is None else f"{progress.deaths_per_match:.1f}"]
+        for card, value in zip(self.cards, values): card.set_value(value)
+        recent = matches[:5]; wins = sum(row.result == "WIN" for row in recent)
+        self.form.setText("Recent form  " + " ".join("W" if row.result == "WIN" else "L" for row in recent) + (f"  •  {wins}/{len(recent)} wins" if recent else ""))
+        if not matches:
+            self.match_layout.addWidget(EmptyState("No local player data found", "1. Configure Riot ID  2. Add RIOT_API_KEY in Settings  3. Sync matches"))
+        for match in matches:
+            card = MatchCard(match, self.assets); card.opened.connect(self.open_match); self.match_layout.addWidget(card)

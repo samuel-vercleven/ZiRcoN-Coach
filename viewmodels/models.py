@@ -9,6 +9,11 @@ class PlayerViewModel:
     queue: str = "Ranked Solo/Duo"
     rank: str = "UNAVAILABLE"
     lp: Optional[int] = None
+    profile_icon_id: Optional[int] = None
+    summoner_level: Optional[int] = None
+    ranked_wins: Optional[int] = None
+    ranked_losses: Optional[int] = None
+    profile_status: str = "LOCAL"
 
 
 @dataclass(frozen=True)
@@ -24,6 +29,9 @@ class MatchSummaryViewModel:
     played_at: str
     queue: str
     position: str = "UNKNOWN"
+    items: tuple[int, ...] = ()
+    game_version: str = ""
+    analysis_status: str = "UNAVAILABLE"
 
     @property
     def kda_text(self) -> str:
@@ -43,6 +51,8 @@ class InsightViewModel:
     status: str = "UNAVAILABLE"
     evidence: tuple[str, ...] = ()
     source_module: str = ""
+    timestamp: Optional[int] = None
+    source_version: str = ""
 
 
 @dataclass(frozen=True)
@@ -81,3 +91,4 @@ class StatusViewModel:
     latest_match_date: str = "UNAVAILABLE"
     api_configured: bool = False
     sync_status: str = "Offline / not synced this session"
+    api_status: str = "NOT_CONFIGURED"

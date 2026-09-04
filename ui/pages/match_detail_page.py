@@ -1,107 +1,51 @@
-from __future__ import annotations
-
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import (
-    QFrame,
-    QHBoxLayout,
-    QLabel,
-    QPushButton,
-    QScrollArea,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QScrollArea, QTabWidget, QVBoxLayout, QWidget
 
+from services.asset_service import AssetService
 from services.local_data import LocalDataService
+from services.post_game_analysis import PostGameAnalysisService
+from ui.components.asset_icon import AssetIcon
+from ui.components.empty_state import EmptyState
+from ui.components.insight_card import InsightCard
+from ui.components.status_badge import StatusBadge
 
 
 class MatchDetailPage(QWidget):
     back_requested = Signal()
-
-    def __init__(self, service: LocalDataService, parent=None) -> None:
-        super().__init__(parent)
-        self._service = service
-        self._match_id: str | None = None
-
-        root = QVBoxLayout(self)
-        root.setContentsMargins(26, 22, 26, 22)
-        root.setSpacing(14)
-
-        top = QHBoxLayout()
-        back = QPushButton("← Back to matches")
-        back.clicked.connect(self.back_requested.emit)
-        top.addWidget(back)
-        top.addStretch(1)
-        root.addLayout(top)
-
-        self.title = QLabel("Match detail")
-        self.title.setObjectName("PageTitle")
-        root.addWidget(self.title)
-
-        self.summary = QLabel("Select a match.")
-        self.summary.setWordWrap(True)
-        root.addWidget(self.summary)
-
-        self.items = QLabel("")
-        self.items.setObjectName("Muted")
-        root.addWidget(self.items)
-
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.Shape.NoFrame)
-
-        content = QWidget()
-        self.content_layout = QVBoxLayout(content)
-        self.content_layout.setContentsMargins(0, 8, 0, 8)
-        self.content_layout.setSpacing(12)
-
-        self.analysis_card = QFrame()
-        self.analysis_card.setObjectName("Card")
-        card_layout = QVBoxLayout(self.analysis_card)
-        card_layout.setContentsMargins(16, 14, 16, 14)
-
-        analysis_title = QLabel("Post-game coaching")
-        analysis_title.setStyleSheet("font-size: 16px; font-weight: 700;")
-        card_layout.addWidget(analysis_title)
-
-        self.analysis_text = QLabel(
-            "Analyzer integration has not been connected to the Alpha UI yet. "
-            "This page currently shows only exact local match facts."
-        )
-        self.analysis_text.setWordWrap(True)
-        self.analysis_text.setObjectName("Muted")
-        card_layout.addWidget(self.analysis_text)
-
-        self.content_layout.addWidget(self.analysis_card)
-        self.content_layout.addStretch(1)
-
-        scroll.setWidget(content)
-        root.addWidget(scroll, 1)
-
-    def load_match(self, match_id: str) -> None:
-        self._match_id = match_id
-
-        try:
-            detail = self._service.match_detail(match_id)
-        except Exception as exc:
-            self.title.setText("Match detail")
-            self.summary.setText(f"Unable to load local match: {exc}")
-            self.items.setText("")
-            return
-
-        if detail is None:
-            self.title.setText("Match detail")
-            self.summary.setText("Match not found in the local database.")
-            self.items.setText("")
-            return
-
-        match = detail.match
-        result = "VICTORY" if match.result == "WIN" else "DEFEAT"
-
-        self.title.setText(f"{match.champion} — {result}")
-        self.summary.setText(
-            f"{match.kda_text}  •  {match.cs} CS  •  "
-            f"{match.queue}  •  {match.played_at}"
-        )
-        self.items.setText(
-            "Items: " + (", ".join(str(item) for item in detail.items) if detail.items else "Unavailable")
-        )
+    def __init__(self, service: LocalDataService, analysis: PostGameAnalysisService, assets: AssetService, parent=None):
+        super().__init__(parent); self.service, self.analysis, self.assets = service, analysis, assets
+        root = QVBoxLayout(self); root.setContentsMargins(26, 18, 26, 22); root.setSpacing(12)
+        back = QPushButton("← Match history"); back.clicked.connect(self.back_requested); root.addWidget(back)
+        self.scroll = QScrollArea(); self.scroll.setWidgetResizable(True); self.host = QWidget(); self.content = QVBoxLayout(self.host); self.content.setContentsMargins(0, 0, 8, 0); self.content.setSpacing(14); self.scroll.setWidget(self.host); root.addWidget(self.scroll)
+        self.load_empty()
+    def _clear(self):
+        while self.content.count():
+            item = self.content.takeAt(0)
+            if item.widget(): item.widget().deleteLater()
+    def load_empty(self):
+        self._clear(); self.content.addWidget(EmptyState("Select a match", "Open a match from Match History.")); self.content.addStretch()
+    def load_match(self, match_id: str):
+        self._clear()
+        try: detail = self.service.match_detail(match_id)
+        except Exception: detail = None
+        if not detail:
+            self.content.addWidget(EmptyState("Match unavailable", "The local row could not be loaded.")); return
+        match = detail.match; hero = QFrame(); hero.setObjectName("HeroCard"); row = QHBoxLayout(hero); row.setContentsMargins(18, 16, 18, 16)
+        icon = AssetIcon(self.assets, 76); icon.load("champion", match.champion, match.game_version, match.champion); row.addWidget(icon)
+        title_box = QVBoxLayout(); title = QLabel(f"{match.champion}  •  {'VICTORY' if match.result == 'WIN' else 'DEFEAT'}"); title.setObjectName("HeroName"); title.setProperty("result", match.result.lower()); title_box.addWidget(title)
+        cs = "—" if match.cs_per_min is None else f"{match.cs_per_min:.1f}/min"
+        subtitle = QLabel(f"{match.position}  •  {match.kda_text}  •  {match.cs} CS ({cs})  •  {match.duration_seconds // 60}:{match.duration_seconds % 60:02d}  •  {match.played_at}"); subtitle.setObjectName("Muted"); title_box.addWidget(subtitle)
+        items = QHBoxLayout(); items.setSpacing(5)
+        for item_id in detail.items:
+            item = AssetIcon(self.assets, 34); item.load("item", item_id, match.game_version); items.addWidget(item)
+        items.addStretch(); title_box.addLayout(items); row.addLayout(title_box, 1)
+        report = self.analysis.get_match_insights(match_id); row.addWidget(StatusBadge(report.status)); self.content.addWidget(hero)
+        summary_title = QLabel("Coach Summary"); summary_title.setObjectName("SectionTitle"); self.content.addWidget(summary_title)
+        supported = [value for value in report.insights if value.status in ("AVAILABLE", "PARTIAL")]
+        summary = QLabel("No high-confidence issue was identified in the cached analyzers." if not supported else "Evidence-gated overview from frozen analyzers. Status describes data support, not whether a play was good or bad."); summary.setWordWrap(True); summary.setObjectName("Muted"); self.content.addWidget(summary)
+        tabs = QTabWidget(); overview = QWidget(); overview_layout = QVBoxLayout(overview); overview_layout.setContentsMargins(0, 12, 0, 0)
+        for insight in report.insights: overview_layout.addWidget(InsightCard(insight))
+        overview_layout.addStretch(); overview_scroll = QScrollArea(); overview_scroll.setWidgetResizable(True); overview_scroll.setWidget(overview); tabs.addTab(overview_scroll, "Overview")
+        for insight in report.insights:
+            panel = QWidget(); layout = QVBoxLayout(panel); layout.addWidget(InsightCard(insight)); layout.addStretch(); tabs.addTab(panel, insight.title)
+        self.content.addWidget(tabs); self.content.addStretch()
