@@ -1,22 +1,22 @@
 # LAST RUN
 
 ## Status
-PASS / REVIEW_REQUIRED FOR FREEZE
+PASS
 
 ## Date
-2026-09-04 18:49 local
+2026-09-04 19:00 local
 
 ## Command
 `python main.py` through the project `.venv`; complete output captured in `logs/latest_full_run.txt`.
 
 ## Runtime
 - completed successfully;
-- 2.91s reported by the final Phase 2I run.
+- completed successfully in 2.90s wall time (2.77s reported by the integration harness).
 
 ## Files changed
 - New Phase 2I owner provenance, exhaustive inventory/contract, synthetic, precision, research-audit, full-audit, and top-foundation audit modules under `knowledge/`.
-- `main.py`: active Phase 2I owner-gate harness; its FROZEN list was preserved unchanged.
-- `PROJECT_STATE.md`, `DECISIONS.md`, `TODO.md`, and `LAST_RUN.md`: Phase 2I zero-gate result and review handoff.
+- `main.py`: Phase 2I owner-gate harness with all seven accepted Phase 2I production/validation files added to `FROZEN_FILES`.
+- `AGENTS.md`, `PROJECT_STATE.md`, `DECISIONS.md`, `TODO.md`, and `LAST_RUN.md`: official Phase 2I v1 freeze record.
 - No Phase 2G or Phase 2H production/validation file changed.
 - Local `TODO.before_phase2i.md` is an untracked backup and is deliberately excluded from commits.
 
@@ -25,11 +25,12 @@ PASS / REVIEW_REQUIRED FOR FREEZE
 - Owner synthetic checks: PASS 10/10, including validated caster/target synthetic-only paths, non-executable uncertain statuses, exact signature/context mismatch, damage-target separation, and provenance.
 - Owner precision checks: PASS 61/61 across 9 unrelated real context fixtures and 2 unresolved hashed-field fixtures.
 - Owner public-source provenance audit: PASS, 5 records, 2 exact/patch-matched structural sources and 3 executable reverse-engineering cross-checks.
-- Full real owner audit: PASS / REVIEW_REQUIRED FOR FREEZE.
-- Top Phase 2I foundation audit: PASS / REVIEW_REQUIRED FOR FREEZE.
-- Final `python main.py`: PASS.
+- Full real owner audit: PASS (accepted zero-gate baseline).
+- Top Phase 2I foundation audit: PASS (accepted zero-gate baseline).
+- Official-freeze Phase 2I validation stack: PASS.
+- Final `python main.py`: PASS (2.77s harness runtime).
 - FROZEN guard: PASS, 0 frozen modifications.
-- `git diff --check`: PASS before final commit.
+- `git diff --check`: pending final pre-commit check.
 
 ## Errors encountered
 - One harness-ordering issue was detected before the final run: the Phase 2H command assignment initially overrode the new Phase 2I assignment. The Phase 2I block was moved after the retained Phase 2H definitions and the full run was repeated successfully.
@@ -48,7 +49,7 @@ PASS / REVIEW_REQUIRED FOR FREEZE
 - Owner execution-eligible occurrences: 0/569.
 - Gate blockers: 467 owner, 101 frozen stat ID, 1 frozen formula ID; snapshot/DataValue/subpart arithmetic was not reached.
 - Frozen Phase 2H consumption remained 468 validated stat occurrences and 568 validated formula occurrences.
-- Execution gate: FAIL-CLOSED / zero eligible occurrences. Branch B was not started and no stat-scaling evaluator was created.
+- Execution gate: accepted FAIL-CLOSED / zero eligible occurrences. Branch B was not started and no stat-scaling evaluator was created.
 - Formula replay: the 1,443-calculation inventory was confirmed. Numeric replay was not run because the TODO requires at least one validated real owner contract before arithmetic.
 - Frozen Phase 2G baseline remains 13 RESOLVED, 720 PARTIALLY_RESOLVED, 493 UNSUPPORTED_SIGNATURE, 217 UNSUPPORTED_CLASS. Phase 2I newly resolved formulas: 0 by gate; no replacement replay counts were fabricated.
 - Representative real fixtures include Aatrox, Akshan, Diana, Malphite, Shyvana, Bel'Veth, Dr. Mundo, Viego, and Rammus; none is promoted to caster ownership from champion-spell membership.
@@ -68,7 +69,7 @@ PASS / REVIEW_REQUIRED FOR FREEZE
 - No numeric stat-scaling replay exists for this zero-gate result; frozen Phase 2G counts are unchanged.
 
 ## Codex technical recommendation
-- Review the explicit context-dependent baseline for freeze. Do not open stat arithmetic unless new evidence binds the evaluation unit to a concrete snapshot role for an exact real contract.
+- Preserve the accepted frozen zero-gate baseline. Any future stat arithmetic requires a new reviewed task and patch-specific evidence binding the evaluation unit to a concrete snapshot role for an exact real contract.
 
 ## Review request
-REVIEW_REQUIRED FOR FREEZE. Phase 2I is technically complete, is not declared FROZEN, and no successor phase was started.
+NONE. Phase 2I v1 is FROZEN by project review; the accepted baseline promotes no owner semantic and starts no successor phase.

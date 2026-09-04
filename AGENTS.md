@@ -130,6 +130,8 @@ Executable Combat Formula Foundation — Phase 2G v2
 
 Champion Spell Stat Reference Semantics Foundation — Phase 2H v1
 
+Champion Spell Stat Owner Semantics Foundation — Phase 2I v1
+
 Do not modify a frozen analyzer unless one of these is true:
 
 a concrete correctness bug is demonstrated;
@@ -160,9 +162,9 @@ Never silently modify a frozen analyzer.
 
 4. Current module under development
 
-Stat Owner Semantics Foundation Phase 2I v1 is technically complete and awaiting project review for freeze. It is not FROZEN.
+No production module is currently under development.
 
-Its owner gate found 0 validated real owner contracts, so no stat-scaling evaluator or numeric replay was started. This zero-execution result is part of the review handoff, not permission to guess caster ownership.
+Stat Owner Semantics Foundation Phase 2I v1 is FROZEN by project review. Its accepted zero-gate result is part of the freeze baseline: no owner is promoted, no stat-scaling evaluator exists, and no numeric replay was performed.
 
 Do not infer or begin a successor phase. The next major task requires project review and a new TODO.md.
 
@@ -831,7 +833,7 @@ Executable Combat Formula Foundation Phase 2G v2: FROZEN
 
 Champion Spell Stat Reference Semantics Foundation Phase 2H v1: FROZEN
 
-Stat Owner Semantics Foundation Phase 2I v1: PASS / REVIEW_REQUIRED FOR FREEZE, not FROZEN
+Stat Owner Semantics Foundation Phase 2I v1: FROZEN
 
 The current task should be taken from TODO.md, not inferred from this section.
 

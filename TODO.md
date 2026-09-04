@@ -999,18 +999,20 @@ The largest defensible executable subset wins.
 
 # 36. Completion status
 
-`COMPLETED / PASS / REVIEW_REQUIRED FOR FREEZE`
+`COMPLETED / FROZEN`
 
-Phase 2I owner research and validation completed on 2026-09-04.
+Phase 2I v1 was accepted and FROZEN by project review on 2026-09-04.
 
 - 569/569 stat occurrences were inventoried with exact owner-relevant context.
-- 88 exact class/signature/context contracts were audited.
+- 88 exact class/signature/context owner contracts were audited.
 - 567 occurrences are `OWNER_CONTEXT_DEPENDENT`.
 - The two signatures carrying unknown `0xa8cb9c14` remain `OWNER_UNRESOLVED`.
-- No caster, target, source-level, or other concrete owner contract reached `VALIDATED`.
+- No caster, target, source-level, or other-context owner contract reached `VALIDATED`.
 - Owner execution eligibility is 0/569; the stat-scaling execution gate did not pass.
 - Branch B, numeric stat arithmetic, and the 1,443-calculation numeric replay were therefore not started, exactly as required by the zero-gate outcome.
-- The 1,443 inventory and frozen Phase 2G baseline were confirmed without modifying Phase 2G or Phase 2H.
+- The frozen Phase 2G baseline remains 13 `RESOLVED`, 720 `PARTIALLY_RESOLVED`, 493 `UNSUPPORTED_SIGNATURE`, and 217 `UNSUPPORTED_CLASS`, without modifying Phase 2G or Phase 2H.
 - The full owner validation stack, top Phase 2I audit, `python main.py`, and FROZEN guard pass.
 
-Phase 2I is not FROZEN. Project review must decide whether to freeze this precise zero-execution baseline. No successor phase has been started.
+Accepted FROZEN baseline: version `champion_spell_stat_owner_semantics_phase2i_v1`; top foundation `stat_scaling_formula_foundation_phase2i_v1`; 567 `OWNER_CONTEXT_DEPENDENT`, 2 `OWNER_UNRESOLVED`, 0 execution-eligible owner occurrences; gate blockers 467 owner, 101 frozen stat ID, and 1 frozen formula ID.
+
+Phase 2I is FROZEN. Branch B remains not started; no stat-scaling evaluator, stat arithmetic, or numeric 1,443-calculation replay exists. No successor backend phase has been started.

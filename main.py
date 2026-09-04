@@ -266,6 +266,13 @@ FROZEN_FILES = {
     "knowledge/champion_spell_stat_semantics_research_audit.py",
     "knowledge/champion_spell_stat_semantics_inventory_audit.py",
     "knowledge/champion_spell_stat_semantics_full_audit.py",
+    "knowledge/champion_spell_stat_owner_sources.py",
+    "knowledge/champion_spell_stat_owner_semantics.py",
+    "knowledge/champion_spell_stat_owner_synthetic_checks.py",
+    "knowledge/champion_spell_stat_owner_precision_checks.py",
+    "knowledge/champion_spell_stat_owner_research_audit.py",
+    "knowledge/champion_spell_stat_owner_full_audit.py",
+    "knowledge/stat_scaling_formula_foundation_full_audit.py",
 }
 
 

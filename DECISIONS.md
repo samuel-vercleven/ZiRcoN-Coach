@@ -142,9 +142,10 @@ Freeze rule:
 Status:
 FROZEN by project review.
 
-## Stat Owner Semantics Foundation Phase 2I v1 - REVIEW REQUIRED FOR FREEZE
+## Stat Owner Semantics Foundation Phase 2I v1 - FROZEN
 
 Decision:
+- freeze the accepted zero-gate baseline `champion_spell_stat_owner_semantics_phase2i_v1` and top foundation `stat_scaling_formula_foundation_phase2i_v1`;
 - distinguish the stat subject supplied to a calculation context from the gameplay identity of caster, target, or another unit;
 - require owner contracts at `class + exact signature + structural context` granularity;
 - treat ordinary pinned stat signatures as `OWNER_CONTEXT_DEPENDENT`, not caster-owned, because the available runtime interfaces expose a caller-supplied `UnitStatComponent` / `Champion` without a patch-specific proof of every client call-site binding;
@@ -164,6 +165,14 @@ Execution boundary:
 - no stat-scaling evaluator or numeric 1,443-formula replay is created merely to manufacture coverage;
 - the frozen Phase 2H stat/formula maps are consumed as-is and cannot be upgraded by Phase 2I.
 
+Accepted freeze baseline:
+- 569 stat occurrences and 88 exact class/signature/context owner contracts;
+- 567 `OWNER_CONTEXT_DEPENDENT`, 2 `OWNER_UNRESOLVED`, and zero validated caster, target, source-level, or other-context owners;
+- 0 owner-execution-eligible occurrences;
+- gate blockers: 467 owner, 101 frozen stat ID, and 1 frozen formula ID;
+- Branch B remains not started, with 0 stat arithmetic and no numeric 1,443-calculation replay;
+- frozen Phase 2G remains 13 `RESOLVED`, 720 `PARTIALLY_RESOLVED`, 493 `UNSUPPORTED_SIGNATURE`, and 217 `UNSUPPORTED_CLASS`.
+
 Rules:
 - damage target must never be substituted for stat owner;
 - champion spell membership alone is not caster-owner evidence;
@@ -172,7 +181,7 @@ Rules:
 - future execution requires new patch-specific owner/call-site evidence and project review.
 
 Status:
-PASS / REVIEW_REQUIRED FOR FREEZE. Phase 2I is not FROZEN.
+FROZEN by project review.
 
 ## Executable Combat Formula Foundation Phase 2G v2 - FROZEN
 
