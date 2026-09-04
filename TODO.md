@@ -1,103 +1,75 @@
-# ZiRcoN Coach — Phase 2I
-## Stat Owner Semantics & Stat-Scaling Formula Execution Foundation
+# ZiRcoN Coach — V0.1 Alpha
+## First Usable Desktop Application
 
 ### Model recommendation
 Codex: GPT-5.6 Sol
 Reasoning: HIGH
 
-This is a large, research-heavy milestone with two gated branches:
-
-A. prove stat-owner / calculation-context semantics;
-B. only where owner + stat + formula + signature + snapshot value are all validated, execute stat-scaling formulas in a NEW layer.
-
-Never replace missing evidence with “probably caster”.
-
----
-
 # 0. Starting baseline
-
 Repository: `samuel-vercleven/ZiRcoN-Coach`
-Expected HEAD: `29682a4a9419b234537bcf73cc9352f723860153`
-Commit: `Freeze champion spell stat semantics phase 2H`
+Expected starting HEAD/origin/main:
+`cdbcdf4269a4ed50427014bff078e0026b19f346`
+Commit: `Record Phase 2I freeze verification`
 
-Frozen layers include Phase 2A through Phase 2H.
-Do not modify any frozen production or validation behavior.
+All backend layers through Phase 2I are FROZEN. Do not modify frozen production/validation behavior.
 
-Phase 2H frozen facts:
+Accepted Phase 2I limitation remains part of the product truth:
+- 569 stat-owner occurrences audited;
+- 567 OWNER_CONTEXT_DEPENDENT;
+- 2 OWNER_UNRESOLVED;
+- 0 execution-eligible concrete owners;
+- no stat-scaling arithmetic;
+- no fabricated numeric replay.
 
-- 885 semantic-field occurrences
-- 569 `mStat` occurrences
-- 316 explicit `mStatFormula` occurrences
-- 16 raw `mStat` IDs: `[1,2,4,6,7,8,9,10,12,13,14,15,16,18,29,31]`
-- execution-eligible stats:
-  - `1 -> ARMOR`
-  - `2 -> ATTACK_DAMAGE`
-  - `12 -> HEALTH`
-- validated stat coverage: `468/569 = 82.25%`
-- strongly supported but non-executable: `4,6,7,8,9,10,18,29,31`
-- unresolved: `13,14,15,16`
-- `mStatFormula 0 -> TOTAL_STAT` VALIDATED
-- `mStatFormula 2 -> BONUS_STAT` VALIDATED
-- `mStatFormula 1` CONTRADICTED / non-executable
-- formula coverage: `568/569 = 99.82%`
-- owner baseline: `569/569 OWNER_UNRESOLVED`
-- fully composed real references: `0`
+Do not reopen stat-owner research in V0.1.
 
-Phase 2G frozen formula baseline:
+# 1. Mission
+Build ZiRcoN Coach V0.1 Alpha as a real local PySide6 desktop application.
 
-- 173 champions
-- 692 Q/W/E/R
-- 1,443 calculations
-- 5,318 graph nodes
-- 25 classes
-- 109 signatures
-- 13 RESOLVED
-- 720 PARTIALLY_RESOLVED
-- 493 UNSUPPORTED_SIGNATURE
-- 217 UNSUPPORTED_CLASS
+At the end, this command must open the app:
 
-Frozen exact executable signatures:
+```powershell
+python run_app.py
+```
 
-- NumberCalculationPart
-- NamedDataValueCalculationPart
-- SumOfSubPartsCalculationPart
-- ProductOfSubPartsCalculationPart
-- core GameCalculation
-- NamedGameCalculationCalculationPart
+The app must provide a useful first product experience around the existing real local data and frozen analyzers.
 
-Stat classes intentionally left partial:
+Required screens:
+1. Dashboard
+2. Match History
+3. Match Detail / Post-game
+4. Progress
+5. Settings / Data Status
 
-- `StatByCoefficientCalculationPart`
-- `StatByNamedDataValueCalculationPart`
-- `StatBySubPartCalculationPart`
+# 2. Product rules
+- Real data over mock data.
+- Local-first.
+- Read-only integration first.
+- No fake coaching claims.
+- No fake spell damage/combat values.
+- PARTIAL / UNKNOWN / UNAVAILABLE must remain explicit.
+- UI must remain usable offline when local DB data exists.
+- Never expose/commit Riot API keys.
 
----
+# 3. Mandatory startup
+Read fully:
+- AGENTS.md
+- PROJECT_STATE.md
+- TODO.md
+- DECISIONS.md
+- LAST_RUN.md
+- main.py
 
-# 1. Mandatory startup
+Inspect repository tree and identify:
+- Riot API/client modules;
+- config/environment loading;
+- SQLite/database modules and schema;
+- current match import pipeline;
+- Data Dragon helpers/cache;
+- analyzer public functions;
+- dependency management.
 
-Read completely:
-
-1. `AGENTS.md`
-2. `PROJECT_STATE.md`
-3. `TODO.md`
-4. `DECISIONS.md`
-5. `LAST_RUN.md`
-6. `main.py`
-
-Inspect read-only:
-
-- `knowledge/champion_spell_source.py`
-- `knowledge/champion_spell_formula_taxonomy.py`
-- `knowledge/champion_spell_formula_evaluator.py`
-- `knowledge/champion_spell_formula_runtime.py`
-- `knowledge/combat_formula_types.py`
-- `knowledge/combat_stat_snapshot.py`
-- `knowledge/champion_spell_stat_semantics.py`
-- `knowledge/champion_spell_stat_semantics_sources.py`
-- `knowledge/champion_spell_stat_semantics_full_audit.py`
-
-Before coding run:
-
+Run:
 ```text
 git status
 git diff
@@ -106,913 +78,630 @@ git rev-parse HEAD
 git rev-parse origin/main
 ```
 
-If HEAD differs from the expected freeze commit, inspect why first.
+Expected both SHAs:
+`cdbcdf4269a4ed50427014bff078e0026b19f346`
 
-Search the repo for:
+Do not silently reset user work.
 
-- `StatByCoefficientCalculationPart`
-- `StatByNamedDataValueCalculationPart`
-- `StatBySubPartCalculationPart`
-- `mStat`
-- `mStatFormula`
-- `unitStatComponent`
-- `CASTER`
-- `TARGET`
-- `SOURCE_LEVEL`
-- `compose_snapshot_reference`
-- `PARTIALLY_RESOLVED`
+# 4. Frozen boundary
+Treat all current frozen files as immutable.
 
----
+If UI integration would require a frozen change:
+- do not change it;
+- create an adapter/service/view-model;
+- if impossible, mark that branch REVIEW_REQUIRED.
 
-# 2. Frozen boundary
+Do not copy analyzer logic into widgets.
 
-Do NOT modify Phase 2G or Phase 2H files.
-
-Especially do not modify:
-
-- `knowledge/champion_spell_formula_taxonomy.py`
-- `knowledge/champion_spell_formula_evaluator.py`
-- `knowledge/champion_spell_formula_runtime.py`
-- `knowledge/combat_formula_types.py`
-- `knowledge/combat_stat_snapshot.py`
-- any Phase 2H file
-
-Use new adapters/new modules.
-
-If a frozen interface truly blocks a safe implementation, stop that branch and return `REVIEW_REQUIRED` instead of editing frozen code.
-
----
-
-# 3. New Phase 2I modules
-
-Suggested production:
-
-- `knowledge/champion_spell_stat_owner_semantics.py`
-- `knowledge/champion_spell_stat_owner_sources.py`
-- `knowledge/champion_spell_stat_scaling_evaluator.py`
-- `knowledge/champion_spell_stat_scaling_runtime.py`
-
-Suggested validation:
-
-- `knowledge/champion_spell_stat_owner_synthetic_checks.py`
-- `knowledge/champion_spell_stat_owner_precision_checks.py`
-- `knowledge/champion_spell_stat_owner_full_audit.py`
-- `knowledge/champion_spell_stat_scaling_synthetic_checks.py`
-- `knowledge/champion_spell_stat_scaling_precision_checks.py`
-- `knowledge/champion_spell_stat_scaling_full_audit.py`
-- `knowledge/champion_spell_stat_scaling_representative_checks.py`
-- `knowledge/stat_scaling_formula_foundation_full_audit.py`
-
-Optional:
-
-- `knowledge/champion_spell_stat_owner_research_audit.py`
-
-Suggested versions:
-
-- `champion_spell_stat_owner_semantics_phase2i_v1`
-- `champion_spell_stat_scaling_phase2i_v1`
-- `stat_scaling_formula_foundation_phase2i_v1`
-
-Do not freeze Phase 2I yourself.
-
----
-
-# 4. Branch A — Stat owner/context semantics
-
-## 4.1 Source hierarchy
-
-Use evidence in this order:
-
-1. exact pinned 26.16 game-file structures: `Haru-Kay/LeagueDatamines@9245fd616059c6c658d1faa1029f0e18ea179154`
-2. patch-matched reverse-engineered meta structures
-3. executable reverse-engineering implementations such as `moonshadow565/calcrev`, LeagueBuilder, CommunityDragon tooling
-4. independent exact champion/mechanic evidence
-5. unresolved
-
-A field type or memory layout does not prove owner identity.
-
-Do not equate `unitStatComponent` with caster unless the actual source-unit semantics are proven.
-
-## 4.2 Exhaustive owner inventory
-
-For all 569 `mStat` occurrences preserve:
-
-- champion
-- slot
-- spell path
-- calculation key
-- graph path
-- class
-- exact structural signature
-- raw `mStat`
-- effective `mStatFormula`
-- frozen 2H semantic stat result
-- frozen 2H semantic formula result
-- parent/root calculation
-- sibling fields
-- ancestor fields potentially relevant to source/target selection
-- child/subpart structure
-- tooltip linkage
-- source/version/provenance
-
-Group by class + exact signature + structural context.
-
-## 4.3 Owner taxonomy
-
-Possible statuses:
-
-- `OWNER_VALIDATED_CASTER`
-- `OWNER_VALIDATED_TARGET`
-- `OWNER_VALIDATED_SOURCE_LEVEL`
-- `OWNER_VALIDATED_OTHER_CONTEXT`
-- `OWNER_CONTEXT_DEPENDENT`
-- `OWNER_STRONGLY_SUPPORTED_CASTER`
-- `OWNER_STRONGLY_SUPPORTED_TARGET`
-- `OWNER_AMBIGUOUS`
-- `OWNER_CONTRADICTED`
-- `OWNER_UNRESOLVED`
-
-Only exact `OWNER_VALIDATED_*` statuses can be execution-eligible.
-
-## 4.4 Contract granularity
-
-Prefer the narrowest defensible contract:
-
-`class + exact signature + structural context`
-
-rather than a global rule such as:
-
-`all StatByCoefficient = CASTER`.
-
-A broad rule is acceptable only if all real matching contexts are proven equivalent.
-
-## 4.5 Contradiction audit
-
-For every candidate owner contract search all real matching occurrences for counterexamples.
-
-Do not confuse:
-
-- spell/damage target
-- stat owner
-- tooltip subject
-- calculation source unit
-
-A spell may damage TARGET while scaling from CASTER.
-
-Damage target != stat owner.
-
-## 4.6 Source registry
-
-Create owner-specific source records with:
-
-- source ID
-- URL
-- immutable commit where possible
-- patch/version
-- evidence tier
-- supported claim
-- limitations
-
----
-
-# 5. Owner precision requirements
-
-For every VALIDATED owner contract include real pinned precision fixtures with:
-
-- champion
-- slot
-- calculation key
-- graph path
-- class/signature
-- stat/formula
-- expected owner
-- independent evidence
-- provenance
-
-Do not derive expected owner from production code.
-
-Broad contracts need multiple unrelated champions.
-
----
-
-# 6. Execution gate
-
-After owner research, produce a gate report.
-
-Proceed to stat arithmetic only if at least one real stat reference has ALL of:
-
-- exact supported stat-class signature
-- frozen 2H `mStat` status VALIDATED
-- frozen 2H `mStatFormula` status VALIDATED
-- Phase 2I owner status VALIDATED
-- compatible frozen Phase 2G snapshot field
-- required coefficient/DataValue/subpart semantics proven
-
-If zero real occurrences satisfy this:
-
-- do not invent owner semantics
-- finish Branch A
-- run audits
-- commit/push
-- return `PASS / REVIEW_REQUIRED`
-- do not create fake numeric coverage
-
-This is a valid result.
-
----
-
-# 7. Branch B — exact stat-class signatures
-
-Inventory every exact pinned structural signature for:
-
-- `StatByCoefficientCalculationPart`
-- `StatByNamedDataValueCalculationPart`
-- `StatBySubPartCalculationPart`
-
-Build a NEW Phase 2I signature registry.
-
-For every signature record:
-
-- exact fields
-- required fields
-- unsupported fields
-- stat behavior
-- coefficient/DataValue/subpart behavior
-- owner contract
-- provenance
-- execution eligibility
-
-Unknown extra field => fail closed.
-
-Do not inherit executable status merely from class name.
-
----
-
-# 8. StatByCoefficientCalculationPart
-
-Only implement arithmetic after exact semantics are proven.
-
-Do not assume `stat * coefficient` from name alone.
-
-Validate:
-
-- coefficient field
-- numeric semantics
-- total/bonus handling
-- owner
-- signature
-- any modifier fields
-
-Unsupported variant => `STAT_SIGNATURE_UNSUPPORTED`.
-
----
-
-# 9. StatByNamedDataValueCalculationPart
-
-Only implement if exact semantics are proven.
-
-Reuse frozen Phase 2G DataValue/rank resolvers where possible.
-
-Require:
-
-- exact DataValue name
-- valid spell-rank resolution
-- validated stat ID
-- validated formula ID
-- validated owner
-- exact signature
-
-Do not assume multiplication from class naming alone.
-
----
-
-# 10. StatBySubPartCalculationPart
-
-Treat conservatively.
-
-Determine exact relation between:
-
-- stat value
-- nested subpart
-- any coefficient/modifier
-
-Do not infer.
-
-Use cycle-safe recursion.
-
-An unresolved required child prevents a fully resolved parent.
-
----
-
-# 11. Snapshot dependency contract
-
-A snapshot stat is usable only if its frozen Phase 2G `stat_resolution` status is exactly:
-
-`STATIC_STAT_RESOLVED`
-
-If partial:
-
-- preserve known partial for diagnostics if useful
-- do NOT use it as exact arithmetic
-
-Examples of frozen fields potentially usable after semantic composition:
-
-- `attack_damage_total`
-- `attack_damage_bonus`
-- `armor`
-- `armor_bonus`
-- `health_max`
-- `health_bonus`
-
-Do not invent a BASE_STAT mapping to native-at-level fields.
-
----
-
-# 12. Frozen 2H consumption
-
-Do not hardcode 2H mappings into Phase 2I.
-
-Consume frozen Phase 2H records/APIs.
-
-If stat status is not exactly VALIDATED:
-return unresolved.
-
-If formula status is not exactly VALIDATED:
-return unresolved.
-
-In particular:
-
-- `mStatFormula=1` must never execute
-- IDs `4,6,7,8,9,10,18,29,31` must not execute
-- IDs `13,14,15,16` must not execute
-
-Phase 2I cannot upgrade frozen 2H semantics.
-
----
-
-# 13. AP boundary
-
-The pinned UI table contains `0 -> ABILITY_POWER`, but raw `mStat=0` was not an execution-eligible Phase 2H mapping.
-
-Phase 2I must NOT independently promote AP.
-
-If this blocks AP formula coverage, report it as a future project-review item.
-
-Do not patch Phase 2H.
-
----
-
-# 14. AbilityResource boundary
-
-Phase 2H isolated AbilityResource as research-only.
-
-Do not turn Phase 2I into a resource enum engine.
-
-Leave resource semantics unsupported unless an already-frozen fact directly resolves them.
-
----
-
-# 15. New stat-scaling evaluator
-
-Create a new evaluator above frozen Phase 2G.
-
-Preferred architecture:
-
-- reuse/delegate frozen primitive semantics where possible
-- intercept newly validated stat-class signatures
-- recursively evaluate mixed graphs
-- preserve child traces and provenance
-
-Do NOT modify the frozen Phase 2G evaluator.
-
-If callback/delegation architecture is insufficient, create a new orchestration evaluator that reuses frozen contracts without editing them.
-
----
-
-# 16. New result statuses
-
-At minimum:
-
-- `STAT_SCALING_RESOLVED`
-- `STAT_SCALING_PARTIALLY_RESOLVED`
-- `STAT_ID_NOT_EXECUTION_ELIGIBLE`
-- `STAT_FORMULA_NOT_EXECUTION_ELIGIBLE`
-- `STAT_OWNER_NOT_EXECUTION_ELIGIBLE`
-- `STAT_SNAPSHOT_FIELD_UNAVAILABLE`
-- `STAT_SNAPSHOT_VALUE_PARTIAL`
-- `STAT_SIGNATURE_UNSUPPORTED`
-- `STAT_COEFFICIENT_UNRESOLVED`
-- `STAT_DATA_VALUE_UNRESOLVED`
-- `STAT_SUBPART_UNRESOLVED`
-- `STAT_CONTEXT_UNSUPPORTED`
-- `STAT_CYCLE_DETECTED`
-- `SOURCE_VERSION_MISMATCH`
-
-Do not represent failure only with `None`.
-
----
-
-# 17. Mixed graph rule
-
-A root may contain:
-
-- Number
-- DataValue
-- stat part
-- Sum/Product
-- named calculation
-- unsupported child
-
-Resolve the root only when every required traversed child is validated and resolved.
-
-One unresolved required child => parent is not fully resolved.
-
-Preserve partial children.
-
----
-
-# 18. Formula replay audit
-
-Replay all 1,443 pinned calculations through the new Phase 2I layer.
-
-Compare against frozen Phase 2G baseline without modifying it.
-
-Report:
-
-- total 1,443
-- Phase 2G baseline: 13 resolved / 720 partial / 493 unsupported signature / 217 unsupported class
-- Phase 2I fully resolved
-- Phase 2I partially resolved
-- unsupported signature
-- unsupported class
-- blocked by stat ID
-- blocked by formula ID
-- blocked by owner
-- blocked by snapshot field
-- blocked by partial snapshot
-- blocked by DataValue
-- blocked by context
-- cycles
-- malformed
-
-No target coverage percentage.
-
----
-
-# 19. Resolution attribution
-
-For every formula whose status improves, record exactly why.
-
-Example:
-
-```text
-PARTIALLY_RESOLVED -> RESOLVED
-because:
-validated stat signature
-+ mStat 2 ATTACK_DAMAGE
-+ mStatFormula 0 TOTAL_STAT
-+ owner CASTER
-+ attack_damage_total STATIC_STAT_RESOLVED
-```
-
-For formulas still partial, preserve exact blocker such as:
-
-`OWNER_UNRESOLVED`.
-
----
-
-# 20. Representative validation
-
-Use actual structural diversity.
-
-Include where relevant:
-
-- Aatrox
-- Akshan
-- Diana
-- Malphite
-
-Also inspect, without champion-specific production hacks:
-
-- Shyvana
-- Bel'Veth
-- Dr. Mundo
-- Viego
-- Rammus
-
-Only use them where they actually exercise useful source structures.
-
----
-
-# 21. Manual arithmetic precision tests
-
-For every executable real stat signature:
-
-- use minimized real pinned structure
-- manually state snapshot value
-- manually state coefficient/DataValue/subpart
-- manually derive expected result
-- compare with evaluator
-
-Do not compute expected values with production evaluator.
-
-Test negative/zero/decimal values where supported by real semantics.
-
----
-
-# 22. Required synthetic owner tests
-
-At minimum:
-
-1. unresolved owner stays unresolved
-2. strongly supported owner is non-executable
-3. ambiguous owner is non-executable
-4. contradicted owner is non-executable
-5. validated caster path
-6. validated target code path if a real production contract exists; otherwise synthetic contract only
-7. damage target != scaling-stat owner
-8. exact signature mismatch fails closed
-9. context mismatch fails closed
-10. provenance preserved
-
-Do not fabricate a real target-owner production mapping for test coverage.
-
----
-
-# 23. Required stat-scaling tests
-
-At minimum exercise code paths for:
-
-- total AD
-- bonus AD
-- total armor
-- bonus armor
-- total HP
-- bonus HP
-- formula 1 rejected
-- strongly-supported mStat rejected
-- unresolved mStat rejected
-- unresolved owner rejected
-- partial snapshot rejected
-- missing snapshot field
-- unresolved DataValue
-- unresolved subpart
-- mixed graph partial propagation
-- cycle detection
-- source mismatch
-- zero coefficient valid
-- raw enum zero not treated as missing
-- full provenance trace
-
-Only production-resolve combinations actually allowed by frozen 2H + validated owner contracts.
-
----
-
-# 24. Owner full audit
-
-Report:
-
-- 569 stat rows
-- owner contract count
-- exact owner-signature/context contracts
-- validated caster occurrences
-- validated target occurrences
-- validated other occurrences
-- strongly supported
-- ambiguous
-- contradicted
-- unresolved
-- execution-eligible owner occurrence count
-- contradictions
-- source provenance
-- frozen changes
-- blockers
-
-No owner coverage target.
-
----
-
-# 25. Stat-scaling full audit
-
-Report:
-
-- stat class counts
-- exact signatures observed
-- exact signatures validated
-- owner eligible nodes
-- stat eligible nodes
-- formula eligible nodes
-- snapshot eligible nodes
-- fully executable stat nodes
-- unresolved by reason
-- numeric results by class
-- arithmetic under unvalidated signature = 0
-- arithmetic under unvalidated owner = 0
-- arithmetic under non-validated stat/formula = 0
-- partial snapshot used as exact = 0
-
----
-
-# 26. Top Phase 2I audit
+# 5. Keep main.py as validation harness
+Do NOT replace current `main.py` with the GUI launcher.
 
 Create:
-`knowledge/stat_scaling_formula_foundation_full_audit.py`
+`run_app.py`
 
-Include:
+Target shape:
+```python
+from app.application import ZirconCoachApplication
 
-## Frozen versions
-- Phase 2F
-- Phase 2G
-- Phase 2H
-- snapshot/version dependencies
-
-## Owner semantics
-- 569 baseline
-- validated owner coverage
-- unresolved/ambiguous/contradicted
-
-## Frozen 2H consumption
-- validated stat occurrences
-- validated formula occurrences
-- blocked IDs/formulas
-
-## Signatures
-- observed
-- validated
-- unsupported
-
-## 1,443 formula replay
-- Phase 2G baseline
-- Phase 2I result
-- delta newly resolved
-- attribution
-
-## Safety
-- frozen modifications = 0
-- owner guesses = 0
-- non-validated stat executions = 0
-- non-validated formula executions = 0
-- unsupported signature executions = 0
-- partial snapshot exact-use = 0
-
-## Result
-- blockers
-- review items
-- status
-
----
-
-# 27. Success criteria
-
-All of these are valid technical outcomes:
-
-A. broad owner proof + many newly resolved formulas
-B. narrow owner proof + small exact executable subset
-C. no defensible owner proof + zero new numeric execution
-
-PASS depends on correctness and auditability, not coverage.
-
-Do not lower standards to improve numbers.
-
----
-
-# 28. Damage boundary
-
-Phase 2I is formula arithmetic, not damage semantics.
-
-Do not modify frozen damage evidence/resolver/mitigation layers.
-
-Do not automatically call a numeric formula result “damage”.
-
-Do not integrate into Burst/TTK.
-
----
-
-# 29. main.py development harness
-
-Make Phase 2I the active development harness while preserving every frozen guard.
-
-Suggested order:
-
-1. compile Phase 2I modules
-2. owner synthetic checks
-3. owner precision checks
-4. owner research/full audit
-5. execution gate
-6. if gate passes:
-   - stat scaling synthetic checks
-   - stat scaling precision checks
-   - stat scaling full audit
-   - representative checks
-   - 1,443 formula replay
-7. top Phase 2I audit
-8. FROZEN guard
-
-Do not print all historical analyzers.
-
----
-
-# 30. Documentation
-
-Update:
-
-- `PROJECT_STATE.md`
-- `TODO.md`
-- `LAST_RUN.md`
-
-Update `DECISIONS.md` only for durable Phase 2I methodology/source decisions.
-
-Do NOT declare Phase 2I FROZEN.
-
-Final status:
-
-`PASS / REVIEW_REQUIRED FOR FREEZE`
-
-or `REVIEW_REQUIRED` if a real methodology blocker remains.
-
----
-
-# 31. LAST_RUN must include
-
-- Phase 2I versions
-- source commits/URLs
-- runtime
-- 569 owner baseline
-- owner status counts
-- owner execution-eligible count
-- exact stat signatures
-- executable stat node count
-- 1,443 formula replay
-- Phase 2G baseline comparison
-- newly resolved count
-- still-partial count
-- blocked-by-owner/stat/formula/snapshot/context counts
-- tests/audits
-- FROZEN guard
-- `git diff --check`
-- remaining limitations
-
----
-
-# 32. Git strategy
-
-Before commits:
-
-```text
-git status
-git diff
-git diff --check
+if __name__ == "__main__":
+    raise SystemExit(ZirconCoachApplication().run())
 ```
 
-Never stage:
+`python main.py` must continue to validate the frozen backend.
 
-- `.env`
-- API keys/tokens
-- `.venv`
-- DB
-- logs
-- `.cache`
-- downloaded archives
-- credentials
-
-Suggested commits:
-
-1. `Research champion spell stat owner semantics phase 2I`
-2. `Validate champion spell stat owner contracts phase 2I`
-3. `Build stat scaling formula execution phase 2I`
-4. `Audit stat scaling formula foundation phase 2I`
-
-Use fewer commits if cleaner.
-
-Push clean commits to `origin/main`.
-No force push.
-
-At end verify:
+# 6. New app architecture
+Prefer a clean structure similar to:
 
 ```text
+app/
+  __init__.py
+  application.py
+  bootstrap.py
+  paths.py
+
+ui/
+  __init__.py
+  main_window.py
+  theme.py
+  components/
+    sidebar.py
+    topbar.py
+    stat_card.py
+    status_badge.py
+    empty_state.py
+    loading_state.py
+    match_card.py
+    insight_card.py
+  pages/
+    dashboard_page.py
+    matches_page.py
+    match_detail_page.py
+    progress_page.py
+    settings_page.py
+
+services/
+  player_service.py
+  match_service.py
+  coaching_service.py
+  progress_service.py
+  asset_service.py
+  sync_service.py
+  health_service.py
+
+viewmodels/
+  player.py
+  match_summary.py
+  match_detail.py
+  coaching.py
+  progress.py
+  status.py
+
+run_app.py
+```
+
+Adapt to existing repo conventions if they are better. Do not over-engineer.
+
+# 7. PySide6
+Use PySide6.
+
+Inspect current dependency management first.
+If needed, add a simple dependency manifest appropriate for the repo.
+Do not commit `.venv`.
+Install PySide6 in the active venv if necessary for validation.
+
+No Qt Designer requirement for V0.1.
+
+# 8. Visual direction
+Create an original ZiRcoN Coach UI:
+- dark;
+- clean;
+- modern;
+- compact gaming-stat density;
+- readable hierarchy;
+- restrained accent;
+- green/red result indications;
+- clear status badges.
+
+Do not copy Mobalytics/OP.GG/Porofessor layouts or proprietary assets.
+
+# 9. Main window
+Required shell:
+- left sidebar;
+- ZiRcoN Coach title;
+- central stacked page area;
+- global sync/data status.
+
+Sidebar:
+```text
+Dashboard
+Matches
+Progress
+Settings
+```
+
+Match Detail opens from Match History.
+
+Requirements:
+- resizable;
+- sensible 1080p layout;
+- no clipped controls;
+- long text wraps.
+
+# 10. Bootstrap/service architecture
+Build a single bootstrap layer resolving:
+- config;
+- DB path;
+- Riot integration if configured;
+- services;
+- app theme;
+- main window.
+
+Do not instantiate Riot/database clients randomly inside widgets.
+Avoid mutable globals.
+
+# 11. Player identity
+Reuse existing configured Riot ID/account logic where available.
+The user must not need to edit Python source to change account identity.
+
+Never commit/display the Riot API key.
+Settings may show only `API configured: Yes/No`.
+
+# 12. Dashboard
+Landing page goal: "How am I doing and what should I look at?"
+
+Player header when available:
+- Riot ID;
+- profile icon;
+- rank/tier/division;
+- LP;
+- queue;
+- recent W/L.
+
+Recent performance when supported:
+- wins/losses;
+- win rate;
+- KDA;
+- CS/min;
+- average duration;
+- champion distribution.
+
+Show latest ~5 matches with:
+- champion;
+- result;
+- K/D/A;
+- duration;
+- CS or CS/min;
+- date;
+- click to detail.
+
+Add a small Coaching Highlights area sourced only from frozen analyzers.
+
+# 13. Match History
+Build a real scrollable history.
+
+Each row/card where available:
+- champion icon/name;
+- win/loss;
+- K/D/A;
+- KDA;
+- CS;
+- CS/min;
+- duration;
+- queue;
+- date.
+
+Filters minimum:
+- All
+- Wins
+- Losses
+
+Click => Match Detail.
+
+# 14. Match Detail / Post-game
+This is the main V0.1 product screen.
+
+Header:
+- champion;
+- result;
+- K/D/A;
+- duration;
+- date;
+- queue.
+
+Then integrate existing frozen analyzer outputs through a UI adapter:
+
+## Death
+Show analyzer-supported death impact/cost labels and concise evidence.
+
+## Jungle Tempo / Pathing
+Show relevant tempo events/windows and supported summaries.
+
+## Objectives
+Show supported objective preparation/timing facts.
+
+## Recall / Reset
+Show reset events and supported outcome classifications.
+
+## Build / Itemization
+Show items/order/timing and factual analyzer findings.
+Do not add "best build" recommendations.
+
+# 15. Unified CoachingService
+Create a non-frozen UI-facing adapter such as:
+
+```python
+class CoachingService:
+    def get_match_insights(self, match_id) -> CoachingReport:
+        ...
+```
+
+Normalize insights to fields like:
+- category
+- title
+- summary
+- severity
+- status/confidence
+- evidence
+- source_module
+
+Preserve source analyzer provenance/status.
+
+# 16. Coaching wording
+Translate technical analyzer statuses into concise player-facing wording without changing meaning.
+
+Do not use an LLM for V0.1.
+Use deterministic templates.
+
+Detailed evidence may be expandable.
+
+# 17. Progress
+Build progress from actual local match history.
+
+Minimum metrics:
+- win rate;
+- KDA;
+- CS/min;
+- deaths/match;
+- optional average duration;
+- stable analyzer-derived counts/rates if easily available.
+
+Windows if enough data:
+- last 10
+- last 20
+- last 50
+- all
+
+At minimum compare recent window vs previous equivalent window.
+If sample too small, state it.
+
+# 18. Charts
+Add 2–3 useful charts max for V0.1, e.g.:
+- win rate trend;
+- CS/min trend;
+- deaths or KDA trend.
+
+Use Qt-native drawing or matplotlib if appropriate.
+No heavy chart dependency unless necessary.
+
+Charts must handle empty/one-row/missing data safely.
+
+# 19. Champion pool summary
+Show descriptive stats only:
+- champion;
+- games;
+- wins;
+- win rate;
+- KDA;
+- CS/min.
+
+No personal tier score yet.
+
+# 20. Combat Beta boundary
+Do NOT build a new combat engine.
+Do NOT reopen Phase 2I.
+
+Allowed only if useful:
+- display frozen formula resolution status;
+- show RESOLVED/PARTIAL/UNKNOWN reasons.
+
+Example:
+```text
+Formula status: PARTIALLY_RESOLVED
+Reason: stat owner not execution eligible
+```
+
+Combat BETA is P2; post-game coaching is higher priority.
+
+# 21. Assets
+Use Riot/Data Dragon static assets where appropriate:
+- champion icons;
+- item icons;
+- profile icon.
+
+Prefer existing helpers/version.
+Create AssetService with local cache + fallback.
+Do not commit generated cache.
+Do not block Qt main thread for downloads.
+
+# 22. Threading
+No blocking Riot/Data Dragon request on Qt main thread.
+Use a clean Qt worker design (`QThreadPool`/`QRunnable` or `QThread`).
+
+Worker failures return readable UI states.
+
+# 23. Sync
+Provide a simple Sync/Refresh action.
+
+Behavior:
+1. show syncing state;
+2. reuse existing Riot import pipeline;
+3. update local DB;
+4. refresh pages;
+5. show success/failure.
+
+Do not duplicate API pipeline in widget code.
+
+Missing/expired key and rate limit must be readable.
+
+# 24. Offline behavior
+If network/API unavailable but local DB contains matches:
+- app opens;
+- match history works;
+- progress works;
+- local analyzer outputs work.
+
+Settings/Data Status should show:
+- DB available/unavailable;
+- loaded match count;
+- Riot API configured/unconfigured;
+- last sync state if known.
+
+# 25. Empty/error/loading states
+Handle without crash:
+- no DB;
+- empty DB;
+- missing .env;
+- invalid Riot key;
+- no network;
+- missing icon;
+- malformed one match;
+- missing analyzer result;
+- partial analyzer result.
+
+No raw traceback in normal UI.
+
+# 26. Settings / Data Status
+Minimum:
+- current Riot ID/account;
+- queue if configured;
+- DB path;
+- loaded match count;
+- latest local match date;
+- API configured Yes/No;
+- V0.1 Alpha version;
+- backend/frozen baseline summary.
+
+No secret value display.
+
+# 27. View-model contracts
+Do not pass giant raw Riot JSON directly to widgets.
+
+Create dataclasses/DTOs such as:
+- PlayerViewModel
+- MatchSummaryViewModel
+- MatchDetailViewModel
+- InsightViewModel
+- ProgressViewModel
+
+Keep UI independent from raw storage shapes.
+
+# 28. Performance
+Target smooth use with roughly 100 local matches.
+
+Avoid:
+- DB full reload on every repaint;
+- analyzer rerun on every widget paint;
+- network on main thread.
+
+In-memory per-match caching is acceptable.
+
+# 29. UI smoke tests
+Create headless tests/checks using:
+`QT_QPA_PLATFORM=offscreen`
+
+Minimum:
+- QApplication initializes;
+- main window constructs;
+- all pages construct;
+- navigation works;
+- empty state does not crash;
+- sample view models render;
+- Match Detail accepts a match;
+- service error state renders;
+- close cleanly.
+
+# 30. Service tests
+Test/check:
+- DTO conversion;
+- progress calculations;
+- coaching adapter normalization;
+- missing fields;
+- malformed row;
+- offline mode;
+- config without secret;
+- analyzer provenance/status preservation.
+
+Do not modify frozen test files.
+
+# 31. Manual visual validation
+If environment permits, launch:
+
+```powershell
+python run_app.py
+```
+
+Check basic layout and navigation.
+If GUI cannot be visually inspected, use offscreen tests and say so explicitly.
+Do not claim visual validation if not actually done.
+
+# 32. V0.1 audit
+Create a non-frozen audit/check such as:
+`app/v01_alpha_audit.py`
+
+Verify:
+- run_app.py exists;
+- PySide6 available;
+- app bootstraps;
+- required pages exist;
+- services callable;
+- offline bootstrap path works;
+- offscreen main window PASS;
+- navigation PASS;
+- empty state PASS;
+- frozen modifications = 0;
+- no secret committed/exposed.
+
+Final technical status:
+`PASS / REVIEW_REQUIRED FOR ALPHA FREEZE`
+or `REVIEW_REQUIRED`.
+
+Do not self-freeze.
+
+# 33. Existing backend validation
+Run:
+
+```powershell
+python main.py
+```
+
+It must remain PASS.
+
+Also run all new V0.1 checks.
+
+# 34. Central acceptance test
+Required user-facing command:
+
+```powershell
+python run_app.py
+```
+
+Expected:
+- real main window opens;
+- if local data exists, Dashboard loads it;
+- otherwise clean onboarding/empty state;
+- navigation works;
+- no terminal-only product experience.
+
+# 35. First launch onboarding
+If no local profile/data:
+show a small useful onboarding state:
+
+```text
+ZiRcoN Coach
+No local player data found.
+1. Configure Riot ID
+2. Add RIOT_API_KEY to .env
+3. Sync matches
+```
+
+Settings must remain accessible.
+
+# 36. Priority order
+P0:
+1. app launch
+2. shell/navigation
+3. local match history
+4. match detail
+5. frozen analyzer coaching cards
+6. offline/error states
+
+P1:
+7. Dashboard stats
+8. Progress
+9. Sync
+10. icons/assets
+
+P2:
+11. Combat Beta status
+12. extra visual polish
+
+Finish P0/P1 cleanly before P2.
+
+# 37. Out of scope
+Do NOT implement:
+- Overwolf/live overlay;
+- live game coaching;
+- pre-game recommendation engine;
+- optimal pick engine;
+- voice assistant;
+- LLM coaching;
+- ML;
+- build recommendation engine;
+- full spell simulator;
+- Burst/TTK;
+- new item passive/rune engine;
+- owner research;
+- Windows installer/exe packaging;
+- cloud accounts;
+- duo view.
+
+# 38. Documentation
+Update:
+- PROJECT_STATE.md
+- TODO.md
+- LAST_RUN.md
+
+Update DECISIONS.md only for durable decisions.
+
+Document run:
+```powershell
+.\.venv\Scripts\Activate.ps1
+python run_app.py
+```
+
+Document validation and dependency setup.
+
+# 39. Git strategy
+Suggested commits:
+1. `Build ZiRcoN Coach alpha application shell`
+2. `Integrate player and match data into alpha UI`
+3. `Integrate post-game coaching and progress views`
+4. `Validate ZiRcoN Coach V0.1 alpha`
+
+Do not commit:
+- .env
+- Riot key
+- .venv
+- runtime DB
+- asset cache
+- logs
+
+At end:
+```text
+git status --short
+git diff --check
 git rev-parse HEAD
 git rev-parse origin/main
-git status --short
 ```
 
+Push to origin/main.
 HEAD and origin/main must match.
+No force push.
 
----
+# 40. Final Codex response
+Report:
+- commits and final SHA;
+- architecture/files;
+- dependency changes;
+- exact launch command;
+- Dashboard status;
+- Match History status;
+- Match Detail status;
+- frozen analyzer integrations;
+- Progress status;
+- Settings status;
+- offline behavior;
+- sync behavior;
+- manual visual validation performed/not performed;
+- UI smoke tests;
+- service tests;
+- V0.1 audit;
+- `python main.py`;
+- FROZEN guard;
+- `git diff --check`;
+- secret check;
+- push status;
+- HEAD/origin SHA;
+- remaining limitations.
 
-# 33. Autonomy protocol
+End as:
+`PASS / REVIEW_REQUIRED FOR ALPHA FREEZE`
 
-Fix routine issues autonomously:
-
-- syntax
-- imports
-- fixtures
-- typing
-- cache
-- exact-source parsing
-- deterministic audit bugs
-- performance
-
-If one owner contract fails, continue others.
-
-If arithmetic branch cannot safely proceed, finish owner branch and audits.
-
-Stop only for:
-
-- required frozen change
-- source identity mismatch
-- architecture-level methodology contradiction
-
----
-
-# 34. Explicitly out of scope
-
-Do NOT implement:
-
-- Phase 2H remapping
-- AP enum promotion outside frozen 2H
-- full resource enum engine
-- item passive/active engine
-- rune execution
-- stat shards
-- generic buff engine
-- transformations
-- ticks
-- crit special cases
-- on-hit ordering
-- combo sequencing
-- Burst/TTK
-- build recommendations
-- ML
-- UI
-
-Do not start a successor phase automatically.
-
----
-
-# 35. Final Codex response
-
-Report concisely:
-
-- commits
-- files
-- owner research conclusion
-- owner counts
-- validated owner contracts
-- unresolved/ambiguous/contradicted owner contracts
-- exact stat signatures validated
-- whether execution gate passed
-- stat nodes executed
-- 1,443 formula replay
-- delta from Phase 2G baseline 13 RESOLVED / 720 PARTIAL
-- representative cases
-- tests/audits
-- FROZEN guard
-- git diff check
-- push status
-- HEAD/origin SHA
-- remaining blockers
-
-Do NOT declare Phase 2I FROZEN.
-Do NOT start the next phase.
-
----
+Do NOT freeze V0.1 yourself.
+Do NOT start V0.2.
+Do NOT start Phase 2J/2K/etc.
 
 # Final principle
+A smaller application backed by real data and trusted analyzers is better than a beautiful dashboard full of fake information.
 
-Phase 2H answered:
-
-WHAT STAT?
-WHAT STAT FORMULA SHAPE?
-
-Phase 2I must answer:
-
-WHOSE STAT?
-
-Only when that is proven may it calculate:
-
-STAT VALUE × SCALING.
-
-Never replace an unknown owner with “probably caster”.
-The largest defensible executable subset wins.
-
----
-
-# 36. Completion status
-
-`COMPLETED / FROZEN`
-
-Phase 2I v1 was accepted and FROZEN by project review on 2026-09-04.
-
-- 569/569 stat occurrences were inventoried with exact owner-relevant context.
-- 88 exact class/signature/context owner contracts were audited.
-- 567 occurrences are `OWNER_CONTEXT_DEPENDENT`.
-- The two signatures carrying unknown `0xa8cb9c14` remain `OWNER_UNRESOLVED`.
-- No caster, target, source-level, or other-context owner contract reached `VALIDATED`.
-- Owner execution eligibility is 0/569; the stat-scaling execution gate did not pass.
-- Branch B, numeric stat arithmetic, and the 1,443-calculation numeric replay were therefore not started, exactly as required by the zero-gate outcome.
-- The frozen Phase 2G baseline remains 13 `RESOLVED`, 720 `PARTIALLY_RESOLVED`, 493 `UNSUPPORTED_SIGNATURE`, and 217 `UNSUPPORTED_CLASS`, without modifying Phase 2G or Phase 2H.
-- The full owner validation stack, top Phase 2I audit, `python main.py`, and FROZEN guard pass.
-
-Accepted FROZEN baseline: version `champion_spell_stat_owner_semantics_phase2i_v1`; top foundation `stat_scaling_formula_foundation_phase2i_v1`; 567 `OWNER_CONTEXT_DEPENDENT`, 2 `OWNER_UNRESOLVED`, 0 execution-eligible owner occurrences; gate blockers 467 owner, 101 frozen stat ID, and 1 frozen formula ID.
-
-Phase 2I is FROZEN. Branch B remains not started; no stat-scaling evaluator, stat arithmetic, or numeric 1,443-calculation replay exists. No successor backend phase has been started.
+V0.1 succeeds when the user can launch ZiRcoN Coach, inspect real matches, open a post-game analysis, see trusted coaching information, and understand clearly when data is unavailable.
