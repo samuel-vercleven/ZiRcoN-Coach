@@ -30,7 +30,7 @@ PASS
 - Official-freeze Phase 2I validation stack: PASS.
 - Final `python main.py`: PASS (2.77s harness runtime).
 - FROZEN guard: PASS, 0 frozen modifications.
-- `git diff --check`: pending final pre-commit check.
+- `git diff --check`: PASS before the freeze commit and after the final push.
 
 ## Errors encountered
 - One harness-ordering issue was detected before the final run: the Phase 2H command assignment initially overrode the new Phase 2I assignment. The Phase 2I block was moved after the retained Phase 2H definitions and the full run was repeated successfully.
