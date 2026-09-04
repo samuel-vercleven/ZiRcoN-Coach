@@ -4,6 +4,22 @@
 Develop and validate major analyzers one by one.
 Freeze when measurement semantics are coherent, real-game audit is plausible, no major correctness bug remains, validation is appropriate, and limitations are documented.
 
+## ZiRcoN Coach V0.1 Alpha product architecture - REVIEW REQUIRED FOR ALPHA FREEZE
+Decision:
+- keep `main.py` as the immutable-backend validation harness and use `run_app.py` as the PySide6 launcher;
+- keep the desktop product local-first: SQLite browsing and cached post-game evidence work without Riot availability;
+- isolate mutable UI concerns in services/adapters/DTOs instead of changing or copying frozen analyzer behavior;
+- use an explicit-key runtime Riot client so a validated replacement development key is effective without restart;
+- perform every Riot/Data Dragon network request outside the Qt main thread;
+- persist only non-secret profile metadata and analyzer-version-keyed reports in additive SQLite tables;
+- keep display-asset Data Dragon versioning separate from frozen semantic knowledge versions;
+- preserve `AVAILABLE / PARTIAL / UNAVAILABLE / ERROR` and analyzer provenance in the post-game UI.
+
+Safety boundary:
+- deterministic summaries may select and restate analyzer-supported evidence but may not invent causal coaching, combat values, build recommendations, owner mappings, or LLM/ML conclusions;
+- `.env`, runtime databases, settings and asset caches remain untracked;
+- V0.1 remains under review and is not FROZEN.
+
 ## Death Analyzer v11 - FROZEN
 Reasons:
 - historical-only scoring;

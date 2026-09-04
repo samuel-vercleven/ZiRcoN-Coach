@@ -1629,4 +1629,20 @@ It should be a credible desktop coaching application backed by the real local ma
 
 Polish is important, but truthfulness is more important.
 
+---
+
+# Completion status
+
+`COMPLETED / PASS / REVIEW_REQUIRED FOR ALPHA FREEZE`
+
+Completed on 2026-09-04 on branch `v01-alpha-wip`.
+
+- `python run_app.py` opens the PySide6 desktop product; `main.py` remains the backend harness.
+- Dashboard, custom Match History, rich Post-game, Progress, and Settings/Data screens are implemented with real local data.
+- Dynamic masked key validation/replacement, non-blocking latest-20 sync, match/timeline backfill, profile cache, analysis cache, and offline browsing are implemented.
+- Real Riot validation returned `VALID`; real latest-20 sync returned `COMPLETE` with 0 failures.
+- Death v11, Tempo/Pathing v17, Objective v20, Reset v21, and Itemization v22 are consumed through adapters; 5/5 sections were available on a real recent match.
+- No frozen production/validation file was modified, Phase 2I remains closed, and no combat semantics were added.
+- V0.1 is not FROZEN. No V0.2 or new backend phase has started.
+
 A beautiful card that says `PARTIAL — timeline missing` is better than a fake coaching recommendation.

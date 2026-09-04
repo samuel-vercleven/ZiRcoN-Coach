@@ -20,8 +20,22 @@
 Frozen means: no retuning/refactor without a demonstrated correctness or integration bug or explicit project review request.
 
 ## In development
-- No production module is currently under development.
-- Any successor phase, stat execution without new owner proof, Burst/TTK, item/rune execution, combo engine, recommendations, ML, and UI remain out of scope.
+- ZiRcoN Coach V0.1 Alpha desktop product is technically complete on `v01-alpha-wip` and awaits project review for Alpha freeze; it is not FROZEN.
+- No backend successor phase is under development. Stat execution without new owner proof, Burst/TTK, new recommendations, ML, and V0.2 remain out of scope.
+
+## ZiRcoN Coach V0.1 Alpha
+- Entry point: `python run_app.py`; `main.py` remains the unchanged backend/FROZEN validation harness.
+- PySide6 desktop shell provides Dashboard, custom Match History cards, rich cached Post-game tabs, Progress trends/champion pool, and Settings/Data status.
+- Local data runtime verified with 122 matches after a real latest-20 SoloQ sync; 118 timelines are cached (all recent sync targets available, four older matches remain without timelines).
+- Real Riot validation: current development key returned `VALID`; latest-20 sync returned `COMPLETE` with 0 failures. The key was never printed and remains only in ignored `.env`.
+- Dynamic key replacement validates a proposed key asynchronously, preserves unrelated `.env` entries, masks the UI value, and takes effect without restart.
+- Current profile cache exposes Riot ID, level 521, Platinum I / 15 LP and profile metadata offline, explicitly marked cached after restart.
+- Data Dragon champion/item/profile assets use an ignored local display cache and background workers; display asset versioning is separate from frozen knowledge semantics.
+- Additive SQLite tables `app_profile_cache` and `app_analysis_reports` provide offline profile/report persistence without changing legacy schema behavior.
+- The five adapters call frozen Death v11, Tempo/Pathing v17, Objective v20, Reset v21 and Itemization v22 public APIs. A real recent match produced 5/5 `AVAILABLE` cached sections; 100 current-version rows cover the latest 20 matches.
+- Progress supports Last 10/20/50/All, recent-vs-previous comparison, win/KDA/CS/death trends, and descriptive champion pool statistics.
+- Validation: service/API/sync mocks, Windows SQLite lifecycle, offscreen UI smoke, native Windows visual captures at 1400x850 and 1100x700, real analyzer adapter, and V0.1 audit pass.
+- Status: `PASS / REVIEW_REQUIRED FOR ALPHA FREEZE`; V0.1 is not frozen and no V0.2/backend phase was started.
 
 ## Stat Owner Semantics Foundation Phase 2I v1
 - Status: FROZEN by project review; version `champion_spell_stat_owner_semantics_phase2i_v1`, top foundation `stat_scaling_formula_foundation_phase2i_v1`.
