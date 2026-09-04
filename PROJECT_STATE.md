@@ -19,9 +19,24 @@
 Frozen means: no retuning/refactor without a demonstrated correctness or integration bug or explicit project review request.
 
 ## In development
-- No production module is currently under development.
-- The next major task requires project review and a new TODO.md.
-- Phase 2I, stat execution, Burst/TTK, item/rune execution, combo engine, recommendations, ML, and UI remain out of scope.
+- Phase 2I `champion_spell_stat_owner_semantics_phase2i_v1` is technically complete and awaiting project review for freeze; it is not FROZEN.
+- The owner execution gate is closed at zero validated real owner contracts, so no stat-scaling production evaluator was created.
+- Any successor phase, stat execution without new owner proof, Burst/TTK, item/rune execution, combo engine, recommendations, ML, and UI remain out of scope.
+
+## Stat Owner Semantics Foundation Phase 2I v1
+- Status: PASS / REVIEW_REQUIRED FOR FREEZE; not FROZEN.
+- Latest real runtime: `python main.py` PASS on 2026-09-04 (2.91s); compilation, 10/10 synthetic checks, 61/61 precision assertions, provenance research audit, full owner audit, top Phase 2I audit, and FROZEN guard passed.
+- Research conclusion: reverse-engineered interfaces and independent implementations show that stat parts read a unit/champion supplied by the evaluation context, but no patch-specific client call-site proof establishes that this unit is universally the caster or target.
+- Exact inventory: all 569 Phase 2H stat rows preserved with class/signature, graph/root/parent/ancestor context, siblings, child/subpart structure, tooltip linkage, frozen stat/formula results, and pinned provenance.
+- Owner contracts: 88 exact `class + signature + structural context` groups; 86 contracts are `OWNER_CONTEXT_DEPENDENT` and 2 hashed-field variants are `OWNER_UNRESOLVED`.
+- Occurrence statuses: 567 `OWNER_CONTEXT_DEPENDENT`, 2 `OWNER_UNRESOLVED`, 0 validated caster, 0 validated target, 0 validated source-level/other, 0 strongly supported, 0 ambiguous, and 0 contradicted.
+- Owner execution eligibility: 0/569. The gate blockers are 467 owner, 101 frozen Phase 2H stat ID, and 1 frozen Phase 2H formula ID.
+- Exact stat signature counts: NamedDataValue 279, Coefficient 271, SubPart 19 across eight signatures; the two signatures containing unknown `0xa8cb9c14` remain unresolved.
+- Tooltip audit: 461/569 stat rows have an exact pinned calculation-token link in the serialized tooltip data.
+- Formula replay: the 1,443-calculation inventory and frozen Phase 2G baseline (13 resolved, 720 partial, 493 unsupported signature, 217 unsupported class) were confirmed. Numeric Phase 2I replay was not run because the TODO gate requires at least one validated real owner contract.
+- Safety: 0 caster guesses, 0 target-as-owner substitutions, 0 stat arithmetic, 0 non-validated stat/formula executions, 0 partial snapshot exact-use, and 0 FROZEN modifications.
+- Compatibility: Phase 2G and Phase 2H production/validation files are unchanged. `main.py` runs only the Phase 2I owner branch and top gate audit while retaining every frozen guard entry.
+- Remaining blocker: new patch-specific runtime/call-site evidence is required before a concrete owner can become execution-eligible. AP remains outside execution because frozen Phase 2H did not promote raw `mStat=0`.
 
 ## Champion Spell Stat Reference Semantics Foundation Phase 2H v1
 - Status: FROZEN by project review; version `champion_spell_stat_semantics_phase2h_v1`.

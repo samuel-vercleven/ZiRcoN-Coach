@@ -16,9 +16,7 @@ if hasattr(sys.stdout, "reconfigure"):
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent
-CURRENT_PHASE = (
-    "Champion Spell Stat Reference Semantics Foundation Phase 2H v1"
-)
+CURRENT_PHASE = "Stat Owner Semantics Foundation Phase 2I v1"
 
 
 LEGACY_PHASE2F_TEST_COMMANDS = [
@@ -143,6 +141,44 @@ TEST_COMMANDS = [
     (
         "Full audit champion_spell_stat_semantics",
         [sys.executable, "-m", "knowledge.champion_spell_stat_semantics_full_audit"],
+    ),
+]
+
+
+# Phase 2I begins with an owner gate.  No stat-scaling evaluator is admitted
+# unless at least one real owner contract is VALIDATED.  The current evidence
+# leaves that gate at zero, so this harness runs the complete owner branch and
+# the top-level disposition audit without fabricating Branch B coverage.
+PHASE2I_FILES = [
+    "knowledge/champion_spell_stat_owner_sources.py",
+    "knowledge/champion_spell_stat_owner_semantics.py",
+    "knowledge/champion_spell_stat_owner_synthetic_checks.py",
+    "knowledge/champion_spell_stat_owner_precision_checks.py",
+    "knowledge/champion_spell_stat_owner_research_audit.py",
+    "knowledge/champion_spell_stat_owner_full_audit.py",
+    "knowledge/stat_scaling_formula_foundation_full_audit.py",
+]
+TEST_COMMANDS = [
+    ("Compilation Phase 2I", [sys.executable, "-m", "py_compile", *PHASE2I_FILES]),
+    (
+        "Synthetic champion_spell_stat_owner",
+        [sys.executable, "-m", "knowledge.champion_spell_stat_owner_synthetic_checks"],
+    ),
+    (
+        "Precision champion_spell_stat_owner",
+        [sys.executable, "-m", "knowledge.champion_spell_stat_owner_precision_checks"],
+    ),
+    (
+        "Research audit champion_spell_stat_owner",
+        [sys.executable, "-m", "knowledge.champion_spell_stat_owner_research_audit"],
+    ),
+    (
+        "Full audit champion_spell_stat_owner",
+        [sys.executable, "-m", "knowledge.champion_spell_stat_owner_full_audit"],
+    ),
+    (
+        "Top audit stat_scaling_formula_foundation",
+        [sys.executable, "-m", "knowledge.stat_scaling_formula_foundation_full_audit"],
     ),
 ]
 

@@ -1,70 +1,74 @@
 # LAST RUN
 
 ## Status
-PASS
+PASS / REVIEW_REQUIRED FOR FREEZE
 
 ## Date
-2026-08-31 17:10 local
+2026-09-04 18:49 local
 
 ## Command
-`python main.py` through the project `.venv`; complete terminal output captured in `logs/latest_full_run.txt`.
+`python main.py` through the project `.venv`; complete output captured in `logs/latest_full_run.txt`.
 
 ## Runtime
 - completed successfully;
-- 2.02s reported by the official freeze validation run.
+- 2.91s reported by the final Phase 2I run.
 
 ## Files changed
-- New Phase 2H provenance, inventory, semantic mapping/composition, synthetic, precision, research, inventory-audit, and full-audit modules under `knowledge/`.
-- `main.py`: Phase 2H current harness; Phase 2G and all earlier layers remain protected, and all seven Phase 2H production/validation files now join the FROZEN guard.
-- `AGENTS.md`, `PROJECT_STATE.md`, `DECISIONS.md`, `TODO.md`, and `LAST_RUN.md`: official Phase 2H v1 freeze state.
-- Checkpoint commits already created: `1ba23ed` (inventory) and `988f190` (validated semantics); the final audit/documentation commit contains this report.
-- No FROZEN production or validation file changed.
+- New Phase 2I owner provenance, exhaustive inventory/contract, synthetic, precision, research-audit, full-audit, and top-foundation audit modules under `knowledge/`.
+- `main.py`: active Phase 2I owner-gate harness; its FROZEN list was preserved unchanged.
+- `PROJECT_STATE.md`, `DECISIONS.md`, `TODO.md`, and `LAST_RUN.md`: Phase 2I zero-gate result and review handoff.
+- No Phase 2G or Phase 2H production/validation file changed.
+- Local `TODO.before_phase2i.md` is an untracked backup and is deliberately excluded from commits.
 
 ## Tests executed
-- Phase 2H `py_compile`: PASS.
-- Synthetic checks: PASS 21/21.
-- Precision checks: PASS 31/31 across 6 stat fixtures and 4 formula fixtures.
-- Public-source provenance audit: PASS.
-- Exact pinned inventory audit: PASS.
-- Full real stat-semantics audit: PASS (its historical `REVIEW_REQUIRED FOR FREEZE` suffix is preserved by the now-frozen validation module; project review accepted the freeze).
+- Phase 2I `py_compile`: PASS.
+- Owner synthetic checks: PASS 10/10, including validated caster/target synthetic-only paths, non-executable uncertain statuses, exact signature/context mismatch, damage-target separation, and provenance.
+- Owner precision checks: PASS 61/61 across 9 unrelated real context fixtures and 2 unresolved hashed-field fixtures.
+- Owner public-source provenance audit: PASS, 5 records, 2 exact/patch-matched structural sources and 3 executable reverse-engineering cross-checks.
+- Full real owner audit: PASS / REVIEW_REQUIRED FOR FREEZE.
+- Top Phase 2I foundation audit: PASS / REVIEW_REQUIRED FOR FREEZE.
 - Final `python main.py`: PASS.
 - FROZEN guard: PASS, 0 frozen modifications.
-- `git diff --check`: PASS.
+- `git diff --check`: PASS before final commit.
 
 ## Errors encountered
-- none in the final run.
+- One harness-ordering issue was detected before the final run: the Phase 2H command assignment initially overrode the new Phase 2I assignment. The Phase 2I block was moved after the retained Phase 2H definitions and the full run was repeated successfully.
 
 ## Main analyzer results
 ### Current analyzer
-- Version: `champion_spell_stat_semantics_phase2h_v1`.
-- Exact source: `Haru-Kay/LeagueDatamines@9245fd616059c6c658d1faa1029f0e18ea179154`, patch 26.16; Data Dragon 16.16.1/fr_FR.
-- Other recorded sources: `LeagueToolkit/lol-meta-classes@6222976776a9ca18fc63945930f22b8b03b30144`, `moonshadow565/calcrev@40f21c06e5cfc10750bb44b39d1f2d4e3567a6dc`, `CommunityDragon/CDTB@b52d04fa986a1620f31bd3ca8f9dbbea169b1641`, `OsOmE1/leaguebuilder@1ae51c26bdde36e178174b98f7c65a52d55f10fa`, HextechDocs, and official Riot patch notes 9.2, 9.24, 26.1, and 26.2. Exact URLs and limitations are in the sources module.
-- Inventory: 885 occurrences = 569 `mStat` + 316 explicit `mStatFormula`; 16 explicit IDs `[1, 2, 4, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 18, 29, 31]`.
-- Effective formula values: `[0, 1, 2]`; explicit serialized values `[1, 2]`.
-- Validated stats: `{1: ARMOR, 2: ATTACK_DAMAGE, 12: HEALTH}`; execution-eligible coverage 468/569 (82.25%).
-- Strongly supported/non-executable: IDs `[4, 6, 7, 8, 9, 10, 18, 29, 31]`.
-- Ambiguous/contradicted stat IDs: none; unresolved `[13, 14, 15, 16]`.
-- Validated formulas: `{0: TOTAL_STAT, 2: BONUS_STAT}`, covering 568/569 (99.82%); formula 1 is contradicted and excluded.
-- Ownership: caster 0, target 0, source-level 0, context-dependent 0, unresolved 569.
-- Composition: 0 real fully resolved references; 467 reach the owner gate, 101 stop on stat ID, and 1 stops on formula ID. Six snapshot fields are structurally composable only after future owner proof.
-- AbilityResource: 8 separate class nodes, one explicit raw ID 4, all `RESOURCE_ENUM_RESEARCH_ONLY`.
-- Phase 2H v1 is FROZEN by accepted project review; all seven Phase 2H files are guarded and Phase 2G frozen behavior and counts remain unchanged.
+- Version: `champion_spell_stat_owner_semantics_phase2i_v1`; top audit `stat_scaling_formula_foundation_phase2i_v1`.
+- Exact source: `Haru-Kay/LeagueDatamines@9245fd616059c6c658d1faa1029f0e18ea179154`, patch 26.16, Data Dragon 16.16.1/fr_FR.
+- Structural/runtime cross-checks: `LeagueToolkit/lol-meta-classes@6222976776a9ca18fc63945930f22b8b03b30144`, `moonshadow565/calcrev@40f21c06e5cfc10750bb44b39d1f2d4e3567a6dc`, and `OsOmE1/leaguebuilder@1ae51c26bdde36e178174b98f7c65a52d55f10fa`.
+- Owner baseline: 569/569 rows, preserving champion, slot, source path, calculation key, graph path, exact signature, frozen stat/formula results, root/parent/ancestor context, siblings, subparts, tooltip linkage, and provenance.
+- Classes: 279 `StatByNamedDataValueCalculationPart`, 271 `StatByCoefficientCalculationPart`, 19 `StatBySubPartCalculationPart`.
+- Eight exact signatures observed; 88 exact class/signature/context contracts audited.
+- Contract statuses: 86 `OWNER_CONTEXT_DEPENDENT`, 2 `OWNER_UNRESOLVED`.
+- Occurrence statuses: 567 `OWNER_CONTEXT_DEPENDENT`, 2 `OWNER_UNRESOLVED`; 0 validated caster, target, source-level, or other owner; 0 strongly supported, ambiguous, or contradicted.
+- Exact tooltip calculation-token links: 461/569.
+- Owner execution-eligible occurrences: 0/569.
+- Gate blockers: 467 owner, 101 frozen stat ID, 1 frozen formula ID; snapshot/DataValue/subpart arithmetic was not reached.
+- Frozen Phase 2H consumption remained 468 validated stat occurrences and 568 validated formula occurrences.
+- Execution gate: FAIL-CLOSED / zero eligible occurrences. Branch B was not started and no stat-scaling evaluator was created.
+- Formula replay: the 1,443-calculation inventory was confirmed. Numeric replay was not run because the TODO requires at least one validated real owner contract before arithmetic.
+- Frozen Phase 2G baseline remains 13 RESOLVED, 720 PARTIALLY_RESOLVED, 493 UNSUPPORTED_SIGNATURE, 217 UNSUPPORTED_CLASS. Phase 2I newly resolved formulas: 0 by gate; no replacement replay counts were fabricated.
+- Representative real fixtures include Aatrox, Akshan, Diana, Malphite, Shyvana, Bel'Veth, Dr. Mundo, Viego, and Rammus; none is promoted to caster ownership from champion-spell membership.
 
 ## Suspicious findings
-- Public formula tables disagree: historical HextechDocs labels formula 2 as total, while exact pinned Akshan/Diana fixtures and current leaguebuilder support bonus. Formula 1 has incompatible bonus/total claims and only one non-discriminating pinned occurrence.
-- Four pinned `mStat` IDs (13-16) are absent from the exact pinned `GlobalStatsUIData` table; no positional inference was admitted.
+- Historical/current reverse-engineered implementations agree that stat lookup consumes a caller-provided unit/champion context, but they do not prove how every 26.16 client call site binds that context.
+- Ekko W and Kindred W each carry an unknown `0xa8cb9c14` field in their stat-part signature; both remain fully owner-unresolved.
 
 ## Methodological concerns
-- The exact stat UI table is a community datamine/export of Riot files, not Riot Developer API documentation.
-- Structural `UInt8` and reverse-engineered call topology do not prove enum meaning or owner identity.
-- Missing serialized enum fields are preserved distinctly from explicit zero; zero remains a legitimate value.
+- `UnitStatComponent` proves a stat-bearing runtime object, not that the object is the caster.
+- LeagueBuilder's caller-supplied `Champion` is independent supporting implementation evidence, not authoritative client call-graph evidence.
+- Damage target, tooltip subject, spell owner, and scaling-stat owner remain separate concepts.
 
 ## Remaining issues
-- Formula 1, raw IDs 13-16, resource enum semantics, and all owner identities remain non-executable by the accepted freeze baseline.
-- Phase 2I was not started.
+- A patch-specific runtime/call-site proof is required before any concrete owner contract can be execution-eligible.
+- AP remains outside execution because frozen Phase 2H did not promote raw `mStat=0`.
+- No numeric stat-scaling replay exists for this zero-gate result; frozen Phase 2G counts are unchanged.
 
 ## Codex technical recommendation
-- Review the recorded evidence and contradictions as-is; do not increase coverage without new patch-specific owner or enum proof.
+- Review the explicit context-dependent baseline for freeze. Do not open stat arithmetic unless new evidence binds the evaluation unit to a concrete snapshot role for an exact real contract.
 
 ## Review request
-NONE. Phase 2H v1 is FROZEN by accepted project review; its unresolved contracts remain explicit.
+REVIEW_REQUIRED FOR FREEZE. Phase 2I is technically complete, is not declared FROZEN, and no successor phase was started.

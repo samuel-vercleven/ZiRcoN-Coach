@@ -140,7 +140,39 @@ Freeze rule:
 - do not start Phase 2I without project review and a new TODO.
 
 Status:
-FROZEN by project review. Phase 2I has not started.
+FROZEN by project review.
+
+## Stat Owner Semantics Foundation Phase 2I v1 - REVIEW REQUIRED FOR FREEZE
+
+Decision:
+- distinguish the stat subject supplied to a calculation context from the gameplay identity of caster, target, or another unit;
+- require owner contracts at `class + exact signature + structural context` granularity;
+- treat ordinary pinned stat signatures as `OWNER_CONTEXT_DEPENDENT`, not caster-owned, because the available runtime interfaces expose a caller-supplied `UnitStatComponent` / `Champion` without a patch-specific proof of every client call-site binding;
+- keep the two signatures containing unknown `0xa8cb9c14` fields `OWNER_UNRESOLVED`;
+- admit only exact `OWNER_VALIDATED_*` contracts to stat arithmetic.
+
+Evidence conclusion:
+- the exact 26.16 spell graphs and patch-matched meta schema prove serialized structure but contain no named owner selector for the ordinary stat signatures;
+- historical calcrev interfaces route stat lookup through the evaluation context's `UnitStatComponent`;
+- LeagueBuilder independently routes stat lookup through the caller-provided `CalculationContext.Champion`;
+- these sources agree on a context-supplied stat subject but do not prove universal caster or target identity in the 26.16 game client.
+
+Execution boundary:
+- 567/569 occurrences are context-dependent and 2/569 are unresolved;
+- 0 real owner contracts are validated and 0 occurrences are owner-execution-eligible;
+- the Phase 2I arithmetic gate therefore remains closed;
+- no stat-scaling evaluator or numeric 1,443-formula replay is created merely to manufacture coverage;
+- the frozen Phase 2H stat/formula maps are consumed as-is and cannot be upgraded by Phase 2I.
+
+Rules:
+- damage target must never be substituted for stat owner;
+- champion spell membership alone is not caster-owner evidence;
+- a caller-supplied calculation unit may be reported as context-dependent, but it cannot be mapped to a source or target snapshot without independent binding evidence;
+- unknown extra fields fail closed;
+- future execution requires new patch-specific owner/call-site evidence and project review.
+
+Status:
+PASS / REVIEW_REQUIRED FOR FREEZE. Phase 2I is not FROZEN.
 
 ## Executable Combat Formula Foundation Phase 2G v2 - FROZEN
 
