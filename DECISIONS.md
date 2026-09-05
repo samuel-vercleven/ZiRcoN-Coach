@@ -16,6 +16,13 @@ Decision:
 - preserve `AVAILABLE / PARTIAL / UNAVAILABLE / ERROR` and analyzer provenance in the post-game UI.
 - version presentation adapters independently from their frozen analyzer source versions, so an adapter mapping correction invalidates only its cached presentation payload while preserving exact source provenance;
 - map frozen outputs by their exact published keys and keep `UNKNOWN` only when the corresponding frozen field is absent, never when an adapter alias is incomplete.
+- give each of the five adapters its own presentation-cache version; a current match badge requires all five exact current versions and stale rows never count as current coverage;
+- cache structured events, metrics, findings and technical details instead of relying on prose that the UI would need to parse;
+- scope V0.1 history, progress, counts and sync state to the configured Riot account/PUUID and SoloQ queue 420; use historical-most-rows only when no account is configured;
+- process analyzer batches by exact local role and fail closed for the Jungle-only v17/v20/v21 contracts on non-Jungle matches;
+- keep epistemic support status visually neutral and separate from analyzer-supported gameplay severity;
+- treat Reset v21 labels only as post-reset production versus a historical reference, never as causal recall quality;
+- build Coach Summary candidates only from explicit supported findings, never from analyzer availability or evidence volume.
 
 Safety boundary:
 - deterministic summaries may select and restate analyzer-supported evidence but may not invent causal coaching, combat values, build recommendations, owner mappings, or LLM/ML conclusions;

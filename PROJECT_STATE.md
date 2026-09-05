@@ -25,20 +25,22 @@ Frozen means: no retuning/refactor without a demonstrated correctness or integra
 
 ## ZiRcoN Coach V0.1 Alpha
 - Entry point: `python run_app.py`; `main.py` remains the unchanged backend/FROZEN validation harness.
-- PySide6 desktop shell provides Dashboard, custom Match History cards, rich cached Post-game tabs, Progress trends/champion pool, and Settings/Data status.
-- Local data runtime verified with 122 matches after a real latest-20 SoloQ sync; 118 timelines are cached (all recent sync targets available, four older matches remain without timelines).
+- PySide6 desktop shell provides a French-first Dashboard, custom Match History cards with the complete item strip, structured cached Post-game tabs, selected-window Progress trends/champion pool, and Settings/Data status.
+- Corrective-pass projection is strictly queue 420 and active-account scoped: 118 SoloQ matches and 118 timelines are visible for the configured account. A persisted active PUUID wins; row-count fallback is used only without configured identity.
 - Real Riot validation: current development key returned `VALID`; latest-20 sync returned `COMPLETE` with 0 failures. The key was never printed and remains only in ignored `.env`.
-- Dynamic key replacement validates a proposed key asynchronously, preserves unrelated `.env` entries, masks the UI value, and takes effect without restart.
-- Current profile cache exposes Riot ID, level 521, Platinum I / 15 LP and profile metadata offline, explicitly marked cached after restart.
+- Dynamic key replacement validates a candidate asynchronously without changing active credential state, preserves unrelated `.env` entries, masks the UI value, and takes effect without restart only after successful save. Credential and sync/network states have separate badges.
+- Current profile cache exposes Riot ID, level, rank, LP, ranked W/L and WR offline, with truthful CURRENT-this-session / CACHED / LOCAL freshness.
 - Data Dragon champion/item/profile assets use an ignored local display cache and background workers; display asset versioning is separate from frozen knowledge semantics.
 - Additive SQLite tables `app_profile_cache` and `app_analysis_reports` provide offline profile/report persistence without changing legacy schema behavior.
-- Additive `app_sync_state` persistence records the last completed/partial sync without credentials; Settings also reports cached timeline and analyzed-match counts.
-- The five adapters call frozen Death v11, Tempo/Pathing v17, Objective v20, Reset v21 and Itemization v22 public APIs. Current compatible cache coverage is 110 reports across 22 matches; older adapter-version rows are retained but never presented as current.
+- Additive `app_account_sync_state` persistence records account+queue-scoped status and structured counters with safe legacy-singleton fallback. Sync returns target/new/existing/failed match and timeline counts, current analysis counts, and profile/rank states.
+- The five adapters call frozen Death v11, Tempo/Pathing v17, Objective v20, Reset v21 and Itemization v22 public APIs. Every adapter now has an independent presentation-cache version. The latest 20 were regenerated as 100 current reports: 18 match badges AVAILABLE and 2 PARTIAL; stale rows remain retained but never count as current.
 - Death v11 adapter audit: the previous V0.1 keys silently missed v11's actual `advantage_state_before_death` and `resource_cost_score`. Adapter v2 now presents exact pre-death state, historical score/label, killer/position, approximate zone, impact bracket, relative Gold/CS/XP costs, and supported event/chain context. Across five real 11-death matches, all 55 pre-death states were present and 0 remained `UNKNOWN`.
-- Sync progress is monotonic across separate match and timeline stages, partial item failures continue safely, and the top bar retains invalid/expired key state until replacement.
-- Coach Summary deterministically selects up to four supported analyzer summaries and retains the epistemic-status/gameplay-severity boundary.
-- Progress supports Last 10/20/50/All, recent-vs-previous comparison, win/KDA/CS/death trends, and descriptive champion pool statistics.
-- Validation: service/API/sync mocks, Windows SQLite lifecycle, offscreen UI smoke, native Windows visual captures at 1400x850 and 1100x700, real analyzer adapter, and V0.1 audit pass.
+- Tempo v17 renders exact phase durations, production/relative rates, historical scores and exact hole/watch flags. Objective v20 renders exact secured side, proximity, entry diffs, contest/trade, preparation/conversion references and sequence evidence. Reset v21 renders shop/reset events and explicitly non-causal post-reset production. Build v22 renders final inventory, validation and milestones; raw transactions remain technical detail.
+- Mixed-role batches are grouped by exact role; Jungle-only v17/v20/v21 reports fail closed as UNAVAILABLE for non-Jungle matches instead of borrowing another match's role.
+- Coach Summary selects explicit analyzer-supported gameplay findings by supported severity; it never ranks evidence volume and reports a limited summary when coverage is incomplete. Support status uses neutral teal/slate, separate from gameplay severity.
+- Progress compares selected N versus previous N, disables equivalent comparison for All, uses rolling WR, and preserves missing chart metrics as gaps rather than zeros.
+- Real five-match adapter audit cross-checked 20 Tempo phases, 38 objective events, 50 reset events and five builds: required non-null field occurrences mapped 313/313, 1,099/1,099 and 1,574/1,574 respectively.
+- Validation: focused adapter/account/UI regressions, API/sync mocks, malformed Retry-After, Windows SQLite lifecycle, offscreen smoke, 22 native visual captures across all post-game tabs at 1400x850 and 1100x700, real analyzer audits, `run_app.py`, `main.py`, FROZEN guard and secret scan all pass.
 - Status: `PASS / REVIEW_REQUIRED FOR ALPHA FREEZE`; V0.1 is not frozen and no V0.2/backend phase was started.
 
 ## Stat Owner Semantics Foundation Phase 2I v1
