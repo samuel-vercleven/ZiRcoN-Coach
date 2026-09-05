@@ -42,7 +42,18 @@ class MatchDetailPage(QWidget):
         report = self.analysis.get_match_insights(match_id); row.addWidget(StatusBadge(report.status)); self.content.addWidget(hero)
         summary_title = QLabel("Coach Summary"); summary_title.setObjectName("SectionTitle"); self.content.addWidget(summary_title)
         supported = [value for value in report.insights if value.status in ("AVAILABLE", "PARTIAL")]
-        summary = QLabel("No high-confidence issue was identified in the cached analyzers." if not supported else "Evidence-gated overview from frozen analyzers. Status describes data support, not whether a play was good or bad."); summary.setWordWrap(True); summary.setObjectName("Muted"); self.content.addWidget(summary)
+        if not supported:
+            summary_text = "No high-confidence issue was identified in the available cached analyzers."
+        else:
+            ranked = sorted(
+                supported,
+                key=lambda value: (value.status != "AVAILABLE", -len(value.evidence)),
+            )[:4]
+            summary_text = "\n".join(
+                f"• {value.title}: {value.summary}" for value in ranked
+            )
+        summary = QLabel(summary_text); summary.setWordWrap(True); summary.setObjectName("Muted"); self.content.addWidget(summary)
+        boundary = QLabel("Evidence-gated summaries from frozen analyzers. Status describes data support, not whether a play was good or bad."); boundary.setWordWrap(True); boundary.setObjectName("Muted"); self.content.addWidget(boundary)
         tabs = QTabWidget(); overview = QWidget(); overview_layout = QVBoxLayout(overview); overview_layout.setContentsMargins(0, 12, 0, 0)
         for insight in report.insights: overview_layout.addWidget(InsightCard(insight))
         overview_layout.addStretch(); overview_scroll = QScrollArea(); overview_scroll.setWidgetResizable(True); overview_scroll.setWidget(overview); tabs.addTab(overview_scroll, "Overview")

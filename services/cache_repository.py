@@ -23,6 +23,9 @@ class CacheRepository:
                 match_id TEXT NOT NULL, analyzer_name TEXT NOT NULL, analyzer_version TEXT NOT NULL,
                 generated_at TEXT NOT NULL, status TEXT NOT NULL, report_json TEXT NOT NULL,
                 PRIMARY KEY(match_id, analyzer_name, analyzer_version))""")
+            connection.execute("""CREATE TABLE IF NOT EXISTS app_sync_state (
+                singleton INTEGER PRIMARY KEY CHECK(singleton = 1), completed_at TEXT NOT NULL,
+                status TEXT NOT NULL, message TEXT NOT NULL)""")
             connection.commit()
 
     def save_profile(self, puuid: str, profile: dict) -> None:
@@ -67,3 +70,25 @@ class CacheRepository:
             except (ValueError, TypeError):
                 continue
         return result
+
+    def save_sync_result(self, status: str, message: str) -> None:
+        """Persist the latest non-fatal sync result without storing credentials."""
+        self.initialize()
+        with closing(sqlite3.connect(self.db_path)) as connection:
+            connection.execute(
+                "INSERT OR REPLACE INTO app_sync_state VALUES (1, ?, ?, ?)",
+                (datetime.now(timezone.utc).isoformat(), status, message),
+            )
+            connection.commit()
+
+    def sync_state(self) -> dict | None:
+        self.initialize()
+        if not self.db_path.exists():
+            return None
+        with closing(sqlite3.connect(self.db_path)) as connection:
+            row = connection.execute(
+                "SELECT completed_at, status, message FROM app_sync_state WHERE singleton=1"
+            ).fetchone()
+        if not row:
+            return None
+        return {"completed_at": row[0], "status": row[1], "message": row[2]}

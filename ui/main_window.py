@@ -44,8 +44,10 @@ class MainWindow(QMainWindow):
         self.sync_button.setEnabled(False); self.progress.setVisible(True); self.progress.setValue(1); self.sync_text.setText("Starting sync…")
         worker = FunctionWorker(self.context.sync.sync, with_progress=True); worker.signals.progress.connect(self._sync_progress); worker.signals.result.connect(self._sync_result); worker.signals.error.connect(lambda message: self._sync_failed(message)); worker.signals.finished.connect(self._sync_finished); self.sync_worker = worker; QThreadPool.globalInstance().start(worker)
     def _sync_progress(self, message, value): self.sync_text.setText(message); self.progress.setValue(value)
-    def _sync_result(self, result): self.sync_text.setText(result.get("message", result.get("status", "Complete"))); self.api.set_status("VALID" if result.get("status") in ("COMPLETE", "PARTIAL") else result.get("status", "ERROR")); self.refresh_all()
-    def _sync_failed(self, message): self.sync_text.setText(message); self.api.set_status("ERROR")
+    def _sync_result(self, result):
+        status = "VALID" if result.get("status") in ("COMPLETE", "PARTIAL") else result.get("status", "ERROR")
+        self.context.settings.set_api_status(status); self.sync_text.setText(result.get("message", result.get("status", "Complete"))); self.api.set_status(status); self.refresh_all()
+    def _sync_failed(self, message): self.context.settings.set_api_status("ERROR"); self.sync_text.setText(message); self.api.set_status("ERROR")
     def _sync_finished(self): self.sync_worker = None; self.sync_button.setEnabled(True); self.progress.setVisible(False)
     def refresh_all(self):
         self.dashboard_page.refresh(); self.matches_page.refresh(); self.progress_page.refresh(); self.settings_page.refresh(); self.refresh_header()

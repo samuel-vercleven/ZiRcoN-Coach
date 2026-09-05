@@ -143,12 +143,30 @@ class LocalDataService:
     def status(self) -> StatusViewModel:
         latest = "UNAVAILABLE"
         count = 0
+        timeline_count = 0
+        analyzed_match_count = 0
+        sync_state = self.cache.sync_state() if self.cache else None
         if self.is_available():
             rows = self._rows(1)
             with closing(self._connection()) as connection:
                 player = self._primary_player()
                 count = connection.execute("SELECT COUNT(*) FROM matches m JOIN participants p ON p.match_id=m.match_id WHERE p.puuid=?", (player["puuid"],)).fetchone()[0] if player else 0
+                tables = {
+                    row[0]
+                    for row in connection.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table'"
+                    ).fetchall()
+                }
+                if "timelines" in tables:
+                    timeline_count = connection.execute("SELECT COUNT(*) FROM timelines").fetchone()[0]
+                if "app_analysis_reports" in tables:
+                    analyzed_match_count = connection.execute(
+                        "SELECT COUNT(DISTINCT match_id) FROM app_analysis_reports"
+                    ).fetchone()[0]
             latest = self._summary(rows[0]).played_at if rows else "No local matches"
         key_configured = bool(self.settings.api_key()) if self.settings else bool(os.getenv("RIOT_API_KEY"))
         return StatusViewModel(str(self.db_path), self.is_available(), count, latest, key_configured,
-            api_status=self.settings.api_status() if self.settings else ("CONFIGURED_UNVALIDATED" if key_configured else "NOT_CONFIGURED"))
+            sync_status=(sync_state or {}).get("status", "Offline / not synced this session"),
+            api_status=self.settings.api_status() if self.settings else ("CONFIGURED_UNVALIDATED" if key_configured else "NOT_CONFIGURED"),
+            timeline_count=timeline_count, analyzed_match_count=analyzed_match_count,
+            last_sync_at=(sync_state or {}).get("completed_at", "UNAVAILABLE"))

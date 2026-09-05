@@ -66,6 +66,7 @@ class RiotSyncService:
         initialize_database()
         initialize_timeline_tables()
         failures = []
+        unavailable_matches = set()
         for index, match_id in enumerate(ids, start=1):
             update(f"Downloading match {index}/{len(ids)}", 20 + int(index / max(1, len(ids)) * 30))
             if not match_exists(match_id):
@@ -74,8 +75,11 @@ class RiotSyncService:
                     save_match(result.data)
                 else:
                     failures.append(f"match:{match_id}:{result.status.value}")
-                    continue
+                    unavailable_matches.add(match_id)
+        for index, match_id in enumerate(ids, start=1):
             update(f"Downloading timeline {index}/{len(ids)}", 50 + int(index / max(1, len(ids)) * 20))
+            if match_id in unavailable_matches:
+                continue
             if not timeline_exists(match_id):
                 result = client.timeline(match_id)
                 if result.ok:
@@ -85,4 +89,7 @@ class RiotSyncService:
         update("Running cached post-game analysis", 75)
         self.analysis.generate_for_matches(ids, lambda message: update(message, 85))
         update("Refreshing local views", 100)
-        return {"status": "PARTIAL" if failures else "COMPLETE", "message": f"Synced {len(ids)} match(es).", "failures": failures}
+        status = "PARTIAL" if failures else "COMPLETE"
+        message = f"Synced {len(ids)} match(es)."
+        self.cache.save_sync_result(status, message)
+        return {"status": status, "message": message, "failures": failures}

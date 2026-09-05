@@ -32,7 +32,10 @@ Frozen means: no retuning/refactor without a demonstrated correctness or integra
 - Current profile cache exposes Riot ID, level 521, Platinum I / 15 LP and profile metadata offline, explicitly marked cached after restart.
 - Data Dragon champion/item/profile assets use an ignored local display cache and background workers; display asset versioning is separate from frozen knowledge semantics.
 - Additive SQLite tables `app_profile_cache` and `app_analysis_reports` provide offline profile/report persistence without changing legacy schema behavior.
+- Additive `app_sync_state` persistence records the last completed/partial sync without credentials; Settings also reports cached timeline and analyzed-match counts.
 - The five adapters call frozen Death v11, Tempo/Pathing v17, Objective v20, Reset v21 and Itemization v22 public APIs. A real recent match produced 5/5 `AVAILABLE` cached sections; 100 current-version rows cover the latest 20 matches.
+- Sync progress is monotonic across separate match and timeline stages, partial item failures continue safely, and the top bar retains invalid/expired key state until replacement.
+- Coach Summary deterministically selects up to four supported analyzer summaries and retains the epistemic-status/gameplay-severity boundary.
 - Progress supports Last 10/20/50/All, recent-vs-previous comparison, win/KDA/CS/death trends, and descriptive champion pool statistics.
 - Validation: service/API/sync mocks, Windows SQLite lifecycle, offscreen UI smoke, native Windows visual captures at 1400x850 and 1100x700, real analyzer adapter, and V0.1 audit pass.
 - Status: `PASS / REVIEW_REQUIRED FOR ALPHA FREEZE`; V0.1 is not frozen and no V0.2/backend phase was started.

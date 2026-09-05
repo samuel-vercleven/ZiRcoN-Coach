@@ -140,14 +140,21 @@ class PostGameAnalysisService:
                 self.cache.save_report(match_id, name, ANALYZER_VERSIONS[name], payload["status"], payload)
 
     def get_match_insights(self, match_id: str) -> CoachingReport:
-        reports = self.cache.reports(match_id)
-        if not reports:
-            unavailable = tuple(InsightViewModel(name.title(), name.title(),
-                "Analysis has not been cached for this match.", status="UNAVAILABLE",
-                source_module=ANALYZER_VERSIONS[name], source_version=ANALYZER_VERSIONS[name]) for name in ANALYZER_VERSIONS)
-            return CoachingReport(match_id, unavailable, "UNAVAILABLE")
+        reports = {
+            report["analyzer"]: report
+            for report in self.cache.reports(match_id)
+            if ANALYZER_VERSIONS.get(report["analyzer"]) == report["version"]
+        }
         insights = []
-        for report in reports:
+        for name, version in ANALYZER_VERSIONS.items():
+            report = reports.get(name)
+            if report is None:
+                insights.append(InsightViewModel(
+                    name.upper(), name.title(),
+                    "A current-version analysis has not been cached for this match.",
+                    status="UNAVAILABLE", source_module=name, source_version=version,
+                ))
+                continue
             payload = report["payload"]
             insights.append(InsightViewModel(
                 report["analyzer"].upper(), str(payload.get("title") or report["analyzer"]),
@@ -157,5 +164,8 @@ class PostGameAnalysisService:
             ))
         order = {name: index for index, name in enumerate(ANALYZER_VERSIONS)}
         insights.sort(key=lambda row: order.get(row.source_module, 99))
-        overall = "AVAILABLE" if all(row.status == "AVAILABLE" for row in insights) else "PARTIAL"
+        if all(row.status == "UNAVAILABLE" for row in insights):
+            overall = "UNAVAILABLE"
+        else:
+            overall = "AVAILABLE" if all(row.status == "AVAILABLE" for row in insights) else "PARTIAL"
         return CoachingReport(match_id, tuple(insights), overall)

@@ -92,3 +92,6 @@ class StatusViewModel:
     api_configured: bool = False
     sync_status: str = "Offline / not synced this session"
     api_status: str = "NOT_CONFIGURED"
+    timeline_count: int = 0
+    analyzed_match_count: int = 0
+    last_sync_at: str = "UNAVAILABLE"

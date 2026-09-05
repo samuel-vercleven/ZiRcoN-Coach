@@ -1640,6 +1640,8 @@ Completed on 2026-09-04 on branch `v01-alpha-wip`.
 - `python run_app.py` opens the PySide6 desktop product; `main.py` remains the backend harness.
 - Dashboard, custom Match History, rich Post-game, Progress, and Settings/Data screens are implemented with real local data.
 - Dynamic masked key validation/replacement, non-blocking latest-20 sync, match/timeline backfill, profile cache, analysis cache, and offline browsing are implemented.
+- Sync progress is monotonic, partial failures are isolated, and Settings exposes account/scope save plus match/timeline/analysis/last-sync status.
+- Coach Summary presents up to four deterministic evidence-gated analyzer summaries rather than generic or invented advice.
 - Real Riot validation returned `VALID`; real latest-20 sync returned `COMPLETE` with 0 failures.
 - Death v11, Tempo/Pathing v17, Objective v20, Reset v21, and Itemization v22 are consumed through adapters; 5/5 sections were available on a real recent match.
 - No frozen production/validation file was modified, Phase 2I remains closed, and no combat semantics were added.

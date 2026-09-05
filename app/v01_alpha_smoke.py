@@ -8,7 +8,7 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QLineEdit, QTabWidget
 
 from app.bootstrap import build_app_context
 from ui.main_window import MainWindow
@@ -45,6 +45,7 @@ def main() -> None:
 
         window.navigate(MainWindow.PAGE_SETTINGS)
         assert window.stack.currentIndex() == MainWindow.PAGE_SETTINGS
+        assert window.settings_page.key.echoMode() == QLineEdit.EchoMode.Password
 
         window.close()
 
@@ -53,8 +54,18 @@ def main() -> None:
         sample_window = MainWindow(build_app_context(sample_path))
         sample_window.open_match("SAMPLE")
         assert sample_window.stack.currentIndex() == MainWindow.PAGE_MATCH_DETAIL
-        assert sample_window.match_detail_page.content.count() >= 3
+        assert sample_window.match_detail_page.content.count() >= 5
+        tabs = sample_window.match_detail_page.findChildren(QTabWidget)
+        assert tabs and tabs[0].count() == 6
         sample_window.resize(1100, 700)
+        sample_window._sync_progress("Downloading match 1/2", 35)
+        assert sample_window.progress.value() == 35
+        sentinel = object()
+        sample_window.sync_worker = sentinel
+        sample_window.start_sync()
+        assert sample_window.sync_worker is sentinel
+        sample_window._sync_result({"status": "UNAUTHORIZED_OR_EXPIRED", "message": "Replace key in Settings."})
+        assert sample_window.api.text() == "UNAUTHORIZED OR EXPIRED"
         sample_window.close()
 
     app.processEvents()
