@@ -1,5 +1,17 @@
 # LAST RUN
 
+## Stabilization checkpoint — 2026-09-05
+
+Initial audit in progress on `stabilization/stable-base-v1`; not a stable-base PASS.
+Existing baseline: 41/41 regression command suites passed (40 check modules plus
+`main.py`); 89 frozen paths unchanged against `pre-stabilization-v1`; secret scan
+and diff whitespace checks passed. Raw main output: `logs/latest_full_run.txt`.
+Recoverable source archive, SQLite backup and seven real match/timeline pairs are
+local under ignored `logs/stabilization/snapshot/`. No credentials were copied.
+See `STABILIZATION_AUDIT.md` for confirmed service defects and correction order.
+The Alpha review report below is retained as historical baseline, not a fresh
+claim that the newly identified stabilization defects have been resolved.
+
 ## Status
 PASS / REVIEW_REQUIRED FOR ALPHA FREEZE
 
