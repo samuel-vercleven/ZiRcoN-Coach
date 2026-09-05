@@ -1642,6 +1642,7 @@ Completed on 2026-09-04 on branch `v01-alpha-wip`.
 - Dynamic masked key validation/replacement, non-blocking latest-20 sync, match/timeline backfill, profile cache, analysis cache, and offline browsing are implemented.
 - Sync progress is monotonic, partial failures are isolated, and Settings exposes account/scope save plus match/timeline/analysis/last-sync status.
 - Coach Summary presents up to four deterministic evidence-gated analyzer summaries rather than generic or invented advice.
+- Death v11 adapter v2 maps the exact frozen fields and was verified on five real 11-death matches: 55/55 pre-death states exposed, 0 adapter-created `UNKNOWN`.
 - Real Riot validation returned `VALID`; real latest-20 sync returned `COMPLETE` with 0 failures.
 - Death v11, Tempo/Pathing v17, Objective v20, Reset v21, and Itemization v22 are consumed through adapters; 5/5 sections were available on a real recent match.
 - No frozen production/validation file was modified, Phase 2I remains closed, and no combat semantics were added.

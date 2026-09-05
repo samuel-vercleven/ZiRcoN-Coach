@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 
-from analysis.death_cost_analyzer import build_death_cost_dataset, get_match_death_costs
+from analysis.death_cost_analyzer import (
+    OBJECTIVE_WINDOW_SECONDS,
+    build_death_cost_dataset,
+    get_match_death_costs,
+)
 from analysis.itemization_analyzer import build_itemization_history
 from analysis.jungle_tempo_analyzer import build_tempo_intervals, summarize_match_phases
 from analysis.objective_analyzer import build_objective_dataset, get_match_objectives
@@ -17,6 +21,10 @@ ANALYZER_VERSIONS = {
     "death": "death_analyzer_v11", "tempo": "jungle_tempo_pathing_v17",
     "objectives": "objective_analyzer_v20", "resets": "recall_reset_v21",
     "build": "itemization_v22_phase1",
+}
+ANALYZER_CACHE_VERSIONS = {
+    **ANALYZER_VERSIONS,
+    "death": "death_analyzer_v11__v01_adapter_v2",
 }
 
 
@@ -37,17 +45,95 @@ class PostGameAnalysisService:
 
     def _death_payload(self, rows: list[dict]) -> dict:
         evidence = []
-        for row in rows[:8]:
+        mapped_states = 0
+        for row in rows:
             timestamp = int(row.get("timestamp") or 0)
-            score = self._value(row, "personal_cost_score", "death_cost_score")
-            state = self._value(row, "death_advantage_state", "advantage_state", default="UNKNOWN")
-            text = f"{timestamp // 60000:02d}:{timestamp // 1000 % 60:02d} • context {state}"
+            state = row.get("advantage_state_before_death")
+            if state is not None:
+                mapped_states += 1
+            state_text = str(state).replace("_", " ") if state is not None else "UNKNOWN"
+            killer = row.get("killer_champion") or "killer unavailable"
+            killer_position = row.get("killer_position")
+            killer_text = f"killed by {killer}"
+            if killer_position:
+                killer_text += f" ({str(killer_position).replace('_', ' ')})"
+            zone = row.get("death_zone_approx")
+            headline = (
+                f"{timestamp // 60000:02d}:{timestamp // 1000 % 60:02d} • "
+                f"pre-death state {state_text} • {killer_text}"
+            )
+            if zone:
+                headline += f" • zone {str(zone).replace('_', ' ')}"
+
+            score = row.get("resource_cost_score")
+            label = row.get("resource_cost_label")
             if score is not None:
-                text += f" • historical cost score {float(score):.1f}"
-            evidence.append(text)
-        status = "AVAILABLE" if rows else "AVAILABLE"
-        return {"title": "Deaths", "summary": f"{len(rows)} death event(s) analyzed from the frozen v11 contract.",
-                "status": status, "severity": "INFO", "evidence": evidence}
+                cost_text = f"historical severity {float(score):.1f}/100"
+                if label:
+                    cost_text += f" ({label})"
+            elif label:
+                reference_size = int(row.get("score_reference_size") or 0)
+                cost_text = f"historical severity {label} • {reference_size} prior-death reference(s)"
+            else:
+                cost_text = "historical severity unavailable"
+
+            resource_costs = []
+            for name, key, precision in (
+                ("Gold", "gold_cost_60", 0),
+                ("CS", "cs_cost_60", 1),
+                ("XP", "xp_cost_60", 0),
+            ):
+                value = row.get(key)
+                if value is not None:
+                    resource_costs.append(f"{name} {float(value):.{precision}f}")
+            interval = row.get("impact_interval_seconds")
+            impact_text = cost_text
+            if interval is not None:
+                impact_text += f" • {float(interval):.0f}s bracket"
+            if resource_costs:
+                impact_text += " • relative costs " + ", ".join(resource_costs)
+
+            context = []
+            current_gold = row.get("current_gold_before_death")
+            if current_gold is not None:
+                context.append(f"unspent Gold {float(current_gold):.0f}")
+            if row.get("killed_by_enemy_jungler"):
+                context.append("enemy jungler was the killer")
+            if row.get("trade"):
+                context.append(
+                    "trade observed (enemy jungler killed)"
+                    if row.get("enemy_jungle_trade")
+                    else "trade observed"
+                )
+            enemy_objectives = int(row.get("enemy_objectives_after") or 0)
+            ally_objectives = int(row.get("ally_objectives_after") or 0)
+            enemy_towers = int(row.get("enemy_towers_after") or 0)
+            if enemy_objectives or ally_objectives or enemy_towers:
+                context.append(
+                    f"{OBJECTIVE_WINDOW_SECONDS}s context: enemy objectives {enemy_objectives}, "
+                    f"ally objectives {ally_objectives}, allied towers lost {enemy_towers}"
+                )
+            if row.get("death_chain"):
+                context.append(f"death chain size {int(row.get('death_chain_size') or 0)}")
+            if row.get("death_spiral"):
+                context.append(f"severe death spiral {float(row.get('death_spiral_score') or 0):.1f}/100")
+
+            lines = [headline, impact_text]
+            if context:
+                lines.append("v11 context: " + " • ".join(context))
+            evidence.append("\n  ".join(lines))
+        return {
+            "title": "Deaths",
+            "summary": (
+                f"{len(rows)} death event(s) analyzed from frozen v11; "
+                f"pre-death state available for {mapped_states}/{len(rows)}."
+                if rows else "0 death events in the frozen v11 output for this match."
+            ),
+            "status": "AVAILABLE",
+            "severity": "INFO",
+            "evidence": evidence,
+            "source_version": ANALYZER_VERSIONS["death"],
+        }
 
     def _tempo_payload(self, summary: dict) -> dict:
         evidence = []
@@ -137,13 +223,14 @@ class PostGameAnalysisService:
                 if isinstance(source_error, Exception):
                     payload = {"title": payload["title"], "summary": "Analyzer failed independently; local match remains available.",
                                "status": "ERROR", "severity": "INFO", "evidence": []}
-                self.cache.save_report(match_id, name, ANALYZER_VERSIONS[name], payload["status"], payload)
+                payload.setdefault("source_version", ANALYZER_VERSIONS[name])
+                self.cache.save_report(match_id, name, ANALYZER_CACHE_VERSIONS[name], payload["status"], payload)
 
     def get_match_insights(self, match_id: str) -> CoachingReport:
         reports = {
             report["analyzer"]: report
             for report in self.cache.reports(match_id)
-            if ANALYZER_VERSIONS.get(report["analyzer"]) == report["version"]
+            if ANALYZER_CACHE_VERSIONS.get(report["analyzer"]) == report["version"]
         }
         insights = []
         for name, version in ANALYZER_VERSIONS.items():
@@ -160,7 +247,7 @@ class PostGameAnalysisService:
                 report["analyzer"].upper(), str(payload.get("title") or report["analyzer"]),
                 str(payload.get("summary") or "UNAVAILABLE"), str(payload.get("severity") or "INFO"),
                 str(report["status"]), tuple(str(value) for value in payload.get("evidence", [])),
-                report["analyzer"], source_version=report["version"],
+                report["analyzer"], source_version=str(payload.get("source_version") or version),
             ))
         order = {name: index for index, name in enumerate(ANALYZER_VERSIONS)}
         insights.sort(key=lambda row: order.get(row.source_module, 99))

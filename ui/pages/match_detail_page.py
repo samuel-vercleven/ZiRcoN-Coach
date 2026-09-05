@@ -21,7 +21,12 @@ class MatchDetailPage(QWidget):
     def _clear(self):
         while self.content.count():
             item = self.content.takeAt(0)
-            if item.widget(): item.widget().deleteLater()
+            widget = item.widget()
+            if widget:
+                widget.hide()
+                widget.setParent(None)
+                widget.deleteLater()
+        self.scroll.verticalScrollBar().setValue(0)
     def load_empty(self):
         self._clear(); self.content.addWidget(EmptyState("Select a match", "Open a match from Match History.")); self.content.addStretch()
     def load_match(self, match_id: str):
@@ -43,20 +48,20 @@ class MatchDetailPage(QWidget):
         summary_title = QLabel("Coach Summary"); summary_title.setObjectName("SectionTitle"); self.content.addWidget(summary_title)
         supported = [value for value in report.insights if value.status in ("AVAILABLE", "PARTIAL")]
         if not supported:
-            summary_text = "No high-confidence issue was identified in the available cached analyzers."
+            summary = QLabel("No high-confidence issue was identified in the available cached analyzers.")
+            summary.setWordWrap(True); summary.setObjectName("Muted"); self.content.addWidget(summary)
         else:
             ranked = sorted(
                 supported,
                 key=lambda value: (value.status != "AVAILABLE", -len(value.evidence)),
             )[:4]
-            summary_text = "\n".join(
-                f"• {value.title}: {value.summary}" for value in ranked
-            )
-        summary = QLabel(summary_text); summary.setWordWrap(True); summary.setObjectName("Muted"); self.content.addWidget(summary)
+            for value in ranked:
+                summary = QLabel(f"• {value.title}: {value.summary}")
+                summary.setWordWrap(True); summary.setObjectName("Muted"); self.content.addWidget(summary)
         boundary = QLabel("Evidence-gated summaries from frozen analyzers. Status describes data support, not whether a play was good or bad."); boundary.setWordWrap(True); boundary.setObjectName("Muted"); self.content.addWidget(boundary)
         tabs = QTabWidget(); overview = QWidget(); overview_layout = QVBoxLayout(overview); overview_layout.setContentsMargins(0, 12, 0, 0)
         for insight in report.insights: overview_layout.addWidget(InsightCard(insight))
         overview_layout.addStretch(); overview_scroll = QScrollArea(); overview_scroll.setWidgetResizable(True); overview_scroll.setWidget(overview); tabs.addTab(overview_scroll, "Overview")
         for insight in report.insights:
             panel = QWidget(); layout = QVBoxLayout(panel); layout.addWidget(InsightCard(insight)); layout.addStretch(); tabs.addTab(panel, insight.title)
-        self.content.addWidget(tabs); self.content.addStretch()
+        self.content.addWidget(tabs); self.content.addStretch(); self.scroll.verticalScrollBar().setValue(0)

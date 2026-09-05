@@ -14,6 +14,8 @@ Decision:
 - persist only non-secret profile metadata and analyzer-version-keyed reports in additive SQLite tables;
 - keep display-asset Data Dragon versioning separate from frozen semantic knowledge versions;
 - preserve `AVAILABLE / PARTIAL / UNAVAILABLE / ERROR` and analyzer provenance in the post-game UI.
+- version presentation adapters independently from their frozen analyzer source versions, so an adapter mapping correction invalidates only its cached presentation payload while preserving exact source provenance;
+- map frozen outputs by their exact published keys and keep `UNKNOWN` only when the corresponding frozen field is absent, never when an adapter alias is incomplete.
 
 Safety boundary:
 - deterministic summaries may select and restate analyzer-supported evidence but may not invent causal coaching, combat values, build recommendations, owner mappings, or LLM/ML conclusions;
