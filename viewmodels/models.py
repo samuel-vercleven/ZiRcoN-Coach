@@ -99,3 +99,5 @@ class StatusViewModel:
     timeline_count: int = 0
     analyzed_match_count: int = 0
     last_sync_at: str = "UNAVAILABLE"
+    sync_message: str = ""
+    sync_counts: dict = field(default_factory=dict)

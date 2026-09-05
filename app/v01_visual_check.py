@@ -27,12 +27,17 @@ def main() -> None:
             app.processEvents()
             assert window.grab().save(str(target / f"{page_name}-{size_name}.png"))
     matches = window.context.local_data.matches()
+    post_game_captures = 0
     if matches:
         window.open_match(matches[0].match_id)
-        app.processEvents()
-        assert window.grab().save(str(target / "post-game-normal.png"))
+        for width, height, size_name in sizes:
+            window.resize(width, height)
+            for tab_index in range(window.match_detail_page.tabs.count()):
+                window.match_detail_page.tabs.setCurrentIndex(tab_index); app.processEvents()
+                assert window.grab().save(str(target / f"post-game-{tab_index}-{size_name}.png"))
+                post_game_captures += 1
     window.close()
-    print(f"ZiRcoN Coach visual render check: PASS ({len(sizes) * len(pages) + bool(matches)} screenshots)")
+    print(f"ZiRcoN Coach visual render check: PASS ({len(sizes) * len(pages) + post_game_captures} screenshots)")
 
 
 if __name__ == "__main__":

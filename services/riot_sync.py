@@ -71,6 +71,7 @@ class RiotSyncService:
         initialize_database()
         initialize_timeline_tables()
         failures = []
+        available_matches = set()
         counters = {
             "target_ids": len(ids), "new_matches": 0, "existing_matches": 0,
             "new_timelines": 0, "existing_timelines": 0,
@@ -87,12 +88,14 @@ class RiotSyncService:
                 if result.ok:
                     save_match(result.data)
                     counters["new_matches"] += 1
+                    available_matches.add(match_id)
                 else:
                     failures.append(f"match:{match_id}:{result.status.value}")
                     unavailable_matches.add(match_id)
                     counters["failed_details"] += 1
             else:
                 counters["existing_matches"] += 1
+                available_matches.add(match_id)
         for index, match_id in enumerate(ids, start=1):
             update(f"Downloading timeline {index}/{len(ids)}", 50 + int(index / max(1, len(ids)) * 20))
             if match_id in unavailable_matches:
@@ -108,16 +111,17 @@ class RiotSyncService:
             else:
                 counters["existing_timelines"] += 1
         update("Running cached post-game analysis", 75)
-        analysis_result = self.analysis.generate_for_matches(ids, lambda message: update(message, 85))
+        analysis_ids = [match_id for match_id in ids if match_id in available_matches]
+        analysis_result = self.analysis.generate_for_matches(analysis_ids, lambda message: update(message, 85))
         analysis_result = analysis_result if isinstance(analysis_result, dict) else {}
         counters["analyses_generated"] = int(analysis_result.get("generated") or 0)
         counters["analyses_current"] = int(analysis_result.get("current") or 0)
         update("Refreshing local views", 100)
         status = "PARTIAL" if failures else "COMPLETE"
         message = (
-            f"{len(ids)} cible(s) SoloQ · {counters['new_matches']} nouvelle(s) partie(s), "
-            f"{counters['new_timelines']} nouvelle(s) timeline(s), "
-            f"{counters['analyses_current']} partie(s) analysée(s) au format courant."
+            f"SoloQ ciblées {len(ids)} · parties +{counters['new_matches']} / existantes {counters['existing_matches']} / échecs {counters['failed_details']} · "
+            f"timelines +{counters['new_timelines']} / existantes {counters['existing_timelines']} / échecs {counters['failed_timelines']} · "
+            f"analyses courantes {counters['analyses_current']} · profil {counters['profile_status']} · rang {counters['rank_status']}."
         )
         self.cache.save_sync_result(status, message, puuid, SOLO_QUEUE_ID, counters)
         return {"status": status, "message": message, "failures": failures, **counters,

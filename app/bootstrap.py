@@ -21,8 +21,9 @@ class AppContext:
     sync: RiotSyncService
 
 
-def build_app_context(db_path: Path | str | None = None) -> AppContext:
-    settings = RuntimeSettingsService()
+def build_app_context(db_path: Path | str | None = None,
+                      settings: RuntimeSettingsService | None = None) -> AppContext:
+    settings = settings or RuntimeSettingsService()
     cache = CacheRepository(db_path) if db_path else CacheRepository()
     cache.initialize()
     local_data = LocalDataService(db_path or cache.db_path, cache=cache, settings=settings)

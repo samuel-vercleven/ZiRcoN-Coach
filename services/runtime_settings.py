@@ -60,9 +60,16 @@ class RuntimeSettingsService:
 
     def mark_profile_current(self, puuid: str) -> None:
         self._current_profile_puuid = puuid or None
+        if puuid:
+            data = self._read_settings(); data["active_puuid"] = puuid
+            self.settings_path.parent.mkdir(parents=True, exist_ok=True)
+            self.settings_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
     def profile_freshness(self, puuid: str) -> str:
         return "CURRENT" if puuid and puuid == self._current_profile_puuid else "CACHED"
+
+    def active_puuid(self) -> str:
+        return str(self._read_settings().get("active_puuid") or "").strip()
 
     def _read_settings(self) -> dict:
         try:
@@ -81,11 +88,15 @@ class RuntimeSettingsService:
         if not separator or not game_name.strip() or not tag_line.strip():
             raise ValueError("Use the Riot ID format GameName#TagLine")
         identity = RiotIdentity(game_name.strip(), tag_line.strip())
+        data = self._read_settings()
+        previous = (str(data.get("game_name") or "").casefold(), str(data.get("tag_line") or "").casefold())
+        current = (identity.game_name.casefold(), identity.tag_line.casefold())
+        if previous != current:
+            data.pop("active_puuid", None)
+            self._current_profile_puuid = None
+        data.update({"game_name": identity.game_name, "tag_line": identity.tag_line, "sync_scope": int(sync_scope)})
         self.settings_path.parent.mkdir(parents=True, exist_ok=True)
-        self.settings_path.write_text(json.dumps({
-            "game_name": identity.game_name, "tag_line": identity.tag_line,
-            "sync_scope": int(sync_scope),
-        }, indent=2), encoding="utf-8")
+        self.settings_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
         return identity
 
     def sync_scope(self) -> int:

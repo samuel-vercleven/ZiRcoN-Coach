@@ -39,6 +39,17 @@ class LocalDataService:
         with closing(self._connection()) as connection:
             identity = self.settings.identity() if self.settings else None
             if identity:
+                active_puuid = self.settings.active_puuid()
+                if active_puuid:
+                    configured = connection.execute(
+                        """SELECT p.puuid, p.riot_name, p.riot_tag, COUNT(*) AS games
+                           FROM participants p JOIN matches m ON m.match_id=p.match_id
+                           WHERE m.queue_id=? AND p.puuid=?
+                           GROUP BY p.puuid, p.riot_name, p.riot_tag
+                           ORDER BY games DESC LIMIT 1""",
+                        (SOLO_QUEUE_ID, active_puuid),
+                    ).fetchone()
+                    return configured
                 configured = connection.execute(
                     """SELECT p.puuid, p.riot_name, p.riot_tag, COUNT(*) AS games
                        FROM participants p JOIN matches m ON m.match_id=p.match_id
@@ -227,4 +238,6 @@ class LocalDataService:
             sync_status=(sync_state or {}).get("status", "Hors ligne / aucune synchronisation cette session"),
             api_status=self.settings.api_status() if self.settings else ("CONFIGURED_UNVALIDATED" if key_configured else "NOT_CONFIGURED"),
             timeline_count=timeline_count, analyzed_match_count=analyzed_match_count,
-            last_sync_at=(sync_state or {}).get("completed_at", "UNAVAILABLE"))
+            last_sync_at=(sync_state or {}).get("completed_at", "UNAVAILABLE"),
+            sync_message=(sync_state or {}).get("message", ""),
+            sync_counts=(sync_state or {}).get("payload", {}))

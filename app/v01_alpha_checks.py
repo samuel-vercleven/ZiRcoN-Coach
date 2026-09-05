@@ -85,6 +85,9 @@ def main() -> None:
              patch("services.riot_sync.save_timeline") as save_timeline_mock:
             result = service.sync(lambda message, value: progress.append((message, value)))
         assert result["status"] == "PARTIAL" and len(result["failures"]) == 1
+        assert result["target_ids"] == 3 and result["new_matches"] == 1 and result["existing_matches"] == 1
+        assert result["failed_details"] == 1 and result["new_timelines"] == 2
+        assert result["failed_timelines"] == 0 and result["queue_id"] == 420
         assert used_keys == ["REPLACEMENT_TEST_KEY"]
         assert [call.args[0] for call in fake_client.match.call_args_list] == ["NEW", "BAD"]
         save_match_mock.assert_called_once()

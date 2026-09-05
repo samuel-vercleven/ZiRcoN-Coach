@@ -95,7 +95,7 @@ class MatchDetailPage(QWidget):
         boundary = QLabel("Les statuts décrivent le support des données ; la sévérité gameplay est affichée séparément."); boundary.setObjectName("MicroLabel"); summary_layout.addWidget(boundary)
         self.content.addWidget(summary_card)
 
-        tabs = QTabWidget()
+        tabs = QTabWidget(); self.tabs = tabs
         def overview(layout):
             for insight in report.insights:
                 layout.addWidget(InsightCard(insight))

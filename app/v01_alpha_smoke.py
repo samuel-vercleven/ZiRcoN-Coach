@@ -11,6 +11,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtWidgets import QApplication, QLineEdit, QTabWidget
 
 from app.bootstrap import build_app_context
+from services.runtime_settings import RuntimeSettingsService
 from ui.main_window import MainWindow
 
 
@@ -51,10 +52,13 @@ def main() -> None:
 
         sample_path = Path(temp_dir) / "sample.db"
         _sample_database(sample_path)
-        sample_window = MainWindow(build_app_context(sample_path))
+        sample_settings = RuntimeSettingsService(Path(temp_dir) / "sample.env", Path(temp_dir) / "sample-settings.json")
+        sample_settings.save_identity("Sample#EUW", 20)
+        sample_window = MainWindow(build_app_context(sample_path, settings=sample_settings))
         sample_window.open_match("SAMPLE")
         assert sample_window.stack.currentIndex() == MainWindow.PAGE_MATCH_DETAIL
-        assert sample_window.match_detail_page.content.count() >= 5
+        # Compact post-game layout: hero + concise coach summary + tab set.
+        assert sample_window.match_detail_page.content.count() >= 3
         tabs = sample_window.match_detail_page.findChildren(QTabWidget)
         assert tabs and tabs[0].count() == 6
         sample_window.resize(1100, 700)
@@ -64,8 +68,10 @@ def main() -> None:
         sample_window.sync_worker = sentinel
         sample_window.start_sync()
         assert sample_window.sync_worker is sentinel
-        sample_window._sync_result({"status": "UNAUTHORIZED_OR_EXPIRED", "message": "Replace key in Settings."})
-        assert sample_window.api.text() == "UNAUTHORIZED OR EXPIRED"
+        active_key_badge = sample_window.api.text()
+        sample_window._sync_result({"status": "NETWORK_ERROR", "message": "Réseau indisponible."})
+        assert sample_window.api.text() == active_key_badge
+        assert sample_window.sync_badge.text() == "NETWORK ERROR"
         sample_window.close()
 
     app.processEvents()

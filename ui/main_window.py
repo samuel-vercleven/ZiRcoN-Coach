@@ -64,7 +64,7 @@ class MainWindow(QMainWindow):
 
     def _sync_progress(self, message, value): self.sync_text.setText(message); self.progress.setValue(value)
     def _sync_result(self, result):
-        status = result.get("status", "ERROR"); self.sync_text.setText(result.get("message", status)); self.sync_badge.set_status(status); self.api.set_status(self.context.settings.api_status()); self.refresh_all()
+        status = result.get("status", "ERROR"); message = result.get("message", status); self.refresh_all(); self.sync_text.setText(message); self.sync_badge.set_status(status); self.api.set_status(self.context.settings.api_status())
     def _sync_failed(self, message): self.sync_text.setText(message); self.sync_badge.set_status("ERROR"); self.api.set_status(self.context.settings.api_status())
     def _sync_finished(self): self.sync_worker = None; self.sync_button.setEnabled(True); self.progress.setVisible(False)
     def refresh_all(self): self.dashboard_page.refresh(); self.matches_page.refresh(); self.progress_page.refresh(); self.settings_page.refresh(); self.refresh_header()

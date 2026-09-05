@@ -25,7 +25,7 @@ class SettingsPage(QWidget):
         self.message = QLabel(); self.message.setWordWrap(True); self.message.setObjectName("Muted"); layout.addWidget(self.message); root.addWidget(api)
 
         data = QFrame(); data.setObjectName("Card"); dl = QVBoxLayout(data); data_title = QLabel("État des données locales — compte actif / SoloQ"); data_title.setObjectName("SectionTitle"); dl.addWidget(data_title)
-        self.data_form = QFormLayout(); labels = ("Base de données", "Base disponible", "Parties chargées", "Timelines en cache", "Parties analysées", "Partie la plus récente", "Dernière sync", "Clé configurée", "Backend")
+        self.data_form = QFormLayout(); labels = ("Base de données", "Base disponible", "Parties chargées", "Timelines en cache", "Parties analysées", "Partie la plus récente", "Dernière sync", "Dernier résultat", "Clé configurée", "Backend")
         self.fields = {label: QLabel() for label in labels}
         for label, field in self.fields.items(): field.setWordWrap(True); self.data_form.addRow(label, field)
         dl.addLayout(self.data_form); root.addWidget(data); root.addStretch()
@@ -58,4 +58,4 @@ class SettingsPage(QWidget):
     def refresh(self):
         player = self.local.player(); identity = self.settings.identity(); self.riot_id.setText(identity.riot_id if identity else player.riot_id if "#" in player.riot_id else "")
         index = self.scope.findData(self.settings.sync_scope()); self.scope.setCurrentIndex(max(0, index)); status = self.local.status(); self.api_badge.set_status(status.api_status)
-        self.fields["Base de données"].setText(status.db_path); self.fields["Base disponible"].setText("Oui" if status.db_available else "Non"); self.fields["Parties chargées"].setText(str(status.match_count)); self.fields["Timelines en cache"].setText(str(status.timeline_count)); self.fields["Parties analysées"].setText(str(status.analyzed_match_count)); self.fields["Partie la plus récente"].setText(status.latest_match_date); self.fields["Dernière sync"].setText(status.last_sync_at); self.fields["Clé configurée"].setText(self.settings.masked_key()); self.fields["Backend"].setText("Gelé jusqu’à Phase 2I · zero-gate owner semantics préservé")
+        self.fields["Base de données"].setText(status.db_path); self.fields["Base disponible"].setText("Oui" if status.db_available else "Non"); self.fields["Parties chargées"].setText(str(status.match_count)); self.fields["Timelines en cache"].setText(str(status.timeline_count)); self.fields["Parties analysées"].setText(str(status.analyzed_match_count)); self.fields["Partie la plus récente"].setText(status.latest_match_date); self.fields["Dernière sync"].setText(status.last_sync_at); self.fields["Dernier résultat"].setText(status.sync_message or "Aucun résultat pour ce compte/queue"); self.fields["Clé configurée"].setText(self.settings.masked_key()); self.fields["Backend"].setText("Gelé jusqu’à Phase 2I · zero-gate owner semantics préservé")

@@ -1,5 +1,5 @@
 APP_STYLESHEET = r"""
-* { font-family: "Segoe UI", Arial, sans-serif; font-size: 13px; }
+* { font-family: "Segoe UI"; font-size: 13px; }
 QWidget { background: #0b0f15; color: #e8edf5; }
 QMainWindow { background: #0b0f15; }
 QFrame#Sidebar { background: #0e141d; border-right: 1px solid #202937; }
