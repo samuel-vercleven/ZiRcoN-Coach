@@ -70,9 +70,9 @@ class MatchDetailPage(QWidget):
         match = detail.match
         hero = QFrame(); hero.setObjectName("HeroCard"); row = QHBoxLayout(hero); row.setContentsMargins(18, 13, 18, 13)
         icon = AssetIcon(self.assets, 66); icon.load("champion", match.champion, match.game_version, match.champion); row.addWidget(icon)
-        title_box = QVBoxLayout(); title = QLabel(f"{match.champion}  •  {'VICTOIRE' if match.result == 'WIN' else 'DÉFAITE'}"); title.setObjectName("HeroName"); title.setProperty("result", match.result.lower()); title_box.addWidget(title)
+        title_box = QVBoxLayout(); title = QLabel(f"{match.champion}  •  {match.result_text}"); title.setObjectName("HeroName"); title.setProperty("result", match.result.lower()); title_box.addWidget(title)
         cs = "—" if match.cs_per_min is None else f"{match.cs_per_min:.1f}/min"
-        subtitle = QLabel(f"{match.position}  •  {match.kda_text}  •  {match.cs} CS ({cs})  •  {match.duration_seconds // 60}:{match.duration_seconds % 60:02d}  •  {match.played_at}"); subtitle.setObjectName("Muted"); title_box.addWidget(subtitle)
+        subtitle = QLabel(f"{match.position}  •  {match.kda_text}  •  {match.cs if match.cs is not None else '—'} CS ({cs})  •  {match.duration_text}  •  {match.played_at}"); subtitle.setObjectName("Muted"); title_box.addWidget(subtitle)
         items = QHBoxLayout(); items.setSpacing(5)
         inventory = list(detail.items)
         if match.trinket_id in inventory: inventory.remove(match.trinket_id)

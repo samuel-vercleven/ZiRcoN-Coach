@@ -23,6 +23,11 @@ class CacheRepository:
                 match_id TEXT NOT NULL, analyzer_name TEXT NOT NULL, analyzer_version TEXT NOT NULL,
                 generated_at TEXT NOT NULL, status TEXT NOT NULL, report_json TEXT NOT NULL,
                 PRIMARY KEY(match_id, analyzer_name, analyzer_version))""")
+            connection.execute("""CREATE TABLE IF NOT EXISTS app_player_analysis_reports (
+                puuid TEXT NOT NULL, match_id TEXT NOT NULL, analyzer_name TEXT NOT NULL,
+                analyzer_version TEXT NOT NULL, generated_at TEXT NOT NULL,
+                status TEXT NOT NULL, report_json TEXT NOT NULL,
+                PRIMARY KEY(puuid, match_id, analyzer_name, analyzer_version))""")
             connection.execute("""CREATE TABLE IF NOT EXISTS app_sync_state (
                 singleton INTEGER PRIMARY KEY CHECK(singleton = 1), completed_at TEXT NOT NULL,
                 status TEXT NOT NULL, message TEXT NOT NULL)""")
@@ -52,27 +57,39 @@ class CacheRepository:
         except (ValueError, TypeError):
             return None
 
-    def save_report(self, match_id: str, analyzer: str, version: str, status: str, payload: dict) -> None:
+    def save_report(self, match_id: str, analyzer: str, version: str, status: str, payload: dict,
+                    puuid: str | None = None) -> None:
         self.initialize()
         with closing(sqlite3.connect(self.db_path)) as connection:
-            connection.execute("INSERT OR REPLACE INTO app_analysis_reports VALUES (?, ?, ?, ?, ?, ?)",
-                (match_id, analyzer, version, datetime.now(timezone.utc).isoformat(), status,
-                 json.dumps(payload, ensure_ascii=False)))
+            values = (match_id, analyzer, version, datetime.now(timezone.utc).isoformat(), status,
+                      json.dumps(payload, ensure_ascii=False))
+            if puuid:
+                connection.execute("INSERT OR REPLACE INTO app_player_analysis_reports VALUES (?, ?, ?, ?, ?, ?, ?)",
+                                   (puuid, *values))
+            else:
+                connection.execute("INSERT OR REPLACE INTO app_analysis_reports VALUES (?, ?, ?, ?, ?, ?)", values)
             connection.commit()
 
-    def reports(self, match_id: str) -> list[dict]:
+    def reports(self, match_id: str, puuid: str | None = None) -> list[dict]:
         self.initialize()
         if not self.db_path.exists():
             return []
         with closing(sqlite3.connect(self.db_path)) as connection:
-            rows = connection.execute("SELECT analyzer_name, analyzer_version, generated_at, status, report_json FROM app_analysis_reports WHERE match_id=?", (match_id,)).fetchall()
+            if puuid is not None:
+                rows = connection.execute("SELECT analyzer_name, analyzer_version, generated_at, status, report_json FROM app_player_analysis_reports WHERE match_id=? AND puuid=?", (match_id, puuid)).fetchall()
+            else:
+                rows = connection.execute("SELECT analyzer_name, analyzer_version, generated_at, status, report_json FROM app_analysis_reports WHERE match_id=?", (match_id,)).fetchall()
         result = []
         for name, version, generated, status, raw in rows:
             try:
+                payload = json.loads(raw)
+                if not isinstance(payload, dict):
+                    raise ValueError('Invalid report shape')
                 result.append({"analyzer": name, "version": version, "generated_at": generated,
-                               "status": status, "payload": json.loads(raw)})
+                               "status": status, "payload": payload})
             except (ValueError, TypeError):
-                continue
+                result.append({"analyzer": name, "version": version, "generated_at": generated,
+                               "status": "ERROR", "payload": {"summary": "Cache illisible ; régénération nécessaire."}})
         return result
 
     def save_sync_result(self, status: str, message: str, puuid: str = "",

@@ -44,7 +44,7 @@ class DashboardPage(QWidget):
         self.profile_status.set_status(player.profile_status); self.profile_icon.load("profileicon", player.profile_icon_id, fallback=player.riot_id)
         values = [str(progress.total_games), "—" if progress.win_rate is None else f"{progress.win_rate:.1f}%", "—" if progress.kda is None else f"{progress.kda:.2f}", "—" if progress.cs_per_min is None else f"{progress.cs_per_min:.1f}", "—" if progress.deaths_per_match is None else f"{progress.deaths_per_match:.1f}"]
         for card, value in zip(self.cards, values): card.set_value(value)
-        recent = matches[:5]; wins = sum(row.result == "WIN" for row in recent); self.form.setText("Forme récente  " + " ".join("V" if row.result == "WIN" else "D" for row in recent) + (f"  •  {wins}/{len(recent)} victoires" if recent else ""))
+        recent = matches[:5]; wins = sum(row.result == "WIN" for row in recent); self.form.setText("Forme récente  " + " ".join({'WIN': 'V', 'LOSS': 'D'}.get(row.result, '?') for row in recent) + (f"  •  {wins}/{len(recent)} victoires observées" if recent else ""))
         if not matches:
             self.match_layout.addWidget(EmptyState("Aucune donnée SoloQ pour le compte actif", "1. Configurez le Riot ID  2. Ajoutez la clé dans Réglages  3. Synchronisez"))
         for match in matches:

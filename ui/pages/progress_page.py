@@ -11,7 +11,7 @@ def rolling_win_rate(matches, size: int = 5) -> list[float]:
     values = []
     for index in range(len(matches)):
         window = matches[max(0, index - size + 1):index + 1]
-        values.append(sum(match.result == "WIN" for match in window) / len(window) * 100)
+        values.append(sum(match.result == "WIN" for match in window) / len(window) * 100 if all(m.result in ('WIN', 'LOSS') for m in window) else None)
     return values
 
 
@@ -40,9 +40,11 @@ class ProgressPage(QWidget):
         values = [data.win_rate, data.kda, data.cs_per_min, data.deaths_per_match]
         for card, value in zip(self.cards, values): card.set_value("—" if value is None else f"{value:.1f}")
         self.comparison.setText(data.recent_comparison)
-        ordered = list(reversed(selected)); self.result_chart.set_values(rolling_win_rate(ordered)); self.cs_chart.set_values([match.cs_per_min for match in ordered]); self.death_chart.set_values([float(match.deaths) for match in ordered])
+        ordered = list(reversed(selected)); self.result_chart.set_values(rolling_win_rate(ordered)); self.cs_chart.set_values([match.cs_per_min for match in ordered]); self.death_chart.set_values([float(match.deaths) if match.deaths is not None else None for match in ordered])
         for row in data.champion_rows[:12]:
             card = QFrame(); card.setObjectName("MatchCard"); line = QHBoxLayout(card); icon = AssetIcon(self.assets, 36); icon.load("champion", row["champion"], fallback=row["champion"]); line.addWidget(icon)
             name = QLabel(row["champion"]); name.setObjectName("MatchChampion"); line.addWidget(name, 2)
-            for text in (f"{row['games']} parties", f"{row['win_rate']:.0f}% WR", f"{row['kda']:.2f} KDA", f"{row['cs_per_min']:.1f} CS/min"): line.addWidget(QLabel(text), 1)
+            def metric(key, precision):
+                return '—' if row[key] is None else format(row[key], precision)
+            for text in (f"{row['games']} parties", f"{metric('win_rate', '.0f')}% WR", f"{metric('kda', '.2f')} KDA", f"{metric('cs_per_min', '.1f')} CS/min"): line.addWidget(QLabel(text), 1)
             self.pool.addWidget(card)

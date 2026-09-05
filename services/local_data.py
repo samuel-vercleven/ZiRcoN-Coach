@@ -107,23 +107,15 @@ class LocalDataService:
         ids = list(match_ids)
         if not ids or not self.cache:
             return {}
-        placeholders = ",".join("?" for _ in ids)
-        with closing(self._connection()) as connection:
-            tables = {row[0] for row in connection.execute(
-                "SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
-            if "app_analysis_reports" not in tables:
-                return {}
-            rows = connection.execute(
-                f"SELECT match_id, analyzer_name, analyzer_version, status FROM app_analysis_reports WHERE match_id IN ({placeholders})",
-                ids,
-            ).fetchall()
-        found: dict[str, dict[str, str]] = {}
-        for row in rows:
-            if ANALYZER_CACHE_VERSIONS.get(row["analyzer_name"]) == row["analyzer_version"]:
-                found.setdefault(row["match_id"], {})[row["analyzer_name"]] = row["status"]
+        player = self._primary_player()
+        puuid = player['puuid'] if player else ''
         result = {}
         for match_id in ids:
-            statuses = found.get(match_id, {})
+            statuses = {row['analyzer']: row['status'] for row in self.cache.reports(match_id, puuid=puuid)
+                        if ANALYZER_CACHE_VERSIONS.get(row['analyzer']) == row['version']}
+            if statuses and all(value == 'UNAVAILABLE' for value in statuses.values()):
+                result[match_id] = 'UNAVAILABLE'
+                continue
             if len(statuses) == len(ANALYZER_CACHE_VERSIONS):
                 result[match_id] = "AVAILABLE" if all(
                     value == "AVAILABLE" for value in statuses.values()) else "PARTIAL"
@@ -142,9 +134,9 @@ class LocalDataService:
         items = inventory + ((trinket,) if trinket else ())
         return MatchSummaryViewModel(
             match_id=row["match_id"], champion=row["champion_name"] or "Unknown champion",
-            result="WIN" if row["win"] else "LOSS", kills=row["kills"] or 0,
-            deaths=row["deaths"] or 0, assists=row["assists"] or 0, cs=row["cs"] or 0,
-            duration_seconds=row["game_duration"] or 0, played_at=played_at,
+            result="UNKNOWN" if row["win"] is None else ("WIN" if row["win"] else "LOSS"), kills=row["kills"],
+            deaths=row["deaths"], assists=row["assists"], cs=row["cs"],
+            duration_seconds=row["game_duration"], played_at=played_at,
             queue="Ranked Solo/Duo" if row["queue_id"] == 420 else str(row["queue_id"] or "UNKNOWN"),
             position=row["position"] or "UNKNOWN", items=items, trinket_id=trinket,
             game_version=row["game_version"] or "",
@@ -171,19 +163,27 @@ class LocalDataService:
             return ProgressViewModel()
         total = len(matches)
         wins = sum(match.result == "WIN" for match in matches)
-        duration = sum(match.duration_seconds for match in matches)
-        deaths = sum(match.deaths for match in matches)
-        kills = sum(match.kills for match in matches)
-        assists = sum(match.assists for match in matches)
-        cs = sum(match.cs for match in matches)
-        minutes = duration / 60
+        losses = sum(match.result == "LOSS" for match in matches)
+        def aggregate(rows):
+            complete_result = all(m.result in ('WIN', 'LOSS') for m in rows)
+            complete_kda = all(all(v is not None for v in (m.kills, m.deaths, m.assists)) for m in rows)
+            complete_duration = all(m.duration_seconds is not None and m.duration_seconds > 0 for m in rows)
+            minutes = sum(m.duration_seconds for m in rows) / 60 if complete_duration else None
+            return {
+                'win_rate': sum(m.result == 'WIN' for m in rows) / len(rows) * 100 if complete_result else None,
+                'kda': sum(m.kills + m.assists for m in rows) / max(1, sum(m.deaths for m in rows)) if complete_kda else None,
+                'cs_per_min': sum(m.cs for m in rows) / minutes if minutes and all(m.cs is not None for m in rows) else None,
+                'deaths_per_match': sum(m.deaths for m in rows) / len(rows) if all(m.deaths is not None for m in rows) else None,
+                'average_duration_minutes': minutes / len(rows) if minutes else None,
+            }
+        metrics = aggregate(matches)
         comparison_size = window
         recent = all_matches[:comparison_size] if comparison_size else []
         previous = all_matches[comparison_size:comparison_size * 2] if comparison_size else []
         comparison = "Comparaison désactivée pour l’ensemble de l’historique."
         if comparison_size:
             comparison = f"Il faut au moins {comparison_size * 2} parties locales pour comparer deux fenêtres de {comparison_size}."
-        if comparison_size and len(recent) == len(previous) == comparison_size:
+        if comparison_size and len(recent) == len(previous) == comparison_size and all(m.result in ('WIN', 'LOSS') for m in recent + previous):
             recent_rate = sum(m.result == "WIN" for m in recent) / len(recent) * 100
             previous_rate = sum(m.result == "WIN" for m in previous) / len(previous) * 100
             comparison = f"Taux de victoire : {recent_rate:.0f}% sur les {len(recent)} dernières, contre {previous_rate:.0f}% sur les {len(previous)} précédentes."
@@ -192,13 +192,10 @@ class LocalDataService:
             champion.setdefault(match.champion, []).append(match)
         champion_rows = tuple({
             "champion": name, "games": len(rows), "wins": sum(r.result == "WIN" for r in rows),
-            "win_rate": sum(r.result == "WIN" for r in rows) / len(rows) * 100,
-            "kda": (sum(r.kills + r.assists for r in rows) / max(1, sum(r.deaths for r in rows))),
-            "cs_per_min": sum(r.cs for r in rows) / max(1, sum(r.duration_seconds for r in rows) / 60),
+            **aggregate(rows),
         } for name, rows in sorted(champion.items(), key=lambda pair: len(pair[1]), reverse=True))
-        return ProgressViewModel(total, wins, total - wins, wins / total * 100,
-            (kills + assists) / max(1, deaths), cs / minutes if minutes else None,
-            deaths / total, minutes / total if total else None, comparison, champion_rows)
+        return ProgressViewModel(total, wins, losses, metrics['win_rate'], metrics['kda'], metrics['cs_per_min'],
+            metrics['deaths_per_match'], metrics['average_duration_minutes'], comparison, champion_rows)
 
     def status(self) -> StatusViewModel:
         latest = "UNAVAILABLE"

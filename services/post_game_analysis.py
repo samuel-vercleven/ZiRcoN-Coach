@@ -11,6 +11,7 @@ from database.tempo_reader import load_tempo_bundles
 from services.analysis_contracts import ANALYZER_CACHE_VERSIONS, ANALYZER_VERSIONS
 from services.cache_repository import CacheRepository
 from services.local_data import LocalDataService
+from services.game_context import ContextUnavailable, load_game_context
 from viewmodels import CoachingReport, InsightViewModel
 
 
@@ -109,7 +110,9 @@ class PostGameAnalysisService:
                 _metric("Zone approximative", _enum(zone), "death_zone_approx"),
             ]
             if costs:
-                metrics.append(_metric("Coûts relatifs", ", ".join(costs), "gold_cost_60/cs_cost_60/xp_cost_60"))
+                metrics.append(_metric("Écarts relatifs — EXPERIMENTAL", ", ".join(costs), "gold_cost_60/cs_cost_60/xp_cost_60"))
+            metrics.append(_metric('Intervalle de frames', _number(row.get('impact_interval_seconds'), '.1f', ' s'), 'impact_interval_seconds'))
+            context.append('EXPERIMENTAL : fenêtre de frames encadrant la mort, pas un coût causal ni exactement +60 s. Les fenêtres peuvent se chevaucher ; ne pas sommer comme une perte nette.')
             events.append({"title": f"Mort à {_time(timestamp)}", "subtitle": "Évidence Death Analyzer v11",
                            "status": "AVAILABLE", "severity": "INFO", "metrics": metrics,
                            "context": context, "item_ids": [],
@@ -246,6 +249,15 @@ class PostGameAnalysisService:
         if not ids or not player or not player.puuid:
             return {"target": len(ids), "generated": 0, "current": 0}
         details = {match_id: self.local_data.match_detail(match_id) for match_id in ids}
+        contexts = {}
+        from database import database as legacy_database
+        for match_id in ids:
+            try:
+                if self.local_data.db_path.resolve() != legacy_database.DB_PATH.resolve():
+                    raise ContextUnavailable('ANALYZER_DATABASE_REVIEW_REQUIRED')
+                contexts[match_id] = load_game_context(self.local_data.db_path, match_id, player.puuid)
+            except ContextUnavailable as error:
+                contexts[match_id] = error
         groups: dict[str, list[str]] = {}
         for match_id, detail in details.items():
             role = (detail.match.position if detail else "UNKNOWN").upper()
@@ -254,10 +266,12 @@ class PostGameAnalysisService:
 
         for role, role_ids in groups.items():
             datasets: dict[str, object] = {}
-            def attempt(name: str, function):
+            def attempt(name: str, function, dependencies=()):
                 if progress:
                     progress(f"Analyse {name} · {role}")
                 try:
+                    if any(isinstance(datasets.get(dep), Exception) for dep in dependencies):
+                        raise ContextUnavailable('DEPENDENCY_UNAVAILABLE')
                     datasets[name] = function()
                 except Exception as error:
                     datasets[name] = error
@@ -268,11 +282,11 @@ class PostGameAnalysisService:
                 attempt("bundles", lambda: load_tempo_bundles(player.puuid, position=role))
                 bundles = datasets.get("bundles") if isinstance(datasets.get("bundles"), list) else []
                 deaths = datasets.get("death") if isinstance(datasets.get("death"), list) else []
-                attempt("tempo", lambda: build_tempo_intervals(bundles))
+                attempt("tempo", lambda: build_tempo_intervals(bundles), ('bundles',))
                 tempo = datasets.get("tempo") if isinstance(datasets.get("tempo"), list) else []
-                attempt("objectives", lambda: build_objective_dataset(bundles, deaths, tempo))
+                attempt("objectives", lambda: build_objective_dataset(bundles, deaths, tempo), ('bundles', 'death', 'tempo'))
                 objectives = datasets.get("objectives") if isinstance(datasets.get("objectives"), list) else []
-                attempt("resets", lambda: build_reset_dataset(bundles, deaths, tempo, objectives))
+                attempt("resets", lambda: build_reset_dataset(bundles, deaths, tempo, objectives), ('bundles', 'death', 'tempo', 'objectives'))
             deaths = datasets.get("death") if isinstance(datasets.get("death"), list) else []
             tempo = datasets.get("tempo") if isinstance(datasets.get("tempo"), list) else []
             objectives = datasets.get("objectives") if isinstance(datasets.get("objectives"), list) else []
@@ -292,12 +306,26 @@ class PostGameAnalysisService:
                     if isinstance(source_error, Exception):
                         payload = self._unavailable(payload["title"], "Échec isolé de l’analyzer ; la partie locale reste consultable.", ANALYZER_VERSIONS[name])
                         payload["status"] = "ERROR"
-                    self.cache.save_report(match_id, name, ANALYZER_CACHE_VERSIONS[name], payload["status"], payload)
+                    context = contexts[match_id]
+                    if isinstance(context, ContextUnavailable):
+                        payload = self._unavailable(payload['title'], f'Données non admissibles : {context}. Rôle {role}.', ANALYZER_VERSIONS[name])
+                    elif context.issues:
+                        payload = self._unavailable(payload['title'], 'Données partielles : ' + ', '.join(context.issues), ANALYZER_VERSIONS[name])
+                    elif name == 'death' and not isinstance(source_error, Exception):
+                        observed = context.death_timestamps
+                        actual = tuple(sorted(row['timestamp'] for row in get_match_death_costs(deaths, match_id)))
+                        if actual != observed:
+                            payload['status'] = 'PARTIAL'
+                            payload['summary'] = f'{len(actual)}/{len(observed)} morts observées ont une fenêtre v11 exploitable. Aucun coût inventé pour les autres.'
+                    elif name in ('tempo', 'objectives', 'resets') and role == 'JUNGLE' and not any(b.get('match_id') == match_id for b in bundles):
+                        payload = self._unavailable(payload['title'], 'Aucune paire de frames exploitable pour cette partie.', ANALYZER_VERSIONS[name])
+                    self.cache.save_report(match_id, name, ANALYZER_CACHE_VERSIONS[name], payload["status"], payload, puuid=player.puuid)
                     generated += 1
         return {"target": len(ids), "generated": generated, "current": generated // len(ANALYZER_VERSIONS)}
 
     def get_match_insights(self, match_id: str) -> CoachingReport:
-        reports = {report["analyzer"]: report for report in self.cache.reports(match_id) if ANALYZER_CACHE_VERSIONS.get(report["analyzer"]) == report["version"]}
+        puuid = self.local_data.player().puuid if self.local_data else ''
+        reports = {report["analyzer"]: report for report in self.cache.reports(match_id, puuid=puuid) if ANALYZER_CACHE_VERSIONS.get(report["analyzer"]) == report["version"]}
         insights = []
         for name, version in ANALYZER_VERSIONS.items():
             report = reports.get(name)

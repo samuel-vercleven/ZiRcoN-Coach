@@ -21,11 +21,11 @@ class MatchSummaryViewModel:
     match_id: str
     champion: str
     result: str
-    kills: int
-    deaths: int
-    assists: int
-    cs: int
-    duration_seconds: int
+    kills: Optional[int]
+    deaths: Optional[int]
+    assists: Optional[int]
+    cs: Optional[int]
+    duration_seconds: Optional[int]
     played_at: str
     queue: str
     position: str = "UNKNOWN"
@@ -36,11 +36,19 @@ class MatchSummaryViewModel:
 
     @property
     def kda_text(self) -> str:
-        return f"{self.kills}/{self.deaths}/{self.assists}"
+        return '/'.join('—' if value is None else str(value) for value in (self.kills, self.deaths, self.assists))
+
+    @property
+    def duration_text(self) -> str:
+        return '—' if self.duration_seconds is None else f'{self.duration_seconds // 60}:{self.duration_seconds % 60:02d}'
+
+    @property
+    def result_text(self) -> str:
+        return {'WIN': 'VICTOIRE', 'LOSS': 'DÉFAITE'}.get(self.result, 'RÉSULTAT INCONNU')
 
     @property
     def cs_per_min(self) -> Optional[float]:
-        return self.cs / (self.duration_seconds / 60) if self.duration_seconds else None
+        return self.cs / (self.duration_seconds / 60) if self.cs is not None and self.duration_seconds and self.duration_seconds > 0 else None
 
 
 @dataclass(frozen=True)

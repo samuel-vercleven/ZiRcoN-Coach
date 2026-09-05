@@ -51,6 +51,26 @@ to the restoration baseline to cover checkpointed modifications.
 
 ## Exit policy
 
+## Checkpoint results
+
+Seven Golden Games passed the full raw -> SQL -> GameContext -> Death -> knowledge
+-> cached report path (33 deaths, 35 reports). The initial extra assumption that
+every role would reconstruct EXACT was disproved: Support match EUW1_7959361127
+has final Riot item 3871 absent from frozen v22 reconstruction. Its PARTIAL status
+and missing-counter are now asserted explicitly; raw golden expectations were
+not changed. Six other games retain EXACT / EXACT_WITH_EXPLAINED_GRANT.
+
+Three new regression tests first failed on baseline (cross-account API missing,
+legacy report falsely current, NULL result treated as LOSS), then passed after
+the additive scoped cache / missing-metric corrections. Nine focused checks now
+cover those defects and the GameContext boundary. Existing cache fixture writes
+were given their known test PUUID; their semantic assertions were preserved.
+
+Legacy cache APIs remain available for diagnostic callers only. Desktop reads
+require explicit PUUID and never fall back to another player's or unscoped rows.
+
+## Exit policy (unchanged)
+
 No optimizer, semantic promotion, statistical retuning, self-freeze or broad
 refactor. Stable-base readiness remains unapproved until golden, robustness,
 knowledge and end-to-end validations actually complete. Initial inventory status

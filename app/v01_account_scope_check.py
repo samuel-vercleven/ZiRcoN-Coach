@@ -45,10 +45,10 @@ def main() -> None:
 
         cache.save_report("B_JG", "tempo", "stale", "AVAILABLE", {})
         assert local.matches()[0].analysis_status == "UNAVAILABLE"
-        cache.save_report("B_JG", "death", ANALYZER_CACHE_VERSIONS["death"], "AVAILABLE", {})
+        cache.save_report("B_JG", "death", ANALYZER_CACHE_VERSIONS["death"], "AVAILABLE", {}, puuid='b')
         assert local.matches()[0].analysis_status == "PARTIAL"
         for name, version in ANALYZER_CACHE_VERSIONS.items():
-            cache.save_report("B_JG", name, version, "AVAILABLE", {})
+            cache.save_report("B_JG", name, version, "AVAILABLE", {}, puuid='b')
         assert local.matches()[0].analysis_status == "AVAILABLE"
         assert local.status().analyzed_match_count == 1
 

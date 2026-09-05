@@ -1,5 +1,20 @@
 # ZiRcoN Coach - Project State
 
+## Stable Base v1 stabilization — in progress
+
+- Branch `stabilization/stable-base-v1`, source restoration tag `pre-stabilization-v1`.
+- Initial audit and 41/41 existing regression suites passed; 89 frozen files unchanged.
+- Account-bound analysis cache is additive; unscoped legacy rows remain stored but
+  are not treated as current-player evidence. All adapters use presentation v3.
+- A minimal `GameContext` validates local raw inputs before admitting reports;
+  missing timelines, role ambiguity and missing resources fail explicitly.
+- Missing KDA/CS/duration/result stay missing through DTOs, charts and aggregates.
+- Seven real Golden Games pass raw/SQL/Death/knowledge/report checks: 33 deaths,
+  35 reports; Support item 3871 remains a documented frozen v22 PARTIAL case.
+- Death bracket resource interpretations are marked EXPERIMENTAL; frozen formulas,
+  historical-only scoring and game-level validation are not modified.
+- No optimizer, successor phase, semantic promotion or freeze is authorized by this run.
+
 ## Frozen modules / knowledge layers
 - Death Analyzer: v11 - FROZEN.
 - Jungle Tempo / Pathing Analyzer: v17 - FROZEN.

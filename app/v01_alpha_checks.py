@@ -52,7 +52,7 @@ def main() -> None:
         matches = local.matches(); assert len(matches) == 1 and matches[0].champion == "Annie"
         assert local.progress().win_rate == 100.0 and local.match_detail("EUW1_TEST") is not None
         analysis = PostGameAnalysisService(local, cache)
-        cache.save_report("EUW1_TEST", "death", ANALYZER_CACHE_VERSIONS["death"], "PARTIAL", {"title": "Deaths", "summary": "Supported evidence", "evidence": ["fixture"], "source_version": "death_analyzer_v11"})
+        cache.save_report("EUW1_TEST", "death", ANALYZER_CACHE_VERSIONS["death"], "PARTIAL", {"title": "Deaths", "summary": "Supported evidence", "evidence": ["fixture"], "source_version": "death_analyzer_v11"}, puuid='p')
         cache.save_report("EUW1_TEST", "tempo", "stale_version", "AVAILABLE", {"title": "Stale", "summary": "Must not render", "evidence": []})
         report = analysis.get_match_insights("EUW1_TEST")
         assert len(report.insights) == 5 and report.insights[0].source_version == "death_analyzer_v11"

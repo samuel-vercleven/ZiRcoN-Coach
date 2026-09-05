@@ -63,7 +63,7 @@ def main() -> None:
         match_id = match.match_id
         raw_tempo = summarize_match_phases(tempo, match_id); raw_objectives = get_match_objectives(objectives, match_id); raw_resets = get_match_resets(resets, match_id); raw_build = build_by_match.get(match_id)
         fresh = {"tempo": context.analysis._tempo_payload(raw_tempo), "objectives": context.analysis._objective_payload(raw_objectives), "resets": context.analysis._reset_payload(raw_resets), "build": context.analysis._build_payload(raw_build)}
-        cached = {row["analyzer"]: row for row in context.cache.reports(match_id) if ANALYZER_CACHE_VERSIONS.get(row["analyzer"]) == row["version"]}
+        cached = {row["analyzer"]: row for row in context.cache.reports(match_id, puuid=player.puuid) if ANALYZER_CACHE_VERSIONS.get(row["analyzer"]) == row["version"]}
         assert set(fresh) <= set(cached), f"missing current cache for {match_id}"
         for name, payload in fresh.items():
             assert cached[name]["payload"].get("events") == payload.get("events"), f"stale/mismapped {name} payload for {match_id}"
@@ -76,7 +76,7 @@ def main() -> None:
     print("ZiRcoN Coach real adapter audit: PASS")
     print(f"- matches cross-checked: {len(targets)}")
     print(f"- raw/presentation events: tempo {totals['tempo_events']}, objectives {totals['objective_events']}, resets {totals['reset_events']}, build matches {totals['build_matches']}")
-    print(f"- non-null required field occurrences mapped: tempo {totals['tempo_available']}/{totals['tempo_available']}, objectives {totals['objective_available']}/{totals['objective_available']}, resets {totals['reset_available']}/{totals['reset_available']}")
+    print(f"- raw non-null field occurrences (not independent mapping coverage): tempo {totals['tempo_available']}, objectives {totals['objective_available']}, resets {totals['reset_available']}")
     print("- intentionally omitted from primary cards: unrelated raw diagnostics; retained source enums/scopes and v22 transactions in technical details")
 
 
