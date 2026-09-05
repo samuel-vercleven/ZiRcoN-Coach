@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
+import math
 from time import sleep
 from urllib.parse import quote
 
@@ -44,6 +45,16 @@ class DynamicRiotClient:
     def __repr__(self) -> str:
         return "DynamicRiotClient(api_key=<redacted>)"
 
+    @staticmethod
+    def _retry_seconds(raw_value: object) -> int:
+        try:
+            value = float(str(raw_value).strip())
+            if not math.isfinite(value):
+                raise ValueError
+            return max(1, min(10, int(value)))
+        except (TypeError, ValueError, OverflowError):
+            return 1
+
     def _get(self, url: str, params: dict | None = None, retry_rate_limit: bool = True) -> RiotResult:
         if not self._api_key:
             return RiotResult(RiotStatus.NOT_CONFIGURED, message="Riot API key is not configured.")
@@ -65,7 +76,7 @@ class DynamicRiotClient:
             if response.status_code == 404:
                 return RiotResult(RiotStatus.ACCOUNT_NOT_FOUND, message="Riot account was not found.")
             if response.status_code == 429:
-                retry = max(1, min(10, int(float(response.headers.get("Retry-After", "1")))))
+                retry = self._retry_seconds(response.headers.get("Retry-After", "1"))
                 if attempt + 1 < attempts:
                     sleep(retry)
                     continue

@@ -18,17 +18,25 @@ class TrendChart(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.fillRect(self.rect(), QColor("#151b25"))
-        if len(self.values) < 2:
+        available = [float(value) for value in self.values if value is not None]
+        if len(available) < 2:
             painter.setPen(QColor("#7f8b9e"))
-            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "Not enough data")
+            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "Données insuffisantes")
             return
         margin = 12
-        low, high = min(self.values), max(self.values)
+        low, high = min(available), max(available)
         span = max(0.001, high - low)
         width, height = self.width() - margin * 2, self.height() - margin * 2
-        points = [QPointF(margin + index * width / (len(self.values) - 1),
-                         margin + height - (value - low) / span * height)
-                  for index, value in enumerate(self.values)]
+        painter.setPen(QPen(QColor("#263142"), 1))
+        painter.drawLine(margin, margin + height // 2, margin + width, margin + height // 2)
+        points = [None if value is None else QPointF(
+            margin + index * width / max(1, len(self.values) - 1),
+            margin + height - (float(value) - low) / span * height,
+        ) for index, value in enumerate(self.values)]
         painter.setPen(QPen(self.color, 2))
         for first, second in zip(points, points[1:]):
-            painter.drawLine(first, second)
+            if first is not None and second is not None:
+                painter.drawLine(first, second)
+        painter.setPen(QColor("#7f8b9e"))
+        painter.drawText(margin, margin + 9, f"{high:.1f}")
+        painter.drawText(margin, margin + height, f"{low:.1f}")

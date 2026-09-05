@@ -26,6 +26,10 @@ class CacheRepository:
             connection.execute("""CREATE TABLE IF NOT EXISTS app_sync_state (
                 singleton INTEGER PRIMARY KEY CHECK(singleton = 1), completed_at TEXT NOT NULL,
                 status TEXT NOT NULL, message TEXT NOT NULL)""")
+            connection.execute("""CREATE TABLE IF NOT EXISTS app_account_sync_state (
+                puuid TEXT NOT NULL, queue_id INTEGER NOT NULL, completed_at TEXT NOT NULL,
+                status TEXT NOT NULL, message TEXT NOT NULL, payload_json TEXT NOT NULL,
+                PRIMARY KEY(puuid, queue_id))""")
             connection.commit()
 
     def save_profile(self, puuid: str, profile: dict) -> None:
@@ -71,7 +75,8 @@ class CacheRepository:
                 continue
         return result
 
-    def save_sync_result(self, status: str, message: str) -> None:
+    def save_sync_result(self, status: str, message: str, puuid: str = "",
+                         queue_id: int = 420, payload: dict | None = None) -> None:
         """Persist the latest non-fatal sync result without storing credentials."""
         self.initialize()
         with closing(sqlite3.connect(self.db_path)) as connection:
@@ -79,16 +84,36 @@ class CacheRepository:
                 "INSERT OR REPLACE INTO app_sync_state VALUES (1, ?, ?, ?)",
                 (datetime.now(timezone.utc).isoformat(), status, message),
             )
+            if puuid:
+                connection.execute(
+                    "INSERT OR REPLACE INTO app_account_sync_state VALUES (?, ?, ?, ?, ?, ?)",
+                    (puuid, queue_id, datetime.now(timezone.utc).isoformat(), status,
+                     message, json.dumps(payload or {}, ensure_ascii=False)),
+                )
             connection.commit()
 
-    def sync_state(self) -> dict | None:
+    def sync_state(self, puuid: str = "", queue_id: int = 420) -> dict | None:
         self.initialize()
         if not self.db_path.exists():
             return None
         with closing(sqlite3.connect(self.db_path)) as connection:
+            if puuid:
+                scoped = connection.execute(
+                    "SELECT completed_at, status, message, payload_json FROM app_account_sync_state WHERE puuid=? AND queue_id=?",
+                    (puuid, queue_id),
+                ).fetchone()
+                if scoped:
+                    try:
+                        payload = json.loads(scoped[3])
+                    except (ValueError, TypeError):
+                        payload = {}
+                    return {"completed_at": scoped[0], "status": scoped[1],
+                            "message": scoped[2], "payload": payload,
+                            "scope": "ACCOUNT_QUEUE"}
             row = connection.execute(
                 "SELECT completed_at, status, message FROM app_sync_state WHERE singleton=1"
             ).fetchone()
         if not row:
             return None
-        return {"completed_at": row[0], "status": row[1], "message": row[2]}
+        return {"completed_at": row[0], "status": row[1], "message": row[2],
+                "payload": {}, "scope": "LEGACY_GLOBAL"}

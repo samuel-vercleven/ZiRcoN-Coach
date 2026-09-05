@@ -45,7 +45,7 @@ def main() -> None:
     assert "90s context: enemy objectives 1, ally objectives 0, allied towers lost 1" in rendered
     assert "death chain size 4" in rendered
     assert "severe death spiral 77.9/100" in rendered
-    assert payload["summary"].endswith("pre-death state available for 1/1.")
+    assert payload["summary"].endswith("état avant la mort disponible pour 1/1.")
     assert payload["source_version"] == "death_analyzer_v11"
 
     warmup = service._death_payload([{
@@ -60,7 +60,7 @@ def main() -> None:
 
     genuinely_missing = service._death_payload([{"timestamp": 60_000}])
     assert "pre-death state UNKNOWN" in genuinely_missing["evidence"][0]
-    assert genuinely_missing["summary"].endswith("pre-death state available for 0/1.")
+    assert genuinely_missing["summary"].endswith("état avant la mort disponible pour 0/1.")
 
     print("ZiRcoN Coach Death v11 adapter check: PASS")
 

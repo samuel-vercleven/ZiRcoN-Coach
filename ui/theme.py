@@ -1,5 +1,5 @@
 APP_STYLESHEET = r"""
-* { font-family: Arial; font-size: 13px; }
+* { font-family: "Segoe UI", Arial, sans-serif; font-size: 13px; }
 QWidget { background: #0b0f15; color: #e8edf5; }
 QMainWindow { background: #0b0f15; }
 QFrame#Sidebar { background: #0e141d; border-right: 1px solid #202937; }
@@ -14,7 +14,9 @@ QLabel#Muted, QLabel#MicroLabel { color: #8491a3; }
 QLabel#MicroLabel { font-size: 10px; font-weight: 700; letter-spacing: 1px; }
 QLabel#MatchChampion, QLabel#MatchMetric { font-size: 15px; font-weight: 700; }
 QLabel#Evidence { background: #101721; color: #aeb9c8; border-radius: 7px; padding: 9px; }
-QFrame#Card, QFrame#InsightCard { background: #141b25; border: 1px solid #222d3b; border-radius: 12px; }
+QFrame#Card, QFrame#InsightCard, QFrame#AnalyzerHeader { background: #141b25; border: 1px solid #222d3b; border-radius: 12px; }
+QFrame#EventCard { background: #111923; border: 1px solid #253244; border-radius: 11px; }
+QFrame#CoachCard { background: #111c24; border: 1px solid #27505a; border-radius: 12px; }
 QFrame#HeroCard { background: #121c27; border: 1px solid #263547; border-radius: 15px; }
 QFrame#MatchCard { background: #141b25; border: 1px solid #222d3b; border-left: 4px solid #637083; border-radius: 10px; }
 QFrame#MatchCard[result="win"] { border-left-color: #48c78e; }
@@ -26,9 +28,19 @@ QLabel#CardValue { color: #ffffff; font-size: 25px; font-weight: 800; }
 QLabel#AssetIcon { background: #202a38; border: 1px solid #344256; border-radius: 8px; }
 QLabel#StatusBadge { border-radius: 8px; padding: 3px 8px; font-size: 10px; font-weight: 700; }
 QLabel#StatusBadge[tone="green"] { color: #62dba6; background: #173229; }
+QLabel#StatusBadge[tone="support"] { color: #67c9d8; background: #173039; border: 1px solid #28505b; }
 QLabel#StatusBadge[tone="amber"] { color: #f1c76d; background: #342b18; }
 QLabel#StatusBadge[tone="red"] { color: #ff858b; background: #351c22; }
 QLabel#StatusBadge[tone="slate"] { color: #a7b2c2; background: #232c39; }
+QLabel#SeverityBadge { border-radius: 8px; padding: 3px 8px; font-size: 10px; font-weight: 750; }
+QLabel#SeverityBadge[tone="high"] { color: #ff9298; background: #3a1f26; }
+QLabel#SeverityBadge[tone="medium"] { color: #f1c76d; background: #342b18; }
+QLabel#SeverityBadge[tone="low"] { color: #b8c3d2; background: #26303d; }
+QLabel#EventTitle { font-size: 15px; font-weight: 750; color: #f5f8fc; }
+QLabel#MetricValue { color: #dfe7f1; font-weight: 600; }
+QLabel#ContextLine { color: #c6d0dd; background: #18232e; border-radius: 6px; padding: 5px 8px; }
+QLabel#TechnicalDetails { color: #8f9daf; background: #0d131b; border-radius: 7px; padding: 9px; font-family: Consolas, monospace; font-size: 11px; }
+QToolButton { color: #75c9d5; background: transparent; border: none; padding: 4px 0; font-weight: 650; }
 QPushButton { background: transparent; border: 1px solid transparent; border-radius: 8px; padding: 10px 13px; color: #b9c3d1; text-align: left; }
 QPushButton:hover { background: #182231; color: #ffffff; }
 QPushButton:checked { background: #1c2d3a; border-color: #31545b; color: #65ddc5; font-weight: 700; }
@@ -44,6 +56,6 @@ QProgressBar { background: #18202c; border: none; border-radius: 4px; height: 7p
 QProgressBar::chunk { background: #55d6be; border-radius: 4px; }
 QStatusBar { background: #0e141d; color: #8491a3; border-top: 1px solid #202937; }
 QTabWidget::pane { border: none; }
-QTabBar::tab { background: #111822; color: #8794a7; padding: 10px 16px; border-radius: 7px; margin-right: 5px; }
+QTabBar::tab { background: #111822; color: #8794a7; padding: 9px 14px; border-radius: 7px; margin-right: 4px; }
 QTabBar::tab:selected { background: #20303b; color: #62d9c1; font-weight: 700; }
 """

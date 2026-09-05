@@ -25,7 +25,8 @@ class RuntimeSettingsService:
         self.env_path = Path(env_path or PROJECT_ROOT / ".env")
         self.settings_path = Path(settings_path or PROJECT_ROOT / ".cache" / "zircon" / "settings.json")
         self._runtime_key: str | None = None
-        self._api_status: str | None = None
+        self._active_api_status: str | None = None
+        self._current_profile_puuid: str | None = None
 
     def api_key(self) -> str:
         if self._runtime_key is not None:
@@ -35,7 +36,7 @@ class RuntimeSettingsService:
 
     def masked_key(self) -> str:
         value = self.api_key()
-        return "Not configured" if not value else f"••••••••{value[-4:]}"
+        return "Non configurée" if not value else f"••••••••{value[-4:]}"
 
     def save_api_key(self, api_key: str) -> None:
         value = api_key.strip()
@@ -46,15 +47,22 @@ class RuntimeSettingsService:
             self.env_path.touch()
         set_key(str(self.env_path), "RIOT_API_KEY", value, quote_mode="never")
         self._runtime_key = value
-        self._api_status = "VALID"
+        self._active_api_status = "VALID"
 
     def set_api_status(self, status: str) -> None:
-        self._api_status = status
+        """Set active credential state; candidate validation must not call this."""
+        self._active_api_status = status
 
     def api_status(self) -> str:
-        if self._api_status:
-            return self._api_status
+        if self._active_api_status:
+            return self._active_api_status
         return "CONFIGURED_UNVALIDATED" if self.api_key() else "NOT_CONFIGURED"
+
+    def mark_profile_current(self, puuid: str) -> None:
+        self._current_profile_puuid = puuid or None
+
+    def profile_freshness(self, puuid: str) -> str:
+        return "CURRENT" if puuid and puuid == self._current_profile_puuid else "CACHED"
 
     def _read_settings(self) -> dict:
         try:

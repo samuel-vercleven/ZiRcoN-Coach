@@ -30,6 +30,7 @@ class MatchSummaryViewModel:
     queue: str
     position: str = "UNKNOWN"
     items: tuple[int, ...] = ()
+    trinket_id: Optional[int] = None
     game_version: str = ""
     analysis_status: str = "UNAVAILABLE"
 
@@ -53,6 +54,9 @@ class InsightViewModel:
     source_module: str = ""
     timestamp: Optional[int] = None
     source_version: str = ""
+    findings: tuple[dict, ...] = ()
+    events: tuple[dict, ...] = ()
+    technical_details: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

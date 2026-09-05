@@ -1,136 +1,84 @@
-# ZiRcoN Coach — V0.1 Alpha Product Completion
-## Polished desktop UI + dynamic Riot API key + async sync + full trusted post-game coaching
+# ZiRcoN Coach — TODO Phase 2H
+## Champion Spell Stat Reference Semantics Foundation
 
-### Recommended Codex model
-GPT-5.6 Sol
-
-### Reasoning
-HIGH
-
-This is intentionally one large coherent product milestone with checkpoint commits.
-
-Do NOT spend this run extending the combat reverse-engineering roadmap.
-The goal is to turn ZiRcoN Coach into a genuinely usable local desktop coaching product.
+### Model recommendation
+Codex: GPT-5.6 Sol
+Reasoning: HIGH
 
 ---
 
-# 0. Current exact working state
+# 0. Mission
+
+Build Phase 2H as a NEW, provenance-first semantic layer for champion spell stat references.
+
+The objective is to determine, only when defensible:
+
+- what each raw `mStat` ID means;
+- what each raw `mStatFormula` value means;
+- who owns the referenced stat when that can be proven;
+- how a validated `(mStat, mStatFormula, owner)` combination maps to an existing frozen combat-snapshot field.
+
+The objective is NOT to increase formula or damage coverage by guessing.
+
+If a mapping cannot be proven, it must remain `UNKNOWN` / `UNRESOLVED`.
+
+Phase 2G v2 is FROZEN.
+
+Do not modify any frozen Phase 2G production or validation file.
+
+Do not start Phase 2I.
+
+---
+
+# 1. Current frozen baseline
 
 Repository:
 `samuel-vercleven/ZiRcoN-Coach`
 
-Current work branch:
-`v01-alpha-wip`
-
-Expected committed HEAD before the local Batch 1 files:
-`680fa07d478cb08882ba3433e4094979191a62b4`
+Current remote baseline:
+`a1daaf80ba03ecaa879a597e517f1a9b9599ea07`
 
 Commit:
-`WIP ZiRcoN Coach V0.1 Alpha`
+`Freeze executable combat formula foundation phase 2G`
 
-That WIP is based directly on frozen main:
-`cdbcdf4269a4ed50427014bff078e0026b19f346`
-`Record Phase 2I freeze verification`
+Accepted frozen inputs:
 
-IMPORTANT:
-There are expected LOCAL UNCOMMITTED Batch 1 GUI files on top of `680fa07...`.
-
-They include a first runnable PySide6 shell such as:
-- `run_app.py`
-- `app/application.py`
-- `app/bootstrap.py`
-- `ui/main_window.py`
-- `ui/theme.py`
-- `ui/pages/*`
-- `ui/components/*`
-- `app/v01_alpha_smoke.py`
-
-Do not reset, discard, stash-and-forget, or overwrite those blindly.
-
-The current visible Batch 1 UI already:
-- opens successfully;
-- reads the real local SQLite data;
-- shows Riot ID;
-- shows ~104 local matches in the observed development DB;
-- shows win rate, KDA, CS/min;
-- shows recent matches;
-- has Dashboard / Matches / Progress / Settings navigation.
-
-But visually it is still a developer prototype:
-- plain tables;
-- very large empty areas;
-- little information hierarchy;
-- no champion/item/profile images;
-- no rank/profile hero;
-- no sync action;
-- no dynamic Riot API key replacement;
-- no real post-game analyzer integration yet.
-
-This milestone must transform that prototype into a proper Alpha product.
-
----
-
-# 1. Frozen project boundary
-
-All previously frozen backend production/validation behavior through Phase 2I remains immutable.
-
-Frozen product/research layers include:
-- Death Analyzer v11
-- Jungle Tempo / Pathing v17
-- Objective Analyzer v20
-- Recall / Reset Analyzer v21
-- Build / Itemization Analyzer v22 Phase 1
 - Item Knowledge Phase 2A
 - Champion Knowledge Phase 2B1
 - Rune Knowledge Phase 2C1-B
-- Level Stats Phase 2D
-- Combat Resistance Phase 2E
-- Spell Source Phase 2F
-- Combat Formula Foundation Phase 2G
-- Stat Reference Semantics Phase 2H
-- Stat Owner Semantics Phase 2I
+- Level Stats Phase 2D v4
+- Combat Resistance Phase 2E v1
+- Champion Spell Source Phase 2F v1
+- Executable Combat Formula Foundation Phase 2G v2
 
-Phase 2I remains a zero-gate frozen result:
-- no executable concrete stat owner;
-- no stat-scaling executor;
-- no fabricated spell-damage completion.
+Important Phase 2G stat baseline:
 
-Do not reopen 2I.
-Do not start 2J.
-Do not modify frozen analyzers just to make UI integration convenient.
+- 173 champions
+- 692 primary Q/W/E/R slots
+- 1,443 raw calculations
+- 5,318 graph nodes
+- 25 calculation classes
+- 885 stat-reference occurrences
+- 16 distinct raw `mStat` IDs
+- 0 mapped
+- 16 unresolved
 
-Build adapters/services around frozen code.
+Frozen evaluator baseline:
 
-If an integration would truly require changing frozen behavior:
-leave the affected UI section explicit `UNAVAILABLE / REVIEW_REQUIRED` and continue other sections.
+- 13 `RESOLVED`
+- 720 `PARTIALLY_RESOLVED`
+- 493 `UNSUPPORTED_SIGNATURE`
+- 217 `UNSUPPORTED_CLASS`
 
----
-
-# 2. Preserve `main.py`
-
-`main.py` remains the backend/FROZEN validation harness.
-
-Do NOT turn it into the GUI launcher.
-
-The application entry point remains:
-
-```powershell
-python run_app.py
-```
-
-The final run must still include:
-
-```powershell
-python main.py
-```
-
-and it must PASS.
+Do not modify these frozen counts by changing Phase 2G.
 
 ---
 
-# 3. Mandatory startup sequence
+# 2. Mandatory startup
 
-Read fully before editing:
+Before coding:
+
+Read completely:
 
 1. `AGENTS.md`
 2. `PROJECT_STATE.md`
@@ -139,1513 +87,844 @@ Read fully before editing:
 5. `LAST_RUN.md`
 6. `main.py`
 
-Then inspect:
-- `run_app.py`
-- `app/`
-- `ui/`
-- `services/`
-- `viewmodels/`
-- `requirements.txt`
-- `.gitignore`
+Then inspect read-only:
 
-Inspect existing Riot/data stack:
-- `riot/riot_api.py`
-- `riot/data_dragon.py`
-- `config/settings.py`
-- `database/database.py`
-- `database/death_reader.py`
-- `database/tempo_reader.py`
-- `database/event_reader.py`
+- `knowledge/champion_spell_source.py`
+- `knowledge/champion_spell_source_full_audit.py`
+- `knowledge/champion_spell_formula_taxonomy.py`
+- `knowledge/champion_spell_formula_evaluator.py`
+- `knowledge/champion_spell_formula_evaluator_full_audit.py`
+- `knowledge/champion_spell_stat_reference.py`
+- `knowledge/champion_spell_stat_reference_full_audit.py`
+- `knowledge/combat_stat_snapshot.py`
+- `knowledge/combat_formula_foundation_full_audit.py`
+- `knowledge/champion_level_stats.py`
+- `knowledge/champion_knowledge.py`
 
-Inspect frozen analyzer APIs in read-only mode:
-- `analysis/death_cost_analyzer.py`
-- `analysis/jungle_tempo_analyzer.py`
-- `analysis/objective_analyzer.py`
-- `analysis/reset_analyzer.py`
-- `analysis/itemization_analyzer.py`
+Search the repository for:
 
-Also inspect existing non-frozen aggregation/presentation helpers where useful:
-- `analysis/coaching_engine.py`
-- related feature/benchmark modules
+- `mStat`
+- `mStatFormula`
+- `stat_references`
+- `VALIDATED_STAT_REFERENCES`
+- `resolve_stat_reference`
+- `UNRESOLVED_STAT_REFERENCE`
+- `STAT_OWNER_UNRESOLVED`
 
-Before modifications run:
+Also inspect immediately:
 
 ```text
 git status
 git diff
-git diff --stat
 git log --oneline --decorate -15
-git rev-parse HEAD
-git rev-parse origin/v01-alpha-wip
-git rev-parse origin/main
-```
+git log origin/main..HEAD --oneline
+If Phase 2H work already exists locally, reuse and review it.
 
-Expected:
-- branch `v01-alpha-wip`
-- committed HEAD may still be `680fa07...`
-- local tree may be dirty because Batch 1 GUI is intentionally uncommitted
-- `origin/main` remains the Phase 2I freeze baseline
+Do not restart from zero unnecessarily.
 
-DO NOT run destructive reset/clean commands.
+3. Frozen boundaries
 
----
+Do NOT modify any frozen production/validation file from Phase 2A through Phase 2G.
 
-# 4. First checkpoint — stabilize existing Batch 1
+In particular, do NOT modify:
 
-Before the large redesign:
-1. inspect every existing local Batch 1 file;
-2. run:
-   - `python -m app.v01_alpha_smoke`
-   - `python run_app.py` if GUI environment permits;
-3. fix ordinary Batch 1 bugs;
-4. confirm no frozen file was touched;
-5. commit the working shell.
+knowledge/champion_spell_stat_reference.py
+knowledge/champion_spell_formula_evaluator.py
+knowledge/combat_stat_snapshot.py
+knowledge/combat_formula_foundation_full_audit.py
 
-Suggested checkpoint commit:
+Phase 2H must live in new files.
 
-`Stabilize ZiRcoN Coach alpha GUI shell`
+If a frozen change is genuinely required:
 
-Do not include accidental historical TODO backup files in the final product branch.
+stop that branch;
+mark REVIEW_REQUIRED;
+continue all independent safe work.
+4. Exact source baseline
 
-The existing WIP accidentally tracked:
-- `TODO.before_phase2i.md`
-- `TODO.before_v01_alpha.md`
+Primary exact game-structure source:
 
-Remove these backup artifacts from the product branch unless AGENTS/project review explicitly requires them.
-Do not remove canonical project documentation.
+Repository:
+Haru-Kay/LeagueDatamines
 
----
+Pinned commit:
+9245fd616059c6c658d1faa1029f0e18ea179154
 
-# 5. Product target
-
-At the end, ZiRcoN Coach V0.1 Alpha should feel like a real desktop product.
-
-Primary experience:
-
-```text
-Launch app
-→ See player identity + rank + current local stats
-→ Click Sync
-→ Current Riot data imports asynchronously
-→ New matches and timelines are cached locally
-→ Trusted post-game analyzers run
-→ Dashboard refreshes
-→ Open a match
-→ See rich post-game page
-→ Death / Tempo / Objectives / Recall / Build sections
-→ See exact evidence and actionable summaries
-→ Restart offline and still browse cached local analyses
-```
-
-The application should not feel like a SQL table viewer.
-
----
-
-# 6. Visual redesign requirements
-
-The current Batch 1 screenshot is functional but too plain.
-
-Do a substantial visual pass.
-
-Design direction:
-- original ZiRcoN Coach visual identity;
-- dark gaming analytics dashboard;
-- polished but restrained;
-- information-dense without being cluttered;
-- clear hierarchy;
-- custom cards rather than raw database tables;
-- strong win/loss and severity semantics;
-- consistent spacing and rounded surfaces;
-- readable at 1080p;
-- good resizing behavior.
-
-Do not clone OP.GG, Mobalytics, Porofessor, U.GG or other products.
-Use them only as general UX inspiration.
-
-Suggested palette:
-- very dark neutral background;
-- slightly lighter sidebar/surfaces;
-- one ZiRcoN accent;
-- green victory/positive;
-- red defeat/critical;
-- amber caution/partial;
-- blue/grey information/unknown.
-
-Do not use excessive neon/glow effects.
-
----
-
-# 7. Main shell redesign
+Label:
+LIVE 26.16 (#17)
 
 Target:
-- default around 1400×850;
-- sensible minimum around 1100×700;
-- resizable;
-- no clipping;
-- no giant dead areas.
 
-Left sidebar:
-- ZiRcoN Coach brand;
-- Dashboard;
-- Matches;
-- Progress;
-- Settings;
-- version/status near bottom.
+Riot patch 26.16
+Data Dragon 16.16.1
+locale fr_FR
 
-Top bar:
-- current page title;
-- compact player identity;
-- API status badge;
-- last sync status;
-- prominent Sync button;
-- optional compact refresh/spinner status.
+This source is a community datamine/export of Riot game files.
 
-The user should always know whether data is:
-- local;
-- syncing;
-- current;
-- API-unavailable.
+Do not describe it as Riot Developer API data.
 
----
+Use the exact pinned source for current-patch inventory and structural evidence.
 
-# 8. Dashboard redesign
+5. Research source hierarchy
 
-Replace the plain "four cards + huge table" feel.
+Use sources in this order:
 
-## 8.1 Player hero
+Tier 1
 
-Show when available:
-- profile icon;
-- Riot ID;
-- summoner level;
-- queue;
-- rank tier/division;
-- LP;
-- ranked W/L;
-- ranked WR;
-- API/local status;
-- last sync.
+Exact pinned 26.16 game-file data.
 
-If rank endpoint is unavailable:
-show an explicit clean unavailable state.
+Tier 2
 
-Never invent rank.
+Riot official documentation when it explicitly defines a mechanic.
 
-## 8.2 Main performance cards
+Tier 3
 
-Use real local data:
-- loaded SoloQ games;
-- win rate;
-- KDA;
-- CS/min;
-- deaths/game;
-- optional average duration.
+Technical reverse-engineering/meta sources, preferably immutable commits:
 
-Show period label:
-`Local sample` / `Last 20` / `All loaded`.
+LeagueToolkit/lol-meta-classes
+moonshadow565/calcrev
+CommunityDragon / CDTB
+HextechDocs
+Tier 4
 
-## 8.3 Recent form
+Independent cross-validation against exact champion formulas/documented ratios.
 
-Add a compact last-N visual:
-- W/L chips;
-- recent WR;
-- current champion mix.
+Tier 5
 
-## 8.4 Recent matches
+Unresolved.
 
-Do NOT use a giant generic table as the main dashboard experience.
+A field type such as UInt8 proves representation, not enum semantics.
 
-Build reusable custom `MatchCard` / row widgets.
+Do not infer enum meaning from:
 
-Each recent match card should show where data exists:
-- champion icon;
-- champion name;
-- role;
-- victory/defeat accent;
-- K/D/A;
-- KDA;
-- CS/min;
-- duration;
-- item icons;
-- played time;
-- analysis status;
-- click to open post-game.
+frequency;
+coefficient magnitude;
+champion archetype;
+damage type;
+calculation key text alone.
+6. Existing community hypothesis to verify
 
-Use a clean empty state if none.
+Historical reverse-engineering documentation has described mStatFormula as:
 
----
+0 = Base
+1 = Bonus
+2 = Total
 
-# 9. Data Dragon visual assets
+Treat this as a hypothesis only.
 
-Create/rework an `AssetService`.
+Do not make it execution-eligible until it is cross-validated against the pinned 26.16 dataset.
 
-Use Riot Data Dragon for:
-- champion icons;
-- item icons;
-- profile icons where appropriate.
+Audit every actual mStatFormula value first.
+
+Likewise, do not import an old mStat enum table blindly.
+
+Validate current 26.16 independently.
+
+7. New Phase 2H files
+
+Create a new layer, for example:
+
+knowledge/champion_spell_stat_semantics.py
+knowledge/champion_spell_stat_semantics_sources.py
+knowledge/champion_spell_stat_semantics_synthetic_checks.py
+knowledge/champion_spell_stat_semantics_precision_checks.py
+knowledge/champion_spell_stat_semantics_full_audit.py
+
+Optional helper:
+
+knowledge/champion_spell_stat_semantics_research_audit.py
+
+Version:
+
+champion_spell_stat_semantics_phase2h_v1
+
+Do not add Phase 2H files to FROZEN_FILES yet.
+
+8. Checkpoint A — exhaustive real inventory
+
+Inventory every one of the 885 stat-reference occurrences.
+
+For every occurrence preserve:
+
+champion ID;
+champion name if available;
+slot;
+source spell path;
+calculation key;
+graph path;
+calculation class;
+raw mStat;
+raw mStatFormula;
+all sibling fields;
+coefficient/value fields;
+DataValue reference if present;
+parent/root calculation;
+tooltip/component-local linkage if available;
+Phase 2F source version;
+pinned source commit.
+
+Group by:
+
+mStat
+mStatFormula
+(mStat, mStatFormula)
+class
+champion
+slot
+
+Hard current-baseline invariants:
+
+total occurrences = 885
+distinct raw mStat IDs = 16
+
+Do not pre-hardcode the actual 16 numeric IDs.
+
+Discover and report them from the real source.
+
+If these invariants differ:
+
+REVIEW_REQUIRED
+
+9. Checkpoint B — mStatFormula semantics
+
+Build explicit semantic records for every raw mStatFormula.
+
+Semantic vocabulary:
+
+BASE_STAT
+BONUS_STAT
+TOTAL_STAT
+STAT_FORMULA_UNRESOLVED
+
+Status vocabulary:
+
+VALIDATED
+STRONGLY_SUPPORTED
+AMBIGUOUS
+CONTRADICTED
+UNRESOLVED
+
+Each record must contain:
+
+raw value;
+semantic meaning;
+status;
+confidence/evidence tier;
+evidence;
+contradictions;
+provenance;
+representative real examples;
+execution_eligible.
 
 Rules:
-- local cache first;
-- no network blocking on Qt main thread;
-- safe placeholder;
-- failed image download never crashes page;
-- cache directory ignored by Git.
 
-Recommended runtime cache:
-`.cache/zircon/assets/`
+only VALIDATED can be execution-eligible;
+enum value 0 is legitimate and must never be confused with missing;
+do not assume only values 0/1/2 exist before auditing.
+10. Checkpoint C — mStat semantics
 
-If `.gitignore` does not cover it:
-add it.
+Prefer two-dimensional semantics:
 
-IMPORTANT:
-The UI asset Data Dragon version may track current/display assets separately from the frozen knowledge semantic version.
-Do NOT silently change frozen Item/Champion knowledge versions just to get current icons.
+mStat -> stat family
 
-Document this separation.
+plus:
 
----
+mStatFormula -> base/bonus/total
 
-# 10. Dynamic Riot API key management
+Example only:
 
-This is mandatory.
+ATTACK_DAMAGE + TOTAL_STAT
 
-The user regularly has to replace an expiring Riot development API key.
+rather than encoding TOTAL_ATTACK_DAMAGE directly into raw mStat if the game structure is actually separated.
 
-The application must make this painless.
+Candidate canonical stat families may include:
 
-## 10.1 Settings UI
+ATTACK_DAMAGE
+ABILITY_POWER
+HEALTH
+ARMOR
+MAGIC_RESISTANCE
+ATTACK_SPEED
+MOVE_SPEED
+MANA
+other exact proven stats
 
-Add a polished Riot API section:
+Do not create a mapping merely because a candidate sounds plausible.
 
-```text
-Riot API
-Status: Valid / Invalid / Expired / Not configured / Rate limited / Unknown
+A raw mStat ID can be VALIDATED only with strong evidence.
 
-[ masked key field __________________ ]
-[ Validate ] [ Save / Replace Key ]
-```
+Preferred evidence pattern:
 
-Requirements:
-- password/secret echo mode;
-- never show the full existing key;
-- never log it;
-- never put it in exceptions displayed to the user;
-- never commit it;
-- optionally show only a safe suffix such as `••••ABCD`.
+exact 26.16 occurrences;
+several unrelated champions/spells where available;
+independently documented exact scaling;
+structural consistency;
+no credible contradictory occurrence;
+explicit provenance.
 
-## 10.2 Storage
+If evidence is weak:
 
-For this local dev Alpha, continue using project-root `.env` unless the existing architecture clearly provides a safer local mechanism.
+leave it unresolved.
 
-Use `python-dotenv` APIs such as `set_key` or an equivalent safe implementation.
+No minimum mapping percentage.
 
-Do not rewrite unrelated `.env` values.
+11. Checkpoint D — contradiction search
 
-`.env` stays gitignored.
+For every proposed mStat mapping:
 
-## 10.3 Runtime refresh
+scan all occurrences of that raw ID.
 
-Saving a new API key must take effect WITHOUT restarting the app.
+Actively search for a counterexample.
 
-Do not rely on the old import-time `config.settings.RIOT_API_KEY` constant for the new GUI sync workflow if that prevents hot replacement.
+Example:
 
-Preferred:
-create a new dynamic UI/service-layer Riot client that takes the key explicitly at runtime.
+if candidate raw ID X = ATTACK_DAMAGE,
+look for any strongly evidenced spell using X that clearly scales with:
 
-The legacy Riot module may remain untouched for old harness compatibility.
+AP;
+HP;
+armor;
+MR;
+movement speed;
+another incompatible stat.
 
-## 10.4 Validation
+If contradiction exists:
 
-Validate the proposed key with a real safe Riot request.
+preserve champion;
+slot;
+calculation key;
+graph path;
+source evidence;
 
-Prefer validating through the configured Riot account or another low-cost endpoint.
+and downgrade to:
 
-Typed outcomes:
-- VALID
-- NOT_CONFIGURED
-- UNAUTHORIZED / EXPIRED
-- FORBIDDEN
-- RATE_LIMITED
-- NETWORK_ERROR
-- RIOT_SERVER_ERROR
-- ACCOUNT_NOT_FOUND where relevant
+CONTRADICTED
+or
+AMBIGUOUS.
 
-Do not treat 429 as "invalid key".
+Contradicted or ambiguous IDs must never be execution-eligible.
 
-Do not save an invalid key silently.
+12. Checkpoint E — owner/source semantics
 
-Allow user to replace an expired key quickly.
+Audit who owns the referenced stat.
 
----
+Do not assume every stat reference uses caster stats.
 
-# 11. New dynamic Riot client/service
+Possible owner statuses:
 
-Create a V0.1 service such as:
+OWNER_VALIDATED_CASTER
+OWNER_VALIDATED_TARGET
+OWNER_VALIDATED_SOURCE_LEVEL
+OWNER_CONTEXT_DEPENDENT
+OWNER_UNRESOLVED
 
-```text
-services/riot_client.py
-services/riot_sync_service.py
-```
+Owner semantics must remain separate from mStatFormula.
 
-or equivalent.
+Do not infer owner merely because most ratios in League use the caster.
 
-Do not put HTTP code in widgets.
+If owner cannot be proven:
 
-Requirements:
-- explicit API key;
-- `requests.Session` or clean equivalent;
-- proper timeout;
-- finite retries;
-- 429 uses `Retry-After`;
-- no infinite loop;
-- typed errors;
-- no secret in repr/logs;
-- account-v1;
-- match-v5 IDs;
-- match details;
-- timeline;
-- summoner/profile endpoint if needed;
-- ranked league endpoint if needed.
+leave unresolved.
 
-Use the correct platform/regional routing for EUW.
+13. Checkpoint F — class-specific audit
 
-Where endpoint semantics are uncertain:
-verify against the current official Riot API behavior before hardcoding.
+Focus on stat-related classes, especially:
 
-Do not change existing frozen data semantics.
+StatByCoefficientCalculationPart
+StatByNamedDataValueCalculationPart
+StatBySubPartCalculationPart
 
----
+For each class audit:
 
-# 12. Riot ID / player configuration
+exact structural signatures;
+raw mStat values;
+raw mStatFormula values;
+coefficients;
+DataValues;
+nested subparts;
+owner evidence;
+representative real examples.
 
-Settings should show/edit the Riot ID.
+Do NOT execute these classes in Phase 2H.
 
-Format:
-`GameName#TagLine`
+Phase 2H is semantic/source only.
 
-Default:
-- discover from current local player when possible;
-- preserve current account if valid.
+14. Checkpoint G — AbilityResource branch
 
-The user should not edit Python code to change account.
+If AbilityResourceByCoefficientCalculationPart appears:
 
-Persist non-secret player settings in a runtime-local settings file or another clean untracked mechanism.
+inventory it separately.
 
-Do not commit personal runtime state.
+Do not confuse:
 
----
+mAbilityResource
 
-# 13. Asynchronous sync UX
+with:
 
-The Sync button is mandatory.
+mStat
 
-No Riot request on the Qt main thread.
+If resource enum semantics are not fully established:
 
-Use a proper Qt worker architecture:
-- `QThreadPool + QRunnable`, or
-- `QThread` with signals.
+use a research-only status such as:
 
-The main window should remain responsive.
+RESOURCE_ENUM_RESEARCH_ONLY
 
-Sync states:
-- Idle
-- Validating API
-- Fetching profile
-- Fetching match IDs
-- Downloading match X/Y
-- Downloading timelines X/Y
-- Running post-game analysis X/Y
-- Refreshing UI
-- Complete
-- Partial failure
-- Failed
+Do not let this branch block completion of the primary 16 mStat IDs.
 
-Show a progress indicator and short status text.
+15. Structured mapping records
 
-Disable duplicate concurrent syncs.
+Do not store only bare mappings.
 
-A failed sync must not destroy local data.
+Example stat record:
 
----
+{
+    "raw_stat_id": 2,
+    "semantic_stat": "ATTACK_DAMAGE",
+    "status": "VALIDATED",
+    "execution_eligible": True,
+    "evidence": [...],
+    "contradictions": [],
+    "provenance": {...},
+}
 
-# 14. Sync scope
+Example formula record:
 
-Default practical V0.1 behavior:
-- request latest 20 SoloQ matches;
-- import only missing match details;
-- backfill missing timeline/analysis data for recent matches;
-- preserve older local history.
+{
+    "raw_formula_id": 2,
+    "semantic_formula": "TOTAL_STAT",
+    "status": "VALIDATED",
+    "execution_eligible": True,
+    "evidence": [...],
+    "contradictions": [],
+    "provenance": {...},
+}
 
-Allow a simple scope choice in Settings or Sync menu if easy:
-- 20
-- 50
-- 100
+Expose convenience functions only from validated records:
 
-Do not fetch hundreds unnecessarily every launch.
+get_validated_stat_mapping()
+get_validated_stat_formula_mapping()
 
-Queue target:
-420 SoloQ by default.
+Never leak:
 
----
+strongly supported;
+ambiguous;
+contradicted;
+unresolved
 
-# 15. Existing database integration
+into execution-ready output.
 
-Reuse existing trusted database functions where appropriate, including current match persistence.
+16. Snapshot-reference composition
 
-Do not rewrite all DB logic.
+Create a new deterministic function that combines:
 
-Current schema already contains:
-- matches;
-- participants;
-- raw match JSON.
+raw mStat
+raw mStatFormula
+owner
 
-Use existing `save_match` when safe.
+into an existing frozen Phase 2G combat snapshot field only if every semantic dependency is validated.
 
-For new V0.1 cache/persistence needs, prefer NEW additive modules/tables rather than rewriting old DB behavior.
+Statuses:
 
----
+SEMANTIC_REFERENCE_RESOLVED
+STAT_ID_UNRESOLVED
+STAT_FORMULA_UNRESOLVED
+STAT_OWNER_UNRESOLVED
+SNAPSHOT_FIELD_UNAVAILABLE
+SEMANTIC_COMBINATION_UNSUPPORTED
 
-# 16. Timeline persistence
+Possible examples only if proven:
 
-Post-game analyzers need timeline/event data.
+ATTACK_DAMAGE + BASE_STAT -> attack_damage_native
+ATTACK_DAMAGE + BONUS_STAT -> attack_damage_bonus
+ATTACK_DAMAGE + TOTAL_STAT -> attack_damage_total
 
-Audit what is already persisted.
+Be careful:
 
-If timeline raw JSON is not persistently available:
-add a new additive cache table/module such as:
+"native at level" and Riot's internal "base" may not be identical in every mechanic.
 
-```text
-match_timelines
-- match_id PRIMARY KEY
-- fetched_at
-- source_version/game_version if useful
-- raw_json
-```
+Do not force equivalence.
 
-Do NOT modify a frozen analyzer to own persistence.
+Health must be treated carefully:
 
-Requirements:
-- existing matches can be backfilled;
-- no repeated timeline download when cached;
-- offline post-game works after timeline was cached;
-- malformed cache fails closed and can be refreshed.
+max HP
+bonus HP
+current HP
+missing HP
 
----
+are different semantics.
 
-# 17. Post-game analysis orchestration
+Do not rebuild attack-speed arithmetic.
 
-This is mandatory.
+Phase 2D remains frozen.
 
-Create a new UI-facing orchestration layer, e.g.:
+17. Critical execution boundary
 
-```text
-services/post_game_analysis_service.py
-services/coaching_service.py
-```
+Do NOT modify frozen Phase 2G evaluator.
 
-It must adapt frozen analyzers without modifying them.
+Do NOT make stat formula classes executable yet.
 
-Integrate, where their exact frozen input contracts can be satisfied:
+Specifically do NOT implement stat execution inside:
 
-1. Death Analyzer
-2. Jungle Tempo / Pathing Analyzer
-3. Objective Analyzer
-4. Recall / Reset Analyzer
-5. Build / Itemization Analyzer
+champion_spell_formula_evaluator.py
+champion_spell_formula_runtime.py
 
-Also inspect whether the existing deterministic coaching engine can safely add a top-level historical coaching summary without conflicting with frozen outputs.
+Phase 2I will later consume:
 
-Do not use an LLM.
+frozen Phase 2G formula graph/evaluator contracts;
+frozen Phase 2G combat snapshots;
+Phase 2H validated stat semantics;
 
----
+to create a new stat-scaling execution layer.
 
-# 18. Analyzer integration method
+Do not start that phase now.
 
-For EACH frozen analyzer:
+18. Synthetic tests
 
-1. inspect the exact public functions/classes;
-2. identify required input:
-   - match detail;
-   - timeline;
-   - participant/puuid;
-   - role;
-   - local history;
-   - item data;
-3. build a new adapter;
-4. preserve original status/evidence;
-5. normalize only for presentation;
-6. fail closed if required data is absent.
+At minimum test:
 
-Do not derive new causal claims.
+validated stat mapping;
+unresolved stat ID;
+validated mStatFormula;
+unknown mStatFormula;
+owner unresolved blocks complete semantic reference;
+base/bonus/total stay distinct;
+raw mStat = 0 is not missing;
+raw mStatFormula = 0 is not missing;
+no fuzzy matching;
+ambiguous mapping excluded from execution map;
+contradicted mapping excluded;
+strongly-supported-only mapping excluded;
+validated snapshot-field composition;
+missing snapshot field explicit;
+provenance preserved;
+weak single evidence cannot become VALIDATED;
+contradiction downgrades a mapping;
+magic damage does not imply AP;
+physical damage does not imply AD;
+coefficient size does not identify stat.
+19. Precision tests
 
-A UI adapter may simplify names but must not alter meaning.
+Use minimized exact pinned 26.16 real structures.
 
-Example normalized record:
+For every raw stat ID declared VALIDATED:
 
-```text
-InsightViewModel
-- category
-- title
-- summary
-- severity
-- status
-- timestamp/window
-- evidence
-- source_module
-- source_version
-- raw/reference identity if useful
-```
+at least one real-source precision fixture;
+several unrelated champion examples for high-frequency IDs where practical.
 
----
+Fixture metadata must record:
 
-# 19. Analysis caching
+champion;
+slot;
+calculation key;
+graph path;
+raw mStat;
+raw mStatFormula;
+independently expected semantic;
+source/provenance.
 
-The user should not have to recompute every analyzer on every UI repaint.
+Do not derive expected semantic by calling production code.
 
-Implement persistent or deterministic cached post-game reports.
+No circular validation.
 
-Recommended additive table:
+20. External source registry
 
-```text
-analysis_reports
-- match_id
-- analyzer_name
-- analyzer_version
-- generated_at
-- status
-- report_json
-PRIMARY KEY(match_id, analyzer_name, analyzer_version)
-```
+Create:
 
-If a different cache design better fits current repo, use it.
+knowledge/champion_spell_stat_semantics_sources.py
 
-Cache requirements:
-- analyzer version in key;
-- stale result invalidated when analyzer version changes;
-- cached result readable offline;
-- UI never treats stale incompatible version as current.
+For every source used, record:
 
-No analyzer calculation in paint/render callbacks.
+source name;
+repository/site;
+exact commit/URL if available;
+source tier;
+what fact it supports;
+limitations.
 
----
+Investigate:
 
-# 20. Post-game page redesign
+Haru-Kay/LeagueDatamines
+LeagueToolkit/lol-meta-classes
+moonshadow565/calcrev
+CommunityDragon/CDTB
+HextechDocs
 
-The current placeholder message is not acceptable for completed V0.1.
+Historical evidence may support a hypothesis but exact 26.16 evidence remains primary.
 
-Build a rich post-game page.
+21. Cross-patch stability
 
-## 20.1 Header
+Where useful, compare candidate enum semantics against older/newer technical sources.
 
-Show:
-- champion icon;
-- champion name;
-- VICTORY / DEFEAT;
-- role;
-- K/D/A;
-- KDA;
-- CS / CS/min;
-- duration;
-- date;
-- item build as actual icons;
-- analysis status.
+Classify:
 
-## 20.2 Summary
+STABLE_ACROSS_CHECKED_VERSIONS
+CHANGED_ACROSS_VERSIONS
+CROSS_PATCH_UNCERTAIN
 
-A top `Coach Summary` section:
-- 2–4 highest-signal supported takeaways;
-- concise;
-- evidence-gated;
-- no speculation.
+Do not use a different patch's mapping as a silent fallback for 26.16.
 
-Categories visually identified:
-- Death
-- Tempo
-- Objectives
-- Recall
-- Build
+22. Hash/unknown-field policy
 
-If nothing actionable:
-say that no high-confidence issue was identified in available analyzers.
+If related fields are hashed:
 
-Do not invent advice just to fill space.
+preserve raw hash;
+resolve only through known hash dictionaries or exact technical sources;
+record provenance;
+unresolved hashes stay unresolved.
 
-## 20.3 Analyzer navigation
+No guessed hash name may enter execution semantics.
 
-Use tabs, segmented control, or well-designed collapsible cards.
+23. Full audit
 
-Required sections when supported:
+Create:
 
-### Overview
-- factual match performance;
-- key supported insights;
-- status of each analyzer.
-
-### Deaths
-- analyzed death count;
-- timestamps;
-- classifications;
-- cost/impact evidence exposed by frozen analyzer;
-- severity;
-- expandable technical evidence.
-
-### Tempo / Pathing
-- important windows/events;
-- tempo loss/gain classifications;
-- supported pathing context.
-
-### Objectives
-- objective preparation/timing facts;
-- major supported findings.
-
-### Recalls / Resets
-- recall/reset events;
-- supported outcome quality;
-- timing/context.
-
-### Build
-- item purchase/order/timing where known;
-- factual analyzer findings;
-- item knowledge details;
-- no unvalidated optimal-build recommendation.
-
-Every section needs:
-- LOADING
-- AVAILABLE
-- PARTIAL
-- UNAVAILABLE
-- ERROR
-
-states.
-
----
-
-# 21. Coaching severity and status semantics
-
-Create consistent display semantics.
-
-Example status badges:
-- EXACT / RESOLVED
-- SUPPORTED
-- PARTIAL
-- UNKNOWN
-- UNAVAILABLE
-
-Severity:
-- Positive
-- Info
-- Warning
-- Critical
-
-Do not equate `PARTIAL` with "bad play".
-Status is epistemic confidence/data availability.
-Severity is gameplay impact only when analyzer supports it.
-
----
-
-# 22. Match History redesign
-
-Upgrade from a raw table.
-
-Preferred:
-custom scrollable match rows/cards.
-
-Each row:
-- champion icon;
-- result color rail;
-- champion + role;
-- K/D/A;
-- CS/min;
-- duration;
-- item icons;
-- date;
-- analyzer readiness badge;
-- click target.
-
-Filters:
-- All
-- Wins
-- Losses
-
-Optional if clean:
-- champion filter;
-- analyzed/not analyzed.
-
-Do not overbuild filtering.
-
----
-
-# 23. Profile and rank
-
-During sync fetch current player profile/rank when the Riot APIs support it.
-
-Display:
-- profile icon;
-- summoner level;
-- SoloQ tier/division/LP;
-- wins/losses.
-
-If unranked:
-show `Unranked`.
-
-If API unavailable:
-retain last cached profile if available, clearly marked cached.
-
-Do not fake current rank from local match history.
-
----
-
-# 24. Profile cache
-
-Persist non-secret profile metadata locally so the app still looks complete offline.
-
-Cache fields may include:
-- Riot ID;
-- puuid;
-- profile icon ID;
-- summoner level;
-- rank/tier/division;
-- LP;
-- ranked wins/losses;
-- fetched timestamp.
-
-Clearly mark cached/stale data when offline if appropriate.
-
-Do not store API key in profile cache.
-
----
-
-# 25. Progress page — product quality
-
-Improve the current raw champion table.
-
-Minimum:
-- selectable window: Last 10 / 20 / 50 / All;
-- win rate;
-- KDA;
-- CS/min;
-- deaths/game;
-- recent vs previous equivalent window.
-
-Add 2–3 lightweight trend visualizations:
-- win result / rolling WR;
-- CS/min;
-- deaths or KDA.
-
-Use Qt-native drawing/custom widget if practical.
-Avoid a heavyweight dependency solely for charts.
-
-Champion pool section:
-- champion icon;
-- games;
-- WR;
-- KDA;
-- CS/min.
-
-No personal "tier rating" yet.
-
----
-
-# 26. Asset/image loading
-
-Do not freeze UI while images download.
-
-Use:
-- background worker; or
-- Qt network manager.
-
-Prefer local cached pixmaps.
-
-Image UI should not resize/jump badly after load.
-
-Use rounded square/circle masks where visually appropriate.
-
----
-
-# 27. Settings page redesign
-
-Make it a proper settings/data control page, not a plain form dump.
-
-Sections:
-
-## Account
-- Riot ID edit
-- Save
-
-## Riot API
-- API status
-- masked replacement field
-- Validate
-- Save/Replace
-- last validation message
-
-## Sync
-- latest match count target (20/50/100)
-- Sync Now
-- optional Backfill Analyses
-
-## Local data
-- DB path
-- loaded match count
-- latest local match
-- timeline cache count
-- analyzed match count
-- last successful sync
-
-## App
-- V0.1 Alpha
-- frozen backend baseline summary
-
-Never show full secrets.
-
----
-
-# 28. Expired-key experience
-
-This matters because Riot development keys expire frequently.
-
-When Riot returns unauthorized/forbidden due to key:
-
-Top bar/banner should clearly show:
-
-`Riot API key invalid or expired — Replace key in Settings`
-
-Provide a one-click route to Settings.
-
-The application must keep local data usable.
-
-After replacing a key successfully:
-- banner clears;
-- API badge becomes Valid;
-- no restart;
-- user can immediately Sync.
-
----
-
-# 29. Error handling
-
-Normal user UI must never display raw Python tracebacks.
-
-Map errors to human-readable messages.
-
-Detailed technical exceptions may go to local logs, without secrets.
-
-Handle:
-- missing DB;
-- empty DB;
-- DB locked;
-- malformed row;
-- invalid match JSON;
-- missing timeline;
-- invalid/expired API key;
-- account not found;
-- network timeout;
-- 429;
-- Riot 5xx;
-- DDragon failure;
-- analyzer exception;
-- partial analyzer support.
-
-One analyzer failure must not break the whole post-game page.
-
----
-
-# 30. Offline-first acceptance
-
-Test this explicitly:
-
-1. sync at least fixture data / create realistic test cache;
-2. disable Riot/network in test;
-3. relaunch app;
-4. Dashboard still loads local data;
-5. Matches still load;
-6. cached post-game analyses still load;
-7. Settings shows API/network unavailable cleanly.
-
-Riot API must NOT be required to bootstrap the app.
-
-Do not import a module at application startup that raises solely because `RIOT_API_KEY` is absent.
-
----
-
-# 31. Performance and responsiveness
-
-Target development database:
-~100–200 matches.
-
-Goals:
-- app opens quickly;
-- switching pages responsive;
-- match list scroll smooth;
-- no repeated full DB scan on every repaint;
-- no analyzer recompute on page paint;
-- all network work asynchronous;
-- expensive analysis runs in worker.
-
-Introduce lightweight in-memory caching where useful.
-
-Do not prematurely build complex pagination infrastructure unless required.
-
----
-
-# 32. Code architecture target
-
-A reasonable V0.1 architecture may look like:
-
-```text
-app/
-    application.py
-    bootstrap.py
-    paths.py
-    runtime_settings.py
-    v01_alpha_audit.py
-    v01_alpha_smoke.py
-
-services/
-    local_data.py
-    riot_client.py
-    riot_sync_service.py
-    asset_service.py
-    post_game_analysis_service.py
-    coaching_service.py
-    profile_service.py
-    analysis_cache.py
-    timeline_cache.py
-
-viewmodels/
-    models.py
-    # optional presentation-specific modules
-
-ui/
-    main_window.py
-    theme.py
-    workers.py
-    components/
-        sidebar.py
-        topbar.py
-        profile_hero.py
-        stat_card.py
-        status_badge.py
-        match_card.py
-        item_strip.py
-        insight_card.py
-        loading_state.py
-        empty_state.py
-        trend_chart.py
-    pages/
-        dashboard_page.py
-        matches_page.py
-        match_detail_page.py
-        progress_page.py
-        settings_page.py
-
-run_app.py
-```
-
-Do not force this exact file count if a cleaner equivalent fits.
-
-Avoid god objects.
-
-Widgets should not own HTTP, SQL schema migrations, or frozen analyzer logic.
-
----
-
-# 33. Data/viewmodel improvements
-
-Expand current dataclasses as needed.
-
-Useful UI contracts:
-
-## PlayerViewModel
-- riot_id
-- puuid
-- profile_icon
-- level
-- queue
-- tier
-- division
-- lp
-- ranked_wins
-- ranked_losses
-- fetched_at/cache_status
-
-## MatchSummaryViewModel
-- match_id
-- champion
-- champion_id
-- champion_icon
-- role
-- result
-- K/D/A
-- KDA
-- CS
-- CS/min
-- duration
-- timestamp
-- items
-- analysis_status
-
-## MatchDetailViewModel
-- match summary
-- items
-- raw factual secondary stats where available
-- coaching report
-
-## CoachingReport
-- per-analyzer sections
-- top takeaways
-- overall availability
-- evidence/provenance
-
-Keep models deterministic and serializable where useful.
-
----
-
-# 34. Testing — API key
-
-Create tests using temp files and mocked HTTP.
-
-Required:
-1. missing `.env` -> NOT_CONFIGURED
-2. masked UI never exposes full test key
-3. valid mock response -> VALID
-4. 401/403 -> INVALID/EXPIRED
-5. 429 -> RATE_LIMITED, not INVALID
-6. save replacement key preserves other `.env` entries
-7. runtime client uses replacement key without restart
-8. exceptions/logs do not include key
-
-Never use the real key in committed tests.
-
----
-
-# 35. Testing — sync
-
-Mock Riot HTTP.
-
-Test:
-- new IDs imported;
-- existing matches not re-fetched unnecessarily;
-- timeline cached;
-- timeline backfilled for existing match;
-- partial match failure continues;
-- API invalid leaves DB untouched;
-- refresh signals emitted;
-- no duplicate concurrent sync;
-- progress accounting correct.
-
----
-
-# 36. Testing — analyzers
-
-For each integrated frozen analyzer:
-- use a real pinned/local fixture or minimized exact fixture;
-- call through the NEW adapter/service;
-- assert source module/version retained;
-- assert normalized status;
-- assert no fabricated fields;
-- assert missing prerequisites become explicit unavailable/partial.
-
-Do not rewrite frozen tests.
-
----
-
-# 37. Testing — UI
-
-Use:
-
-```text
-QT_QPA_PLATFORM=offscreen
-```
-
-Required smoke checks:
-- QApplication construction;
-- main window;
-- navigation;
-- Dashboard empty;
-- Dashboard with sample data;
-- Match list with cards;
-- Match detail;
-- all analyzer tabs/sections construct;
-- Settings API field is masked;
-- API invalid banner state;
-- syncing state;
-- progress page;
-- clean shutdown.
-
-No network required for smoke suite.
-
----
-
-# 38. Manual visual verification
-
-Because this is now a visual product milestone, manual visual validation is mandatory if environment permits.
-
-Actually launch:
-
-```powershell
-python run_app.py
-```
-
-Inspect at minimum:
-- 1400×850;
-- near minimum size;
-- Dashboard;
-- Matches;
-- Post-game;
-- Progress;
-- Settings;
-- long Riot IDs;
-- long analyzer summary text;
-- empty states;
-- partial states.
-
-Check:
-- no clipped text;
-- no overlapping cards;
-- no giant pointless blank table;
-- icons aligned;
-- win/loss readable;
-- scroll behavior works;
-- dark theme consistent;
-- content hierarchy is obvious.
-
-Do not claim manual visual verification if environment cannot display GUI.
-
----
-
-# 39. Current user data acceptance
-
-The current local development DB observed through Batch 1 contains roughly 104 local matches and correctly resolves the current player Riot ID.
-
-Do not hardcode that count.
-
-After sync with a valid current Riot key:
-the Dashboard must update automatically to the actual local count.
-
-A successful sync should not require restarting the GUI.
-
----
-
-# 40. `Sync` user acceptance scenario
-
-This exact scenario should work:
-
-1. launch `python run_app.py`;
-2. current local Dashboard loads;
-3. click Settings;
-4. paste new Riot development API key into masked field;
-5. click Validate;
-6. app reports valid;
-7. click Save/Replace;
-8. no restart;
-9. return Dashboard;
-10. click Sync;
-11. progress visibly updates;
-12. new matches are saved;
-13. timelines/analyses are cached;
-14. Dashboard/match history refresh;
-15. open newest match;
-16. post-game analyzer sections show supported results.
-
-This is a core Alpha acceptance test.
-
----
-
-# 41. Post-game trust acceptance
-
-For a match with all required data:
-the user should see actual frozen-analyzer information.
-
-For a match lacking timeline/analyzer prerequisites:
-the page should say exactly why.
-
-Never show a made-up generic recommendation to hide missing data.
-
----
-
-# 42. Security audit
-
-Before final commit:
-search tracked files/diff for:
-- `RGAPI-`
-- current API key pattern if detectable without printing it
-- `.env` contents
-- Authorization/X-Riot token literals containing secrets
-
-Use safe commands that do not echo the actual secret.
-
-Verify:
-- `.env` untracked/ignored;
-- runtime cache ignored;
-- logs do not contain key;
-- screenshots/docs do not contain key.
-
-Do not print the user's real key in final response.
-
----
-
-# 43. V0.1 audit
-
-Build/update a central audit:
-
-`app/v01_alpha_audit.py`
+knowledge/champion_spell_stat_semantics_full_audit.py
 
 Report:
 
-## Product
-- launcher exists
-- shell constructs
-- all required pages present
-- custom match cards present
-- post-game sections present
+Source
+Phase 2H version
+Phase 2F source version
+Phase 2G frozen version
+exact LeagueDatamines commit
+Data Dragon version
+locale
+Inventory
+total occurrences
+distinct mStat IDs
+exact ID list
+count per ID
+raw mStatFormula values
+count per formula value
+(mStat, mStatFormula) matrix
+Stat mappings
+VALIDATED
+STRONGLY_SUPPORTED
+AMBIGUOUS
+CONTRADICTED
+UNRESOLVED
+execution-eligible IDs
+validated occurrence coverage
+Formula mappings
+validated formula IDs
+unresolved formula IDs
+contradicted formula IDs
+Owner semantics
+caster validated
+target validated
+source-level validated
+context-dependent
+unresolved
+Snapshot composition
+resolved canonical fields
+unsupported combinations
+unavailable snapshot fields
+Safety invariants
+key-name-only mappings admitted = 0
+ambiguous mappings in execution map = 0
+contradicted mappings in execution map = 0
+strongly-supported-only mappings in execution map = 0
+unproven owner assumptions = 0
+frozen file modifications = 0
+Result
+blocking issues
+review items
+status
 
-## Riot
-- dynamic client
-- key replace workflow
-- async sync
-- typed errors
-- offline bootstrap
+No mapping-coverage threshold.
 
-## Data
-- local matches
-- timeline cache
-- analysis cache
-- profile cache
+A low-coverage but defensible result can PASS.
 
-## Coaching
-- Death integration
-- Tempo integration
-- Objective integration
-- Recall integration
-- Build integration
-- provenance preservation
-- unsupported states fail closed
+24. main.py development harness
 
-## Safety
-- frozen modifications = 0
-- secret scan = pass
+Phase 2H becomes the only active development phase.
 
-## Tests
-- service/unit
-- UI smoke
-- `python main.py`
-- `git diff --check`
+Keep all previous frozen guards.
 
-Final:
-`PASS / REVIEW_REQUIRED FOR ALPHA FREEZE`
-or
-`REVIEW_REQUIRED`
+Run:
 
-Do not self-freeze.
+py_compile Phase 2H files
+Phase 2H synthetic checks
+Phase 2H precision checks
+Phase 2H research/inventory audit
+Phase 2H full audit
+FROZEN guard
 
----
+Do not print all old Phase 2G reports unnecessarily.
 
-# 44. Documentation
+Do not add Phase 2H files to frozen list yet.
+
+25. Documentation
 
 Update:
-- `PROJECT_STATE.md`
-- `TODO.md`
-- `LAST_RUN.md`
 
-Update `DECISIONS.md` only for durable choices such as:
-- dynamic Riot GUI client separate from legacy import-time config;
-- timeline/analysis caching;
-- UI asset version separated from frozen knowledge version;
-- offline-first policy.
+PROJECT_STATE.md
+LAST_RUN.md
+TODO.md
 
-Document how to run:
+Update DECISIONS.md only for durable source/methodology decisions.
 
-```powershell
-.\.venv\Scripts\Activate.ps1
-python run_app.py
-```
+Do not declare Phase 2H FROZEN.
 
-Document tests.
+Final state should be:
 
-Document API replacement workflow without including a key.
+PASS / REVIEW_REQUIRED FOR FREEZE
 
----
+or
 
-# 45. Git strategy
+REVIEW_REQUIRED
 
-Remain on:
-`v01-alpha-wip`
+with exact blockers.
 
-Do NOT merge to main in this run.
+26. LAST_RUN required content
 
-The goal is a reviewable Alpha branch.
+Record:
 
-Suggested checkpoint commits:
+exact Phase 2H version;
+commits;
+exact external source URLs/commits;
+runtime;
+total stat occurrences;
+distinct raw stat IDs;
+actual raw stat ID list;
+actual mStatFormula values;
+validated stat mappings;
+strongly supported;
+ambiguous;
+contradicted;
+unresolved;
+validated occurrence coverage;
+mStatFormula coverage;
+owner coverage;
+snapshot composition coverage;
+synthetic count;
+precision count;
+full audit;
+FROZEN guard;
+git diff --check;
+remaining limitations.
 
-1. `Stabilize ZiRcoN Coach alpha GUI shell`
-2. `Add dynamic Riot sync and API key management`
-3. `Integrate trusted post-game analyzers`
-4. `Polish ZiRcoN Coach alpha product UI`
-5. `Validate ZiRcoN Coach V0.1 Alpha`
+Do not report guessed AD/AP mappings as facts.
 
-Commit names may differ if logically equivalent.
+27. Git strategy
 
-Push:
-`origin/v01-alpha-wip`
+Before commits:
 
-At final:
-
-```text
-git status --short
+git status
+git diff
 git diff --check
+
+Never stage:
+
+.env
+Riot API keys
+DB files
+logs
+.cache
+downloaded game archives
+credentials
+
+Suggested commits:
+
+Inventory champion spell stat references phase 2H
+Validate champion spell stat semantics phase 2H
+Audit champion spell stat semantics phase 2H
+
+Use fewer commits if cleaner.
+
+Push to:
+
+origin/main
+
+No force push.
+
+At the end verify:
+
+git status
+git log -5 --oneline
 git rev-parse HEAD
-git rev-parse origin/v01-alpha-wip
 git rev-parse origin/main
-```
 
-HEAD must equal `origin/v01-alpha-wip`.
+HEAD and origin/main must match after successful push.
 
-Main should remain unchanged during this run.
+28. Explicitly out of scope
 
----
+Do NOT implement:
 
-# 46. Do not implement in this milestone
+stat-based formula execution;
+new damage execution;
+item passive/active execution;
+rune execution;
+stat shards;
+buffs;
+conditions;
+tick simulation;
+transformations;
+combo engine;
+Burst/TTK;
+build recommendations;
+ML;
+UI;
+Phase 2I.
+29. Completion behavior
 
-Do NOT add:
-- Overwolf/live overlay;
-- live-game jungle timers;
-- pre-game optimal pick;
-- live voice assistant;
-- LLM-generated coaching;
-- ML;
-- build optimizer;
-- full combat simulator;
-- Burst/TTK;
-- new rune execution;
-- item passive combat engine;
-- stat-owner research;
-- cloud account;
-- installer/exe packaging;
-- auto-updater.
+Routine coding/test problems:
 
-Focus on making the current trusted backend visible and useful.
+fix autonomously.
 
----
+If one stat ID remains unresolved:
 
-# 47. Autonomous work policy
+continue.
 
-Fix ordinary issues autonomously:
-- PySide6 layout;
-- signals/slots;
-- async worker bugs;
-- SQLite locking;
-- migrations;
-- API adapters;
-- Data Dragon caching;
-- test fixtures;
-- styles;
-- DTO conversions;
-- analyzer adapter shape;
-- error messages;
-- performance.
+If owner semantics remain largely unresolved:
 
-Do not stop for minor implementation choices.
+continue and report honestly.
 
-Stop only an affected branch if:
-- a frozen change is truly required;
-- a frozen analyzer contract cannot be safely satisfied;
-- an API behavior cannot be established without guessing;
-- a methodological contradiction is discovered.
+If a source contradiction exists:
 
-Continue independent work whenever possible.
+preserve it and downgrade the mapping.
 
----
+Do not stop the whole phase because coverage is incomplete.
 
-# 48. Token-efficiency instruction
+Stop only for a genuine methodology/frozen-boundary blocker.
 
-This is a large Sol run.
+30. Final Codex response
 
-Avoid wasting tokens by repeatedly narrating progress.
+Report concisely:
 
-Work in checkpoints:
-- inspect;
-- implement;
-- test;
-- commit;
-- continue.
+commit SHAs;
+files created/modified;
+actual 16 raw mStat IDs;
+actual mStatFormula values;
+VALIDATED stat mappings;
+STRONGLY_SUPPORTED mappings;
+AMBIGUOUS mappings;
+CONTRADICTED mappings;
+UNRESOLVED mappings;
+execution-eligible occurrence coverage;
+owner semantics coverage;
+tests;
+audits;
+FROZEN guard;
+git diff check;
+push status;
+HEAD/origin SHA;
+remaining blockers.
 
-Do not ask the user routine questions that the repository/current data can answer.
+Do not choose or start Phase 2I.
 
-Do not restart from scratch.
+Project review decides what comes next.
 
-Reuse the current Batch 1 shell and existing backend.
+Final rule
 
----
+This phase is reverse engineering with a strict evidence burden.
 
-# 49. Final Codex response
+Do not optimize for how many IDs can be mapped.
 
-Report concisely but completely:
+Optimize for how many mappings can be defended.
 
-- final branch
-- final HEAD
-- origin branch SHA
-- checkpoint commits
-- main unchanged confirmation
-- launcher command
-- visual redesign summary
-- profile/rank support
-- API key replacement behavior
-- key validation outcomes handled
-- sync behavior
-- timeline caching
-- analysis caching
-- Death integration
-- Tempo integration
-- Objective integration
-- Recall integration
-- Build integration
-- coaching summary logic
-- offline behavior
-- Data Dragon asset behavior
-- UI smoke test results
-- service/unit test results
-- manual visual verification
-- `python main.py`
-- FROZEN guard
-- secret scan
-- `git diff --check`
-- known Alpha limitations
+When evidence ends:
 
-Final status:
-`PASS / REVIEW_REQUIRED FOR ALPHA FREEZE`
+UNKNOWN.
 
-Do NOT merge main.
-Do NOT freeze V0.1 yourself.
-Do NOT start V0.2.
-
----
-
-# Final principle
-
-ZiRcoN Coach V0.1 Alpha should no longer look or behave like a development harness.
-
-It should be a credible desktop coaching application backed by the real local match history and the trusted analyzers already built.
-
-Polish is important, but truthfulness is more important.
-
----
-
-# Completion status
-
-`COMPLETED / PASS / REVIEW_REQUIRED FOR ALPHA FREEZE`
-
-Completed on 2026-09-04 on branch `v01-alpha-wip`.
-
-- `python run_app.py` opens the PySide6 desktop product; `main.py` remains the backend harness.
-- Dashboard, custom Match History, rich Post-game, Progress, and Settings/Data screens are implemented with real local data.
-- Dynamic masked key validation/replacement, non-blocking latest-20 sync, match/timeline backfill, profile cache, analysis cache, and offline browsing are implemented.
-- Sync progress is monotonic, partial failures are isolated, and Settings exposes account/scope save plus match/timeline/analysis/last-sync status.
-- Coach Summary presents up to four deterministic evidence-gated analyzer summaries rather than generic or invented advice.
-- Death v11 adapter v2 maps the exact frozen fields and was verified on five real 11-death matches: 55/55 pre-death states exposed, 0 adapter-created `UNKNOWN`.
-- Real Riot validation returned `VALID`; real latest-20 sync returned `COMPLETE` with 0 failures.
-- Death v11, Tempo/Pathing v17, Objective v20, Reset v21, and Itemization v22 are consumed through adapters; 5/5 sections were available on a real recent match.
-- No frozen production/validation file was modified, Phase 2I remains closed, and no combat semantics were added.
-- V0.1 is not FROZEN. No V0.2 or new backend phase has started.
-
-A beautiful card that says `PARTIAL — timeline missing` is better than a fake coaching recommendation.
+A correct unresolved enum is better than a plausible wrong stat.
