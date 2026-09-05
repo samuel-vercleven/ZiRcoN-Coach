@@ -36,6 +36,12 @@ def main() -> None:
                 window.match_detail_page.tabs.setCurrentIndex(tab_index); app.processEvents()
                 assert window.grab().save(str(target / f"post-game-{tab_index}-{size_name}.png"))
                 post_game_captures += 1
+        death_match = next((match for match in matches if match.deaths > 0), None)
+        if death_match:
+            window.open_match(death_match.match_id); window.match_detail_page.tabs.setCurrentIndex(1)
+            for width, height, size_name in sizes:
+                window.resize(width, height); app.processEvents()
+                assert window.grab().save(str(target / f"post-game-deaths-{size_name}.png")); post_game_captures += 1
     window.close()
     print(f"ZiRcoN Coach visual render check: PASS ({len(sizes) * len(pages) + post_game_captures} screenshots)")
 

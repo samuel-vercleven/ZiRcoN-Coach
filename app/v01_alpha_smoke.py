@@ -71,7 +71,7 @@ def main() -> None:
         active_key_badge = sample_window.api.text()
         sample_window._sync_result({"status": "NETWORK_ERROR", "message": "Réseau indisponible."})
         assert sample_window.api.text() == active_key_badge
-        assert sample_window.sync_badge.text() == "NETWORK ERROR"
+        assert sample_window.sync_badge.text() == "ERREUR RÉSEAU"
         sample_window.close()
 
     app.processEvents()

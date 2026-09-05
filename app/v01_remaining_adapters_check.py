@@ -50,10 +50,16 @@ def main() -> None:
         "entry_jungle_cs_diff": 0, "reentry_gold_diff": 460, "reentry_xp_diff": 111,
         "reentry_jungle_cs_diff": 0, "reentry_score": 18.2, "reentry_label": "LOW",
         "reentry_reference_size": 76, "reentry_reference_scope": "CHAMPION_PHASE_ORIGIN_TIME",
+        "post_player_xp_per_min": 450, "post_player_jungle_cs_per_min": 7.2,
+        "post_relative_gold_per_min": 12, "post_relative_xp_per_min": -15,
+        "post_relative_jungle_cs_per_min": 0.2, "objective_timing": "PRE_OBJECTIVE",
+        "next_objective_kind": "DRAGON", "next_objective_seconds": 75,
         "post_reset_death_120": False, "high_unspent_gold_context": False,
     }])
     rendered = str(reset)
     assert "Production après reset vs historique" in rendered
+    assert "objective_timing" in _metric_keys(reset)
+    assert "post_player_xp_per_min/post_player_jungle_cs_per_min" in _metric_keys(reset)
     assert "mauvais reset" not in rendered.lower() and "excellent recall" not in rendered.lower()
     assert reset["findings"] and "ne qualifie pas causalement" in reset["findings"][0]["detail"]
 
