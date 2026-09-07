@@ -85,6 +85,12 @@ audit, Golden Games, full local batch, V0.1 audits, native UI checks, and
 - Frozen validation is patch-scoped; it is not latest-patch combat completeness.
 
 ## Remaining issues
+- Push of tested checkpoint `e6b6fc8df4977abc770fb708cd61a8ec1d36be95` to
+  `origin/stabilization/stable-base-v1` was blocked before execution by the
+  authorization review. It requires explicit user confirmation of this remote
+  branch, despite the stabilization branch specified in the task attachment.
+  No workaround attempted; local commit retained. Remote-tracking checkpoint
+  remains `863b5e8c5d218b06abcaa36b3e8088f02c969beb` pending publication.
 - Phase 2D latest 16.17: 0/173 accepted ratios and 2907 unresolved AS rows;
   separate pinned 16.16.1 regression passes.
 - Legacy SQL projections/latest helpers remain; future consumers must honor
