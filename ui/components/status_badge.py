@@ -1,10 +1,11 @@
-from PySide6.QtWidgets import QLabel
+from PySide6.QtWidgets import QLabel, QSizePolicy
 
 
 class StatusBadge(QLabel):
     def __init__(self, text: str = "UNKNOWN", parent=None):
         super().__init__(text, parent)
         self.setObjectName("StatusBadge")
+        self.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
         self.set_status(text)
 
     def set_status(self, status: str) -> None:
@@ -30,6 +31,7 @@ class SeverityBadge(QLabel):
     def __init__(self, severity: str = "INFO", parent=None):
         super().__init__(parent)
         self.setObjectName("SeverityBadge")
+        self.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
         self.set_severity(severity)
 
     def set_severity(self, severity: str) -> None:

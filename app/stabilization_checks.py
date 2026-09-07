@@ -50,6 +50,9 @@ def main():
     if label == 'final':
         modules += ['app.stabilization_regressions', 'app.stabilization_golden_checks']
     results = []
+    paths = [p for p in subprocess.check_output(['git', 'ls-files', '--cached', '--others', '--exclude-standard', '*.py'], cwd=ROOT, text=True).splitlines() if (ROOT / p).is_file()]
+    subprocess.run([sys.executable, '-m', 'py_compile', *paths], cwd=ROOT, check=True)
+    print(f'Compiled {len(paths)} Python modules', flush=True)
     for module in modules:
         start = time.monotonic()
         try:

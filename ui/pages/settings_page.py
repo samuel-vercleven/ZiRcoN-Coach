@@ -1,5 +1,5 @@
 from PySide6.QtCore import QThreadPool, Signal
-from PySide6.QtWidgets import QComboBox, QFormLayout, QFrame, QHBoxLayout, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QComboBox, QFormLayout, QFrame, QHBoxLayout, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget, QScrollArea
 
 from services.local_data import LocalDataService
 from services.riot_sync import RiotSyncService
@@ -13,7 +13,10 @@ class SettingsPage(QWidget):
 
     def __init__(self, local: LocalDataService, settings: RuntimeSettingsService, sync: RiotSyncService, parent=None):
         super().__init__(parent); self.local, self.settings, self.sync = local, settings, sync; self.worker = None
-        root = QVBoxLayout(self); root.setContentsMargins(26, 20, 26, 22); root.setSpacing(15)
+        outer = QVBoxLayout(self); outer.setContentsMargins(0, 0, 0, 0)
+        scroll = QScrollArea(); scroll.setWidgetResizable(True); host = QWidget(); root = QVBoxLayout(host)
+        scroll.setWidget(host); outer.addWidget(scroll)
+        root.setContentsMargins(26, 20, 26, 22); root.setSpacing(15)
         title = QLabel("Réglages et données"); title.setObjectName("PageTitle"); root.addWidget(title)
         api = QFrame(); api.setObjectName("Card"); layout = QVBoxLayout(api)
         heading = QHBoxLayout(); name = QLabel("Accès Riot API"); name.setObjectName("SectionTitle"); heading.addWidget(name); heading.addStretch(); heading.addWidget(QLabel("CLÉ ACTIVE")); self.api_badge = StatusBadge("UNKNOWN"); heading.addWidget(self.api_badge); layout.addLayout(heading)

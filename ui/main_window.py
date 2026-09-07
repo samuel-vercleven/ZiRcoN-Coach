@@ -1,5 +1,5 @@
 from PySide6.QtCore import QThreadPool
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QMainWindow, QProgressBar, QPushButton, QStackedWidget, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QMainWindow, QProgressBar, QPushButton, QStackedWidget, QVBoxLayout, QWidget, QSizePolicy
 
 from app.bootstrap import AppContext
 from ui.components.status_badge import StatusBadge
@@ -33,6 +33,8 @@ class MainWindow(QMainWindow):
         key_label = QLabel("CLÉ"); key_label.setObjectName("MicroLabel"); top.addWidget(key_label); self.api = StatusBadge("UNKNOWN"); top.addWidget(self.api)
         sync_label = QLabel("SYNC"); sync_label.setObjectName("MicroLabel"); top.addWidget(sync_label); self.sync_badge = StatusBadge("OFFLINE"); top.addWidget(self.sync_badge)
         self.sync_text = QLabel("Données locales"); self.sync_text.setObjectName("Muted"); top.addWidget(self.sync_text)
+        self.sync_text.setMaximumWidth(140); self.sync_text.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self.player.setMaximumWidth(120); self.player.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         self.sync_button = QPushButton("Synchroniser"); self.sync_button.setObjectName("PrimaryButton"); self.sync_button.clicked.connect(self.start_sync); top.addWidget(self.sync_button); work.addWidget(topbar)
         self.progress = QProgressBar(); self.progress.setRange(0, 100); self.progress.setValue(0); self.progress.setVisible(False); work.addWidget(self.progress)
         self.stack = QStackedWidget(); self.dashboard_page = DashboardPage(context.local_data, context.assets); self.matches_page = MatchesPage(context.local_data, context.assets); self.progress_page = ProgressPage(context.local_data, context.assets); self.settings_page = SettingsPage(context.local_data, context.settings, context.sync); self.match_detail_page = MatchDetailPage(context.local_data, context.analysis, context.assets)
@@ -62,9 +64,9 @@ class MainWindow(QMainWindow):
         self.sync_button.setEnabled(False); self.progress.setVisible(True); self.progress.setValue(1); self.sync_text.setText("Synchronisation…"); self.sync_badge.set_status("RUNNING")
         worker = FunctionWorker(self.context.sync.sync, with_progress=True); worker.signals.progress.connect(self._sync_progress); worker.signals.result.connect(self._sync_result); worker.signals.error.connect(self._sync_failed); worker.signals.finished.connect(self._sync_finished); self.sync_worker = worker; QThreadPool.globalInstance().start(worker)
 
-    def _sync_progress(self, message, value): self.sync_text.setText(message); self.progress.setValue(value)
+    def _sync_progress(self, message, value): self.sync_text.setText(message); self.sync_text.setToolTip(message); self.progress.setValue(value)
     def _sync_result(self, result):
-        status = result.get("status", "ERROR"); message = result.get("message", status); self.refresh_all(); self.sync_text.setText(message); self.sync_badge.set_status(status); self.api.set_status(self.context.settings.api_status())
+        status = result.get("status", "ERROR"); message = result.get("message", status); self.refresh_all(); self.sync_text.setText(message); self.sync_text.setToolTip(message); self.sync_badge.set_status(status); self.api.set_status(self.context.settings.api_status())
     def _sync_failed(self, message): self.sync_text.setText(message); self.sync_badge.set_status("ERROR"); self.api.set_status(self.context.settings.api_status())
     def _sync_finished(self): self.sync_worker = None; self.sync_button.setEnabled(True); self.progress.setVisible(False)
     def refresh_all(self): self.dashboard_page.refresh(); self.matches_page.refresh(); self.progress_page.refresh(); self.settings_page.refresh(); self.refresh_header()

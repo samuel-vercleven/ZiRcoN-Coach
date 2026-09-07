@@ -49,8 +49,6 @@ legacy global DB path: do not claim arbitrary-DB analyzer support without a guar
 Its FROZEN guard examines uncommitted status only; additionally compare Git blobs
 to the restoration baseline to cover checkpointed modifications.
 
-## Exit policy
-
 ## Checkpoint results
 
 Seven Golden Games passed the full raw -> SQL -> GameContext -> Death -> knowledge
@@ -63,11 +61,19 @@ not changed. Six other games retain EXACT / EXACT_WITH_EXPLAINED_GRANT.
 Three new regression tests first failed on baseline (cross-account API missing,
 legacy report falsely current, NULL result treated as LOSS), then passed after
 the additive scoped cache / missing-metric corrections. Nine focused checks now
-cover those defects and the GameContext boundary. Existing cache fixture writes
+covered those defects and the GameContext boundary at that checkpoint. The final
+stack contains 22 focused checks; see STABILIZATION_REPORT.md. Existing cache fixture writes
 were given their known test PUUID; their semantic assertions were preserved.
 
 Legacy cache APIs remain available for diagnostic callers only. Desktop reads
 require explicit PUUID and never fall back to another player's or unscoped rows.
+
+## Final disposition
+
+Technical corrections pass. Full latest-patch acceptance remains REVIEW_REQUIRED
+for the pinned Phase 2D AS-source mismatch (16.17 vs 16.16); its exact frozen
+baseline audit passes. The final report records this separately, not as a hidden
+or weakened test. No blanket claim of latest-patch combat readiness is made.
 
 ## Exit policy (unchanged)
 

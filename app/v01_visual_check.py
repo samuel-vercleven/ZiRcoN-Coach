@@ -36,7 +36,7 @@ def main() -> None:
                 window.match_detail_page.tabs.setCurrentIndex(tab_index); app.processEvents()
                 assert window.grab().save(str(target / f"post-game-{tab_index}-{size_name}.png"))
                 post_game_captures += 1
-        death_match = next((match for match in matches if match.deaths > 0), None)
+        death_match = next((match for match in matches if match.deaths is not None and match.deaths > 0), None)
         if death_match:
             window.open_match(death_match.match_id); window.match_detail_page.tabs.setCurrentIndex(1)
             for width, height, size_name in sizes:

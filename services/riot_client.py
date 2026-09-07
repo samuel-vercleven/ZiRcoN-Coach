@@ -46,6 +46,12 @@ class DynamicRiotClient:
         return "DynamicRiotClient(api_key=<redacted>)"
 
     @staticmethod
+    def _shape(result: RiotResult, predicate) -> RiotResult:
+        if result.ok and not predicate(result.data):
+            return RiotResult(RiotStatus.ERROR, message='Riot returned an invalid response structure.')
+        return result
+
+    @staticmethod
     def _retry_seconds(raw_value: object) -> int:
         try:
             value = float(str(raw_value).strip())
@@ -87,16 +93,17 @@ class DynamicRiotClient:
         return RiotResult(RiotStatus.ERROR, message="Riot request failed.")
 
     def account_by_riot_id(self, game_name: str, tag_line: str) -> RiotResult:
-        return self._get(f"{self.REGIONAL}/riot/account/v1/accounts/by-riot-id/{quote(game_name, safe='')}/{quote(tag_line, safe='')}")
+        return self._shape(self._get(f"{self.REGIONAL}/riot/account/v1/accounts/by-riot-id/{quote(game_name, safe='')}/{quote(tag_line, safe='')}"),
+                           lambda data: isinstance(data, dict) and isinstance(data.get('puuid'), str) and bool(data['puuid']))
 
     def summoner_by_puuid(self, puuid: str) -> RiotResult:
-        return self._get(f"{self.PLATFORM}/lol/summoner/v4/summoners/by-puuid/{quote(puuid, safe='')}")
+        return self._shape(self._get(f"{self.PLATFORM}/lol/summoner/v4/summoners/by-puuid/{quote(puuid, safe='')}"), lambda data: isinstance(data, dict) and all(isinstance(data.get(k), int) for k in ('profileIconId', 'summonerLevel')))
 
     def ranked_entries(self, puuid: str) -> RiotResult:
-        return self._get(f"{self.PLATFORM}/lol/league/v4/entries/by-puuid/{quote(puuid, safe='')}")
+        return self._shape(self._get(f"{self.PLATFORM}/lol/league/v4/entries/by-puuid/{quote(puuid, safe='')}"), lambda data: isinstance(data, list) and all(isinstance(row, dict) for row in data))
 
     def match_ids(self, puuid: str, count: int = 20, queue: int = 420) -> RiotResult:
-        return self._get(f"{self.REGIONAL}/lol/match/v5/matches/by-puuid/{quote(puuid, safe='')}/ids", {"start": 0, "count": count, "queue": queue})
+        return self._shape(self._get(f"{self.REGIONAL}/lol/match/v5/matches/by-puuid/{quote(puuid, safe='')}/ids", {"start": 0, "count": count, "queue": queue}), lambda data: isinstance(data, list) and all(isinstance(row, str) and bool(row) for row in data))
 
     def match(self, match_id: str) -> RiotResult:
         return self._get(f"{self.REGIONAL}/lol/match/v5/matches/{quote(match_id, safe='')}")

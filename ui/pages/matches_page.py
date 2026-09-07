@@ -20,7 +20,9 @@ class MatchesPage(QWidget):
     def refresh(self):
         while self.list.count() > 1:
             item = self.list.takeAt(0)
-            if item.widget(): item.widget().deleteLater()
+            widget = item.widget()
+            if widget:
+                widget.hide(); widget.setParent(None); widget.deleteLater()
         try: matches = self.service.matches(str(self.filter.currentData() or "ALL"))
         except Exception: matches = []
         self.status.setText(f"{len(matches)} partie(s) locale(s) • analyse fondée sur les sorties FROZEN")

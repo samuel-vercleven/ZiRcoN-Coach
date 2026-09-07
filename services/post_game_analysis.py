@@ -33,7 +33,9 @@ def _enum(value: object) -> str:
 
 
 def _time(timestamp: object) -> str:
-    value = int(timestamp or 0)
+    if timestamp is None:
+        return '—'
+    value = int(timestamp)
     return f"{value // 60000:02d}:{value // 1000 % 60:02d}"
 
 
@@ -119,7 +121,7 @@ class PostGameAnalysisService:
                            "technical": [f"advantage_state_before_death={state}", f"resource_cost_label={label}", f"score_reference_size={row.get('score_reference_size')}"]})
             normalized = str(label or "").upper()
             if any(token in normalized for token in ("HIGH", "VERY", "ÉLEV", "ELEV")):
-                findings.append({"title": f"Mort à coût historique {label}", "detail": f"À {_time(timestamp)}, coût relatif v11 {(_number(score) + '/100') if score is not None else label}.", "severity": "HIGH", "supported": True})
+                findings.append({"title": f"Signal historique EXPERIMENTAL — {label}", "detail": f"À {_time(timestamp)}, composite relatif v11 {(_number(score) + '/100') if score is not None else label}, sans attribution causale.", "severity": "HIGH", "supported": True})
         return {"title": "Morts", "summary": (f"{len(rows)} mort(s) analysée(s) par v11 ; état avant la mort disponible pour {mapped_states}/{len(rows)}." if rows else "Aucune mort dans la sortie v11 de cette partie."),
                 "status": "AVAILABLE", "severity": "INFO", "evidence": evidence, "events": events,
                 "findings": findings, "technical_details": [], "source_version": ANALYZER_VERSIONS["death"]}
@@ -139,8 +141,8 @@ class PostGameAnalysisService:
                 _metric("XP relatif/min", _number(values.get("relative_xp_per_min"), "+.0f"), "relative_xp_per_min"),
                 _metric("CS jungle relatifs/min", _number(values.get("relative_jungle_cs_per_min"), "+.2f"), "relative_jungle_cs_per_min"),
             ]
-            holes = int(values.get("sustained_pathing_holes") or 0)
-            watches = int(values.get("single_minute_watches") or 0)
+            holes = values.get("sustained_pathing_holes")
+            watches = values.get("single_minute_watches")
             alerts = []
             if holes:
                 alerts.append(f"{holes} épisode(s) de pathing durable signalé(s) par v17")
@@ -180,7 +182,7 @@ class PostGameAnalysisService:
                 context.append(f"contre-objectifs alliés {', '.join(ally_counter) or 'aucun'} · adverses {', '.join(enemy_counter) or 'aucun'}")
             raw_sequence = str(sequence or "")
             if raw_sequence and raw_sequence not in ("SECURED", "UNKNOWN"):
-                findings.append({"title": f"{kind or 'Objectif'} à {_time(timestamp)}", "detail": f"Séquence v20 : {_enum(raw_sequence)}" + (f" ; contest {_enum(row.get('contest_evidence'))}." if row.get("contest_evidence") else "."), "severity": "MEDIUM", "supported": True})
+                context.append(f'Séquence v20 : {_enum(raw_sequence)}. Contexte d’équipe, pas une faute individuelle.')
             events.append({"title": f"{_enum(kind).title()} · {_time(timestamp)}", "subtitle": f"{_enum(row.get('secured_side')).title()} · {_enum(sequence)}", "status": "AVAILABLE", "severity": "INFO", "metrics": metrics, "context": context, "item_ids": [],
                            "technical": [f"objective_kind={kind}", f"objective_family={row.get('objective_family')}", f"monster_type={row.get('monster_type')}", f"prior_trade_context={row.get('prior_trade_context')}", f"preparation_reference={row.get('preparation_reference_scope')} N={row.get('preparation_reference_size')}", f"conversion_reference={row.get('conversion_reference_scope')} N={row.get('conversion_reference_size')}", f"resource_compensation_gold_change={row.get('resource_compensation_gold_change')}", f"resource_compensation_xp_change={row.get('resource_compensation_xp_change')}", f"resource_compensation_jungle_cs_change={row.get('resource_compensation_jungle_cs_change')}", f"frozen_tempo_score_change={row.get('frozen_tempo_score_change')}"]})
             evidence.append(f"{_time(timestamp)} • {kind} • secured_side={row.get('secured_side')} • sequence_classification={sequence} • preparation={prep_score}/{row.get('preparation_label')} • conversion={conversion_score}/{row.get('conversion_label')}")
@@ -224,6 +226,7 @@ class PostGameAnalysisService:
             return {"title": "Build / Itemisation", "summary": "Aucune reconstruction v22 disponible pour cette partie.", "status": "UNAVAILABLE", "severity": "INFO", "evidence": [], "events": [], "findings": [], "technical_details": [], "source_version": ANALYZER_VERSIONS["build"]}
         validation, milestones = match.get("final_validation") or {}, match.get("milestones") or {}
         status = str(validation.get("status") or "UNKNOWN")
+        presentation_status = 'AVAILABLE' if status.startswith('EXACT') else 'PARTIAL'
         final_counter = validation.get("riot_final_counter") or {}
         final_items = [int(item_id) for item_id, count in final_counter.items() for _ in range(int(count))]
         trinket = validation.get("riot_trinket")
@@ -237,7 +240,21 @@ class PostGameAnalysisService:
         for index, milestone in enumerate(milestones.get("completed_major_items") or [], 1):
             events.append({"title": f"Objet majeur #{index}", "subtitle": milestone.get("time") or _time(milestone.get("timestamp")), "status": "AVAILABLE", "severity": "INFO", "metrics": [_metric("Objet", milestone.get("item_name") or milestone.get("item_id"), "milestones.completed_major_items")], "context": [], "item_ids": [milestone.get("item_id")], "technical": [f"item_id={milestone.get('item_id')}"]})
         technical = [f"{row.get('time') or _time(row.get('timestamp'))} | {row.get('event_type')} | {row.get('item_name') or row.get('item_id')} | visit={row.get('shop_visit_id')} | reconstruction={row.get('reconstruction_status')}" for row in match.get("transactions") or []]
-        return {"title": "Build / Itemisation", "summary": f"Build final et {max(0, len(events)-1)} jalon(s) factuel(s) reconstruits par v22 : {status}. Aucune conclusion de build optimal.", "status": "AVAILABLE" if status.startswith("EXACT") else "PARTIAL", "severity": "INFO", "evidence": [f"final_validation.status={status}", f"completed_major_items={len(milestones.get('completed_major_items') or [])}"], "events": events, "findings": [], "technical_details": technical, "source_version": ANALYZER_VERSIONS["build"]}
+        reliability = match.get('inventory_reliability') or {}
+        intervals = reliability.get('intervals') or []
+        if intervals:
+            presentation_status = 'PARTIAL'
+            technical.extend(f"EXPERIMENTAL inventory interval: {interval}" for interval in intervals)
+            for event in events[1:]:
+                event['status'] = 'PARTIAL'
+                event['context'].append('EXPERIMENTAL : historique avec intervalles d’inventaire ambigus ; un achat ne valide pas tout l’état intermédiaire.')
+        game_patch = str(match.get('game_version') or '').split('.')[:2]
+        catalog_patch = str(match.get('ddragon_version') or '').split('.')[:2]
+        if len(game_patch) != 2 or len(catalog_patch) != 2 or game_patch != catalog_patch or match.get('catalog_warnings'):
+            presentation_status = 'PARTIAL'
+            events[0]['status'] = 'PARTIAL'
+            events[0]['context'].append('Provenance du catalogue indisponible ou patch différent ; reconstruction non validée pour ce patch.')
+        return {"title": "Build / Itemisation", "summary": f"Inventaire final v22 : {status} ; présentation {presentation_status}. {max(0, len(events)-1)} jalon(s). Aucune conclusion de build optimal.", "status": presentation_status, "severity": "INFO", "evidence": [f"final_validation.status={status}", f"completed_major_items={len(milestones.get('completed_major_items') or [])}"], "events": events, "findings": [], "technical_details": technical, "source_version": ANALYZER_VERSIONS["build"]}
 
     @staticmethod
     def _unavailable(title: str, reason: str, source_version: str) -> dict:
@@ -321,7 +338,8 @@ class PostGameAnalysisService:
                         payload = self._unavailable(payload['title'], 'Aucune paire de frames exploitable pour cette partie.', ANALYZER_VERSIONS[name])
                     self.cache.save_report(match_id, name, ANALYZER_CACHE_VERSIONS[name], payload["status"], payload, puuid=player.puuid)
                     generated += 1
-        return {"target": len(ids), "generated": generated, "current": generated // len(ANALYZER_VERSIONS)}
+        current = sum(value in ('AVAILABLE', 'PARTIAL') for value in self.local_data._coverage_map(ids).values())
+        return {"target": len(ids), "generated": generated, "current": current}
 
     def get_match_insights(self, match_id: str) -> CoachingReport:
         puuid = self.local_data.player().puuid if self.local_data else ''

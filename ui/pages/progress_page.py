@@ -35,7 +35,9 @@ class ProgressPage(QWidget):
     def refresh(self):
         while self.pool.count():
             item = self.pool.takeAt(0)
-            if item.widget(): item.widget().deleteLater()
+            widget = item.widget()
+            if widget:
+                widget.hide(); widget.setParent(None); widget.deleteLater()
         window = self.window.currentData(); data = self.service.progress(window); matches = self.service.matches(); selected = matches[:window] if window else matches
         values = [data.win_rate, data.kda, data.cs_per_min, data.deaths_per_match]
         for card, value in zip(self.cards, values): card.set_value("—" if value is None else f"{value:.1f}")

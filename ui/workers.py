@@ -25,8 +25,8 @@ class FunctionWorker(QRunnable):
             else:
                 result = self.function(*self.args, **self.kwargs)
             self._emit(self.signals.result, result)
-        except Exception:
-            self._emit(self.signals.error, "L’opération en arrière-plan a échoué. Les données locales sont inchangées.")
+        except Exception as error:
+            self._emit(self.signals.error, f"L’opération a échoué ({type(error).__name__}). Certaines étapes ont pu être enregistrées ; vérifiez l’état local.")
         finally:
             self._emit(self.signals.finished)
 

@@ -1,19 +1,28 @@
 # ZiRcoN Coach - Project State
 
-## Stable Base v1 stabilization — in progress
+## Stable Base v1 stabilization — technical PASS / REVIEW_REQUIRED
 
 - Branch `stabilization/stable-base-v1`, source restoration tag `pre-stabilization-v1`.
-- Initial audit and 41/41 existing regression suites passed; 89 frozen files unchanged.
+- Baseline 41/41 suites; final 43/43 suites plus 22 focused unittest regressions pass; 159 modules compile; 89 frozen files unchanged.
 - Account-bound analysis cache is additive; unscoped legacy rows remain stored but
-  are not treated as current-player evidence. All adapters use presentation v3.
+  are not treated as current-player evidence. Death/Tempo/Objectives/Build use presentation v4; Reset v3.
 - A minimal `GameContext` validates local raw inputs before admitting reports;
   missing timelines, role ambiguity and missing resources fail explicitly.
 - Missing KDA/CS/duration/result stay missing through DTOs, charts and aggregates.
 - Seven real Golden Games pass raw/SQL/Death/knowledge/report checks: 33 deaths,
   35 reports; Support item 3871 remains a documented frozen v22 PARTIAL case.
+- Full local audit: 118 matches, 680 raw deaths = 680 v11 deaths. Latest 20:
+  100 reports; Build 2 AVAILABLE/18 PARTIAL; global match badges 1 AVAILABLE/19 PARTIAL.
+- Twenty-one of 22 default real knowledge audits pass. Phase 2D latest 16.17.1
+  correctly returns REVIEW_REQUIRED against pinned 16.16 AS data. Its separate
+  exact frozen 16.16.1 audit passes (173/173 ratios, zero blocking/review).
+- Native run_app.py opens and exits cleanly; 22 captures generated, representative
+  product pages inspected at normal/minimum size. Settings scrolling and stale
+  card removal corrected. No live Riot credential validation performed in this run.
 - Death bracket resource interpretations are marked EXPERIMENTAL; frozen formulas,
   historical-only scoring and game-level validation are not modified.
 - No optimizer, successor phase, semantic promotion or freeze is authorized by this run.
+- See STABILIZATION_REPORT.md for complete evidence, remaining scope review and NO-GO for a generic current-patch optimizer.
 
 ## Frozen modules / knowledge layers
 - Death Analyzer: v11 - FROZEN.

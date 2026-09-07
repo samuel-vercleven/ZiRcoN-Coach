@@ -29,7 +29,9 @@ class DashboardPage(QWidget):
     def _clear_matches(self):
         while self.match_layout.count():
             item = self.match_layout.takeAt(0)
-            if item.widget(): item.widget().deleteLater()
+            widget = item.widget()
+            if widget:
+                widget.hide(); widget.setParent(None); widget.deleteLater()
 
     def refresh(self):
         self._clear_matches()

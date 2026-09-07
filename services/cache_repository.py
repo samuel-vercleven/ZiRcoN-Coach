@@ -12,6 +12,7 @@ from app.paths import DEFAULT_DB_PATH
 class CacheRepository:
     def __init__(self, db_path: Path | str = DEFAULT_DB_PATH):
         self.db_path = Path(db_path)
+        self.bootstrap_error: str | None = None
 
     def initialize(self) -> None:
         if not self.db_path.exists():
@@ -53,7 +54,8 @@ class CacheRepository:
         if not row:
             return None
         try:
-            return {**json.loads(row[1]), "cached_at": row[0]}
+            payload = json.loads(row[1])
+            return {**payload, "cached_at": row[0]} if isinstance(payload, dict) else None
         except (ValueError, TypeError):
             return None
 
@@ -85,6 +87,12 @@ class CacheRepository:
                 payload = json.loads(raw)
                 if not isinstance(payload, dict):
                     raise ValueError('Invalid report shape')
+                if status not in ('AVAILABLE', 'PARTIAL', 'UNAVAILABLE', 'ERROR'):
+                    raise ValueError('Invalid report status')
+                if any(key in payload and not isinstance(payload[key], list) for key in ('events', 'findings', 'evidence', 'technical_details')):
+                    raise ValueError('Invalid report collections')
+                if any(not isinstance(event, dict) for event in payload.get('events', [])):
+                    raise ValueError('Invalid report event')
                 result.append({"analyzer": name, "version": version, "generated_at": generated,
                                "status": status, "payload": payload})
             except (ValueError, TypeError):
@@ -127,6 +135,7 @@ class CacheRepository:
                     return {"completed_at": scoped[0], "status": scoped[1],
                             "message": scoped[2], "payload": payload,
                             "scope": "ACCOUNT_QUEUE"}
+                return None  # A global legacy status cannot be attributed to this account.
             row = connection.execute(
                 "SELECT completed_at, status, message FROM app_sync_state WHERE singleton=1"
             ).fetchone()

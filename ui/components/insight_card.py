@@ -48,7 +48,7 @@ class AnalyzerEventCard(QFrame):
             grid = QGridLayout(); grid.setHorizontalSpacing(18); grid.setVerticalSpacing(6)
             for index, metric in enumerate(metrics):
                 row, column = divmod(index, 2)
-                cell = QWidget(); box = QVBoxLayout(cell); box.setContentsMargins(0, 0, 0, 0); box.setSpacing(1)
+                cell = QWidget(); cell.setObjectName('MetricCell'); box = QVBoxLayout(cell); box.setContentsMargins(0, 0, 0, 0); box.setSpacing(1)
                 label = QLabel(str(metric.get("label") or "")); label.setObjectName("MicroLabel")
                 value = QLabel(str(metric.get("value") if metric.get("value") is not None else "—")); value.setObjectName("MetricValue"); value.setWordWrap(True)
                 box.addWidget(label); box.addWidget(value); grid.addWidget(cell, row, column)

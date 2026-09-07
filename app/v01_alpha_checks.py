@@ -70,14 +70,15 @@ def main() -> None:
         fake_client = Mock(); fake_client.account_by_riot_id.return_value = _ResponseResult({"puuid": "p"}); fake_client.summoner_by_puuid.return_value = _ResponseResult({"profileIconId": 1, "summonerLevel": 10}); fake_client.ranked_entries.return_value = _ResponseResult([]); fake_client.match_ids.return_value = _ResponseResult(["EXISTING", "NEW", "BAD"])
         fake_client.match.side_effect = lambda match_id: (
             RiotResult(RiotStatus.SERVER_ERROR, message="Riot service error.")
-            if match_id == "BAD" else _ResponseResult({"metadata": {"matchId": match_id}})
+            if match_id == "BAD" else _ResponseResult({"metadata": {"matchId": match_id}, 'info': {'queueId': 420, 'participants': [{'puuid': 'p', 'totalMinionsKilled': 0, 'neutralMinionsKilled': 0}]}})
         )
-        fake_client.timeline.return_value = _ResponseResult({"metadata": {}, "info": {"frames": []}})
+        fake_client.timeline.side_effect = lambda match_id: _ResponseResult({'metadata': {'matchId': match_id}, 'info': {'frames': [{'timestamp': ts, 'participantFrames': {}, 'events': []} for ts in (0, 60000)]}})
         analysis_mock = Mock()
         used_keys = []
         service = RiotSyncService(settings, local, cache, analysis_mock, client_factory=lambda key: used_keys.append(key) or fake_client)
         progress = []
-        with patch("services.riot_sync.initialize_database") as initialize_db, \
+        with patch('database.database.DB_PATH', db), \
+             patch("services.riot_sync.initialize_database") as initialize_db, \
              patch("services.riot_sync.initialize_timeline_tables") as initialize_timelines, \
              patch("services.riot_sync.match_exists", side_effect=lambda match_id: match_id == "EXISTING"), \
              patch("services.riot_sync.timeline_exists", return_value=False), \

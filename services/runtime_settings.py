@@ -36,7 +36,7 @@ class RuntimeSettingsService:
 
     def masked_key(self) -> str:
         value = self.api_key()
-        return "Non configurée" if not value else f"••••••••{value[-4:]}"
+        return "Non configurée" if not value else "••••••••"
 
     def save_api_key(self, api_key: str) -> None:
         value = api_key.strip()
@@ -73,7 +73,8 @@ class RuntimeSettingsService:
 
     def _read_settings(self) -> dict:
         try:
-            return json.loads(self.settings_path.read_text(encoding="utf-8"))
+            data = json.loads(self.settings_path.read_text(encoding="utf-8"))
+            return data if isinstance(data, dict) else {}
         except (OSError, ValueError, TypeError):
             return {}
 

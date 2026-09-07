@@ -1,6 +1,7 @@
 APP_STYLESHEET = r"""
 * { font-family: "Segoe UI"; font-size: 13px; }
 QWidget { background: #0b0f15; color: #e8edf5; }
+QLabel, QWidget#MetricCell { background: transparent; }
 QMainWindow { background: #0b0f15; }
 QFrame#Sidebar { background: #0e141d; border-right: 1px solid #202937; }
 QFrame#Topbar { background: #101722; border-bottom: 1px solid #202937; }

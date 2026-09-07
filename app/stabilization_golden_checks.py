@@ -82,6 +82,12 @@ def main():
                     result = connection.execute('SELECT champion_name, position, kills, deaths, assists, cs, win, item0,item1,item2,item3,item4,item5,item6 FROM participants WHERE match_id=? AND puuid=?', (row['match_id'], puuid)).fetchone()
                     assert list(result) == [row['champion'], row['role'], *row['kda'], row['cs'], int(row['win']), *row['items']]
                     assert connection.execute('SELECT COUNT(*) FROM timeline_events WHERE match_id=?', (row['match_id'],)).fetchone()[0] == len(context.events)
+                    sql_frames = connection.execute('SELECT timestamp, participant_id, total_gold, current_gold, level, xp, minions_killed, jungle_minions_killed, position_x, position_y FROM timeline_frames WHERE match_id=? ORDER BY timestamp, participant_id', (row['match_id'],)).fetchall()
+                    raw_frames = sorted((f['timestamp'], int(pid), pf.get('totalGold'), pf.get('currentGold'),
+                                         pf.get('level'), pf.get('xp'), pf.get('minionsKilled'), pf.get('jungleMinionsKilled'),
+                                         (pf.get('position') or {}).get('x'), (pf.get('position') or {}).get('y'))
+                                        for f in timeline['info']['frames'] for pid, pf in f['participantFrames'].items())
+                    assert sql_frames == raw_frames, 'Raw/normalized frame resource mismatch'
                 deaths = get_player_death_events(row['match_id'], puuid)
                 assert [e['timestamp'] for e in deaths] == row['death_timestamps']
                 for ts in row['death_timestamps']:
@@ -133,6 +139,15 @@ def main():
                         actual = sorted(d['timestamp'] for d in deaths if d['match_id'] == row['match_id'])
                         assert actual == row['death_timestamps'], ('DEATH_COVERAGE', row['match_id'])
                         total_deaths += len(actual)
+                        match_raw, timeline_raw = sources[row['match_id']]
+                        own = next(p for p in match_raw['info']['participants'] if p['participantId'] == row['participant_id'])
+                        enemy = next(p for p in match_raw['info']['participants'] if p['teamId'] != own['teamId'] and p['teamPosition'] == own['teamPosition'])
+                        for death in (d for d in deaths if d['match_id'] == row['match_id']):
+                            pre = max((f for f in timeline_raw['info']['frames'] if f['timestamp'] <= death['timestamp']), key=lambda f: f['timestamp'])
+                            post = min((f for f in timeline_raw['info']['frames'] if f['timestamp'] > death['timestamp']), key=lambda f: f['timestamp'])
+                            def relative_gold(frame):
+                                return frame['participantFrames'][str(own['participantId'])]['totalGold'] - frame['participantFrames'][str(enemy['participantId'])]['totalGold']
+                            assert death['gold_cost_60'] == max(0, relative_gold(pre) - relative_gold(post))
                         report = service.get_match_insights(row['match_id'])
                         assert len(report.insights[0].events) == len(actual)
                         assert report.insights[0].status == 'AVAILABLE'

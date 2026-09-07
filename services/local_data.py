@@ -31,7 +31,14 @@ class LocalDataService:
         return connection
 
     def is_available(self) -> bool:
-        return self.db_path.exists()
+        if not self.db_path.exists():
+            return False
+        try:
+            with closing(sqlite3.connect(f'{self.db_path.resolve().as_uri()}?mode=ro', uri=True)) as connection:
+                tables = {r[0] for r in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+            return {'matches', 'participants'} <= tables
+        except sqlite3.Error:
+            return False
 
     def _primary_player(self) -> Optional[sqlite3.Row]:
         if not self.is_available():
@@ -71,15 +78,19 @@ class LocalDataService:
     def player(self) -> PlayerViewModel:
         row = self._primary_player()
         if row is None:
-            return PlayerViewModel()
+            puuid = self.settings.active_puuid() if self.settings else ''
+            identity = self.settings.identity() if self.settings else None
+            if not puuid or not identity:
+                return PlayerViewModel()
+            row = {'puuid': puuid, 'riot_name': identity.game_name, 'riot_tag': identity.tag_line}
         name = row["riot_name"] or "Local player"
         tag = row["riot_tag"]
         riot_id = f"{name}#{tag}" if tag else name
-        profile = self.cache.profile(row["puuid"]) if self.cache else None
+        profile = self.cache.profile(row["puuid"]) if self.cache and self.is_available() else None
         if not profile:
             return PlayerViewModel(puuid=row["puuid"], riot_id=riot_id)
         rank_parts = [str(profile.get("tier") or ""), str(profile.get("rank") or "")]
-        rank = " ".join(part for part in rank_parts if part) or "UNRANKED"
+        rank = " ".join(part for part in rank_parts if part) or ('UNRANKED' if profile.get('rank_status') == 'VALID' else 'UNAVAILABLE')
         return PlayerViewModel(puuid=row["puuid"], riot_id=str(profile.get("riot_id") or riot_id),
             rank=rank, lp=profile.get("lp"), profile_icon_id=profile.get("profile_icon_id"),
             summoner_level=profile.get("summoner_level"), ranked_wins=profile.get("ranked_wins"),
@@ -203,8 +214,8 @@ class LocalDataService:
         timeline_count = 0
         analyzed_match_count = 0
         player = self._primary_player()
-        puuid = player["puuid"] if player else ""
-        sync_state = self.cache.sync_state(puuid, SOLO_QUEUE_ID) if self.cache else None
+        puuid = player["puuid"] if player else (self.settings.active_puuid() if self.settings else "")
+        sync_state = self.cache.sync_state(puuid, SOLO_QUEUE_ID) if puuid and self.cache and self.is_available() else None
         if self.is_available():
             rows = self._rows(1)
             with closing(self._connection()) as connection:
@@ -232,9 +243,9 @@ class LocalDataService:
             latest = self._summary(rows[0]).played_at if rows else "No local matches"
         key_configured = bool(self.settings.api_key()) if self.settings else bool(os.getenv("RIOT_API_KEY"))
         return StatusViewModel(str(self.db_path), self.is_available(), count, latest, key_configured,
-            sync_status=(sync_state or {}).get("status", "Hors ligne / aucune synchronisation cette session"),
+            sync_status=(sync_state or {}).get("status", "OFFLINE"),
             api_status=self.settings.api_status() if self.settings else ("CONFIGURED_UNVALIDATED" if key_configured else "NOT_CONFIGURED"),
             timeline_count=timeline_count, analyzed_match_count=analyzed_match_count,
             last_sync_at=(sync_state or {}).get("completed_at", "UNAVAILABLE"),
-            sync_message=(sync_state or {}).get("message", ""),
+            sync_message=(sync_state or {}).get("message", self.cache.bootstrap_error or '' if self.cache else ''),
             sync_counts=(sync_state or {}).get("payload", {}))

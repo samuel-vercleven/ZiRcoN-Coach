@@ -1,91 +1,102 @@
 # LAST RUN
 
-## Stabilization checkpoint — 2026-09-05
-
-Initial audit in progress on `stabilization/stable-base-v1`; not a stable-base PASS.
-Existing baseline: 41/41 regression command suites passed (40 check modules plus
-`main.py`); 89 frozen paths unchanged against `pre-stabilization-v1`; secret scan
-and diff whitespace checks passed. Raw main output: `logs/latest_full_run.txt`.
-Recoverable source archive, SQLite backup and seven real match/timeline pairs are
-local under ignored `logs/stabilization/snapshot/`. No credentials were copied.
-See `STABILIZATION_AUDIT.md` for confirmed service defects and correction order.
-The Alpha review report below is retained as historical baseline, not a fresh
-claim that the newly identified stabilization defects have been resolved.
-
 ## Status
-PASS / REVIEW_REQUIRED FOR ALPHA FREEZE
+PASS — technical stabilization checks.
+REVIEW_REQUIRED — Stable Base scope / latest-patch compatibility; not a freeze.
 
 ## Date
-2026-09-05 16:51 local
+2026-09-07 21:30 local
 
 ## Command
-Complete V0.1 corrective validation stack, real adapter audits, native Qt review, `python run_app.py`, then `python main.py`.
+`python -m app.stabilization_checks final`, real knowledge audits, pinned Phase 2D
+audit, Golden Games, full local batch, V0.1 audits, native UI checks, and
+`python run_app.py`. The regression runner executes `python main.py`.
 
 ## Runtime
-- completed
-- final `python main.py`: 3.53 seconds
+- Completed; main.py rerun in the final validation stack.
+- Raw main output: `logs/latest_full_run.txt`.
+- Detailed regression/audit logs and recoverable snapshots: `logs/stabilization/`.
 
 ## Files changed
-- V0.1 services/adapters/DTOs, cache/account/sync/settings services and Riot client
-- PySide6 shell, Dashboard, Matches, Post-game, Progress, Settings, structured cards, charts, status/severity components and theme
-- focused adapter, account/data, UI/status and real-data audit checks
-- `PROJECT_STATE.md`, `TODO.md`, `DECISIONS.md`, `LAST_RUN.md`
-- no FROZEN analyzer or knowledge file changed
+- Additive scoped cache, GameContext boundary, services/DTO uncertainty handling.
+- API/profile/sync robustness, cache errors, confined assets, full key masking.
+- Qt stale-card lifecycle, bounded badges/header, scrollable Settings.
+- Stabilization inventory, golden expectations, regression/audit runners and docs.
+- No FROZEN file or main.py changed; no analyzer removed.
+- User's existing TODO.md deletion is preserved locally and excluded from commits.
 
 ## Tests executed
-- V0.1 Python compilation: PASS
-- `python -m app.v01_remaining_adapters_check`: PASS
-- `python -m app.v01_account_scope_check`: PASS
-- `python -m app.v01_ui_semantics_check`: PASS
-- `python -m app.v01_alpha_checks`: PASS
-- `python -m app.v01_death_adapter_check`: PASS
-- `QT_QPA_PLATFORM=offscreen python -m app.v01_alpha_smoke`: PASS
-- `python -m app.v01_analyzer_adapter_check`: PASS (5/5)
-- `python -m app.v01_real_adapter_audit`: PASS
-- `python -m app.v01_visual_check`: PASS (22 native screenshots)
-- `python -m app.v01_alpha_audit`: PASS / REVIEW_REQUIRED FOR ALPHA FREEZE
-- `python run_app.py`: desktop process started successfully and was closed after validation
-- `python main.py`: PASS; Phase 2I stack and FROZEN guard PASS
-- standalone FROZEN guard, tracked-secret scan and `git diff --check`: PASS
+- Compile 159 Python modules: PASS.
+- Existing baseline: 41/41 command suites; final: 43/43 command suites: PASS.
+- New focused unittest regressions: 22/22 PASS.
+- Golden E2E: 7/7 real games, 33 deaths, 35 reports: PASS.
+- Complete local input/death audit: 118 games, 680/680 raw/frozen deaths: PASS.
+- Real five-match adapter/cache parity audit: PASS; 20 Tempo phases, 38 objective
+  events, 50 resets, five builds. Counts are not mislabeled as independent N/N coverage.
+- Default real knowledge audit commands: 21/22 PASS, one REVIEW_REQUIRED (below).
+- Exact frozen Phase 2D 16.16.1 audit: PASS, 173/173 ratios, no blocking/review.
+- Alpha service/API mocks, account scope, adapters, UI/status, offscreen smoke,
+  V0.1 audit: PASS.
+- Native Qt captures: 22 generated; product pages inspected at 1400x850/1100x700.
+- python run_app.py: real native window opened, confirmed, closed normally, exit 0.
+- main.py and 89-path baseline-aware FROZEN guard: PASS.
+- Secret scan and git diff --check: PASS.
 
 ## Errors encountered
-- initial smoke fixture inherited the real configured account and correctly found no fixture rows after active-account isolation; bootstrap now accepts an injected settings service and the fixture uses isolated settings
-- native visual shutdown exposed late asset-worker signals after receiver deletion; signal delivery now safely tolerates application shutdown
-- old smoke expectations conflated sync/network state with active-key state; regression now verifies the two badges remain independent
+- Three initial regression failures demonstrated unscoped reports and NULL -> LOSS.
+- Golden Support assumption EXACT disproved by v22's real missing item 3871;
+  preserved PARTIAL and added an explicit assertion; raw expected facts unchanged.
+- A new Qt cleanup initially released the widget reference after reparenting;
+  retained a local reference and reran native/repeated-refresh checks successfully.
+- The new overlap fixture initially lacked two required v11 fields; fixture
+  completed according to the actual contract, without frozen changes.
+- Minimum-size test now uses the real application stylesheet.
+- Final review reproduced legacy global sync attribution for a selected account
+  with no local games. Status now uses the selected PUUID or stays OFFLINE;
+  regression includes both an unresolved identity and an account without games.
+- Phase 2D default audit selected latest 16.17.1 while its ratio source is pinned
+  to 16.16. It correctly refuses incompatible AS resolution, not a Python crash.
 
 ## Main analyzer results
-
 ### Death Analyzer
-- FROZEN v11 unchanged; corrected exact adapter semantics preserved
-- native 11-death view shows 11/11 pre-death states and structured event cards
+- v11 unchanged: 680 observed deaths, 680 measured rows, no missing death on this corpus.
+- Golden timestamps/frame resource projections and bracket Gold arithmetic
+  independently cross-checked against raw Riot data.
+- Same-game/future leakage and overlapping objective deduplication checks pass.
+- Bracket cost/composite interpretation explicitly EXPERIMENTAL, not causal.
 
 ### Current product
-- Tempo v17, Objective v20, Reset v21 and Build v22 now retain their exact structured fields and frozen provenance
-- five independent presentation versions; latest 20 regenerated as 100 current reports (18 AVAILABLE, 2 PARTIAL)
-- mixed-role, active-account, queue-420 and account-scoped count isolation pass
-- candidate key and credential/sync state separation pass; malformed Retry-After defaults safely
-- Coach Summary uses supported findings only; incomplete evidence produces an explicit limited state
-- Progress compares selected equal windows and missing metrics remain gaps
-
-### Real-data audit
-- five recent local Jungle SoloQ matches cross-checked against raw FROZEN outputs
-- 20 Tempo phases, 38 objective events, 50 reset events and five itemization histories
-- required non-null field occurrences mapped: Tempo 313/313, Objectives 1,099/1,099, Resets 1,574/1,574
+- Final presentation versions: Death/Tempo/Objectives/Build v4, Reset v3.
+- Latest 20 cache: 100 reports; 20 Death AVAILABLE; each Jungle-only analyzer
+  18 AVAILABLE and 2 UNAVAILABLE; Build 2 AVAILABLE and 18 PARTIAL.
+- Global match badges: 1 AVAILABLE / 19 PARTIAL. Coverage was not preserved
+  at the expense of interval reliability.
+- Missing data, wrong-account reports, team-context fault labels and stale global
+  sync attribution fail closed. Frozen provenance/status remain distinguishable.
 
 ## Suspicious findings
-- none
+- Support final item 3871 is not reconstructed in EUW1_7959361127; PARTIAL retained.
+- Exact final inventory does not imply reliable intermediate inventory.
+- Latest-patch attack speed cannot use a pinned older ratio source.
 
 ## Methodological concerns
-- Reset labels remain post-reset production versus historical reference, not causal recall quality
-- support status remains epistemic and visually separate from gameplay severity
-- no conclusion is created when data or a current report is missing
+- No causal death/reset/objective claim; no threshold/FDR/leakage retuning.
+- No stat-owner research reopened, no owner promoted, no stat evaluator or optimizer.
+- Frozen validation is patch-scoped; it is not latest-patch combat completeness.
 
 ## Remaining issues
-- V0.1 Alpha is intentionally not frozen pending project review
-- no new backend phase or V0.2 work was started
+- Phase 2D latest 16.17: 0/173 accepted ratios and 2907 unresolved AS rows;
+  separate pinned 16.16.1 regression passes.
+- Legacy SQL projections/latest helpers remain; future consumers must honor
+  explicit admission, version and reliability contracts.
+- Golden raw fixtures are local-only; missing fixtures elsewhere fail explicitly.
+- No live Riot key validation or Riot sync was performed in this pass (mocks and
+  local history used); public Data Dragon catalog loading was real.
 
 ## Codex technical recommendation
-- review the completed corrective pass for Alpha freeze
+Review STABILIZATION_REPORT.md before any stable-base tag.
+NO-GO for a generic current-patch Build Optimizer without reviewed admissibility
+contracts. No successor feature has been started.
 
 ## Review request
-REVIEW_REQUIRED FOR ALPHA FREEZE because Codex does not self-freeze product milestones.
+REVIEW_REQUIRED for Stable Base scope and accepted limitations. Do not self-freeze.

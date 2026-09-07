@@ -4,6 +4,22 @@
 Develop and validate major analyzers one by one.
 Freeze when measurement semantics are coherent, real-game audit is plausible, no major correctness bug remains, validation is appropriate, and limitations are documented.
 
+## Stable Base v1 integration boundaries — review required, not a freeze
+
+- Presentation caches require explicit player identity as well as match and
+  analyzer/presentation version. Legacy unscoped evidence is retained but not
+  silently attributed to an active account.
+- GameContext admits raw local data without redefining frozen analyzer mechanics.
+  Missing or ambiguous inputs may reduce coverage; empty analyzer output alone
+  is not proof that no event occurred.
+- Raw frozen source status and presentation reliability are distinct. EXACT
+  final inventory does not validate every intermediate inventory interval.
+- Default/latest-patch audits and exact frozen-baseline regressions must both be
+  reported. A patch mismatch remains unresolved; testing the frozen patch cannot
+  erase the latest-patch REVIEW_REQUIRED disposition.
+- No Stable Base or Alpha freeze is declared by this stabilization; future
+  optimizer work still requires project review and an explicit new task.
+
 ## ZiRcoN Coach V0.1 Alpha product architecture - REVIEW REQUIRED FOR ALPHA FREEZE
 Decision:
 - keep `main.py` as the immutable-backend validation harness and use `run_app.py` as the PySide6 launcher;

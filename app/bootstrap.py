@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import sqlite3
 
 from services.asset_service import AssetService
 from services.cache_repository import CacheRepository
@@ -25,7 +26,12 @@ def build_app_context(db_path: Path | str | None = None,
                       settings: RuntimeSettingsService | None = None) -> AppContext:
     settings = settings or RuntimeSettingsService()
     cache = CacheRepository(db_path) if db_path else CacheRepository()
-    cache.initialize()
+    try:
+        cache.initialize()
+    except sqlite3.Error:
+        # Never replace or repair a corrupt user DB at bootstrap. Browsing exposes
+        # UNAVAILABLE and Settings remains reachable; writes still fail explicitly.
+        cache.bootstrap_error = 'CACHE_DB_UNAVAILABLE'
     local_data = LocalDataService(db_path or cache.db_path, cache=cache, settings=settings)
     assets = AssetService()
     analysis = PostGameAnalysisService(local_data, cache)
