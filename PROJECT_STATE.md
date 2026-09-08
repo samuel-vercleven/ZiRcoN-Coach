@@ -1,5 +1,17 @@
 # ZiRcoN Coach - Project State
 
+## Build Optimizer v1 — in development, not FROZEN
+
+- Explicit new project task on `feature/build-optimizer`, baseline `9b9af01`.
+- Baseline main.py and 43/43 Stable Base suites pass; all 89 frozen paths unchanged.
+- Uses the existing GameContext, frozen Item Knowledge and v22 reconstruction
+  on prefix-only events. Final inventory/outcome and retrospective reliability
+  are not admitted to historical scoring. Role inferred post-game stays UNKNOWN.
+- Complete shop restrictions and contextual item utility remain unsupported;
+  numeric recipe coverage is diagnostic only, not a champion/item recommendation.
+- No owner promotion, frozen change, successor feature or optimizer freeze.
+- See BUILD_OPTIMIZER_AUDIT.md for independent branches and proof requirements.
+
 ## Stable Base v1 stabilization — technical PASS / REVIEW_REQUIRED
 
 - Branch `stabilization/stable-base-v1`, source restoration tag `pre-stabilization-v1`.
