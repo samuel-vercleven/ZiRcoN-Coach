@@ -4,6 +4,24 @@
 Develop and validate major analyzers one by one.
 Freeze when measurement semantics are coherent, real-game audit is plausible, no major correctness bug remains, validation is appropriate, and limitations are documented.
 
+## Build Optimizer contextual heuristic v1 — REVIEW_REQUIRED, not FROZEN
+
+- The product contract is `DETERMINISTIC_CONTEXTUAL_HEURISTIC_V1`, not a combat
+  simulator, causal claim, probability or optimal-build proof.
+- Only `shyvana_ap_build_profile_v1` is supported. Its reviewed major-item
+  semantic whitelist is exact-patch keyed; unsupported champions, patches and
+  unknown legality abstain.
+- `buy_now` means an executable recipe plan **IF_SHOPPING_NOW** with frame-sampled
+  gold. It does not establish current shop access, which remains UNMODELED.
+- Historical percentile signals use only prior completed matches in the same
+  exact patch and deterministic time bucket. A current match is added only after
+  all of its snapshots are evaluated.
+- Experimental central score maxima are product weights, not empirical effects:
+  ChampionFit 30, EnemyResponse 25, CurrentBuildSynergy 15, GameStateNeed 10,
+  PowerSpikeValue 10, EconomyValue 5 and PurchaseFeasibility 5.
+- Product review is required before freeze: gameplay quality is not self-labeled
+  and the local real replay has 14 rather than the requested review target of 20.
+
 ## Build Optimizer temporal / recommendation boundary — REVIEW_REQUIRED, not FROZEN
 
 - The explicit new Build Optimizer task permits independent projection/recipe

@@ -119,20 +119,22 @@ class GateChecks(unittest.TestCase):
     def test_green_commands_and_empty_outputs_cannot_freeze_product(self):
         commands = [{'command': name, 'passed': True} for name in
                     ('stable_base', 'unit_scenarios', 'product_gate_checks',
-                     'real_catalog_recipes', 'golden_replay', 'historical_batch')]
+                     'real_catalog_recipes', 'golden_replay', 'historical_batch', 'contextual_replay')]
         context = build_context(game(), 60000, self.catalog, CHAMPIONS)
         replay = {'rows': [{'recommendation': BuildOptimizer(self.catalog).recommend(context).to_dict()}],
                   'temporal_integrity': 'PASS'}
-        gate = product_zero_gate(commands, replay, True)
+        contextual = {'counts': {'nonempty_recommendations': 1}, 'invalid_purchases': 0,
+                      'untraceable_explanations': 0, 'score_recomputation_errors': 0}
+        gate = product_zero_gate(commands, replay, True, contextual)
         self.assertEqual(gate['freeze'], 'NO FREEZE')
         self.assertEqual(gate['status'], 'REVIEW_REQUIRED')
-        self.assertEqual(gate['gates']['Purchase feasibility (complete)'], 'BLOCKED')
-        self.assertEqual(gate['nonempty_recommendations'], 0)
-        self.assertEqual(gate['final_scores_exercised'], 0)
-        self.assertIsNone(gate['fatal_scoring_errors'])
+        self.assertEqual(gate['gates']['Purchase feasibility (emitted recommendations)'], 'PASS')
+        self.assertEqual(gate['nonempty_recommendations'], 1)
+        self.assertEqual(gate['final_scores_exercised'], 1)
+        self.assertEqual(gate['fatal_scoring_errors'], 0)
 
     def test_missing_tests_or_replay_are_not_zero_error_evidence(self):
-        gate = product_zero_gate([], {}, True)
+        gate = product_zero_gate([], {}, True, {})
         self.assertEqual(gate['status'], 'FAIL')
         self.assertIsNone(gate['invalid_purchase_count'])
         self.assertIsNone(gate['unexplained_recommendations'])
@@ -140,8 +142,8 @@ class GateChecks(unittest.TestCase):
 
     def test_nonempty_output_is_not_automatically_validated(self):
         output = {'target_item': 3, 'buy_now': [3], 'score': 123}
-        gate = product_zero_gate([], {'rows': [{'recommendation': output}]}, True)
-        self.assertEqual(gate['nonempty_recommendations'], 1)
+        gate = product_zero_gate([], {'rows': [{'recommendation': output}]}, True, {})
+        self.assertEqual(gate['nonempty_recommendations'], 0)
         self.assertIsNone(gate['invalid_purchase_count'])
         self.assertIsNone(gate['unexplained_recommendations'])
         self.assertEqual(gate['freeze'], 'NO FREEZE')

@@ -24,6 +24,7 @@ class UnitState:
     champion: str
     team_id: int
     level: int | None
+    total_gold: int | float | None
     inventory: tuple[int, ...]
     inventory_status: str
     warnings: tuple[str, ...]
@@ -140,7 +141,10 @@ def build_context(game: GameContext, timestamp: int, catalog: CatalogView, champ
         raw_stats = frame.get('championStats') or {}
         stats = {k: raw_stats[k] for k in ('healthMax', 'armor', 'magicResist', 'attackDamage', 'abilityPower')
                  if number(raw_stats.get(k))}
-        states[pid] = UnitState(pid, champion, subject['teamId'], level, inventory, reliability,
+        total_gold = frame.get('totalGold') if number(frame.get('totalGold')) and frame.get('totalGold') >= 0 else None
+        if total_gold is None:
+            notes.append('TOTAL_GOLD_UNRESOLVED')
+        states[pid] = UnitState(pid, champion, subject['teamId'], level, total_gold, inventory, reliability,
                                 tuple(sorted(set(notes))), stats)
     own = states[game.player['participantId']]
     warnings.extend(own.warnings)
@@ -157,10 +161,14 @@ def build_context(game: GameContext, timestamp: int, catalog: CatalogView, champ
     enemies = tuple(states[p['participantId']] for p in game.enemies)
     if any(p.warnings or p.inventory_status != 'OBSERVED_PREFIX' for p in enemies):
         warnings.append('ENEMY_INFORMATION_PARTIAL')
+    own_total = sum(u.total_gold for u in states.values() if u.team_id == own.team_id and u.total_gold is not None)
+    enemy_total = sum(u.total_gold for u in states.values() if u.team_id != own.team_id and u.total_gold is not None)
     state = {'queue_id': game.game_state.get('queue_id'), 'source': 'RIOT_RAW_LOCAL_PREFIX',
              'time_precision': 'FRAME_SAMPLED', 'role_status': 'POSTGAME_ROLE_NOT_ADMITTED',
              'shop_access': 'UNMODELED', 'inventory_completeness': 'UNMODELED',
              'enemy_visibility': 'UNMODELED',
+             'own_total_gold': own_total if all(u.total_gold is not None for u in states.values() if u.team_id == own.team_id) else None,
+             'enemy_total_gold': enemy_total if all(u.total_gold is not None for u in states.values() if u.team_id != own.team_id) else None,
              'objective_events': tuple({'timestamp': e['timestamp'], 'type': e['type'],
                                         'monster_type': e.get('monsterType'), 'team_id': e.get('killerTeamId')}
                                        for e in events if e.get('type') in ('ELITE_MONSTER_KILL', 'BUILDING_KILL'))}

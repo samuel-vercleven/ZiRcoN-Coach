@@ -1,11 +1,11 @@
 # LAST RUN
 
 ## Status
-REVIEW_REQUIRED / NO FREEZE.
-Hardening technique: PASS. Full Build Optimizer mission: NOT COMPLETE.
+PASS / REVIEW_REQUIRED FOR BUILD OPTIMIZER V1 FREEZE.
+Contextual heuristic technical gates PASS; gameplay review and coverage remain open.
 
 ## Date
-2026-09-10 00:34 local
+2026-09-10 local
 
 ## Command
 `python -m build_optimizer.validation`:
@@ -15,9 +15,10 @@ Hardening technique: PASS. Full Build Optimizer mission: NOT COMPLETE.
 - `python -m build_optimizer.catalog_checks`;
 - `python -m build_optimizer.replay --mode golden`;
 - `python -m build_optimizer.replay --mode batch`.
+- `python -m build_optimizer.contextual_replay`.
 
 ## Runtime
-- All six child commands completed successfully; about 194.3 seconds combined.
+- All seven child commands completed successfully; about 228 seconds combined.
 - Latest main.py: PASS, via the Stable Base runner.
 - Validation intentionally returns nonzero for the blocked product gate.
 - Main raw output: logs/latest_full_run.txt.
@@ -37,6 +38,9 @@ Hardening technique: PASS. Full Build Optimizer mission: NOT COMPLETE.
 - Final compile: 169 modules; 43/43 Stable Base suites: PASS.
 - 23 new unittest methods including ten scenario subcases: PASS.
 - 15 adversarial product-gate checks: PASS.
+- Contextual Shyvana AP checks, exact 16.18.1 item profiles: PASS.
+- Chronological Shyvana replay: 14 nonempty / 166 abstentions, 0 invalid
+  purchases, future leaks, score recomputation errors or untraceable reasons.
 - Real catalog recipes: 3 patches, 8,385 controlled cases, 13,552 steps: PASS.
 - Seven Golden Games: 28 nominal and 28 preceding-frame temporal checks: PASS.
   No admissible own inventory for recipe execution on those seven games;
@@ -67,8 +71,8 @@ Hardening technique: PASS. Full Build Optimizer mission: NOT COMPLETE.
 - v22 reconstruction reused on event prefixes, with no final inventory reference;
   retrospective reliability is not admitted as contemporaneous evidence.
 - Ambiguous item events, unobserved rune grants and possession stay PARTIAL.
-- Contextual outputs: 516 abstentions, zero validated best-item recommendations
-  and zero final scores exercised.
+- Contextual heuristic outputs: 14 real nonempty Shyvana AP recommendations;
+  their scores and reasons are recomputed from explicit contributions.
 - All requested scenario names remain evidence-gated; observed synthetic
   HP/AD/AP/MR do not manufacture a matchup utility function.
 
@@ -93,17 +97,15 @@ Hardening technique: PASS. Full Build Optimizer mission: NOT COMPLETE.
   outputs into zero-error PASS counts.
 
 ## Remaining issues
-- Complete patch-specific purchase admissibility: unique groups, champion/rune/
-  quest restrictions, store access and reliable inventory/visibility contracts.
-- Defensible contextual utility/scoring contract and review criteria.
-- Full gameplay scenarios/alternatives/recommendations and freeze remain blocked.
+- Gameplay quality needs human review; heuristic is not a combat/optimality proof.
+- Local exact-patch replay has 14/20 nonempty rows, below the requested review target.
+- Shop access remains UNMODELED; plans are conditional on shopping now.
 - Golden raw fixtures and DB remain local-only.
 
 ## Codex technical recommendation
-Review BUILD_OPTIMIZER_EVALUATION.md and the open TODO gates before further
-scoring work. Validate the missing contracts; do not guess gameplay weights,
-restrictions or owners. No successor work started.
+Review the 14 contextual rows in BUILD_OPTIMIZER_EVALUATION.md before a freeze
+decision. No successor work started.
 
 ## Review request
-REVIEW_REQUIRED: technical prefix/recipe work is tested, but the complete
-Build Optimizer v1 cannot be frozen or declared delivered as requested.
+REVIEW_REQUIRED: product quality and coverage threshold require human review;
+Build Optimizer v1 is not frozen.

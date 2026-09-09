@@ -7,6 +7,25 @@ Baseline : `9b9af010885acf19b647d0c75d763f628e8f5d2b`, branche
 Les six suppressions locales de documents de stabilisation sont préexistantes
 et ne sont ni restaurées ni incluses dans les commits de cette mission.
 
+## Contextual pass v1 — 2026-09-10
+
+REUSED: GameContext prefix projection, frozen Item Knowledge facts, v22 recipe
+consumption and historical mutation framework. EXTENDED: totalGold observations,
+read-only legality and semantic contracts, phase-bucketed prior-match baseline,
+Shyvana AP heuristic scoring and traceable explanations. MISSING: no formal
+client rules engine or combat simulation; neither is claimed.
+
+The only supported champion profile is `shyvana_ap_build_profile_v1`. Semantic
+profiles are reviewed literal contracts for eight major AP SR item IDs, fingerprinted
+by exact patch, price and direct recipe. They are not description parsing at runtime.
+Supported patches are 16.9/16.16/16.17/16.18; any other patch fails closed.
+
+Legality is `LEGAL_SUPPORTED` only for that explicit whitelist after frozen Item
+Knowledge SR/purchasable/in-store/graph checks, v1 duplicate policy and a valid
+recipe plan. Boots, consumables, trinkets, starters/pets, support/quest/special,
+mode-specific and champion-specific items remain excluded. Shop presence is not
+known: the plan is `IF_SHOPPING_NOW` only.
+
 ## Interfaces réelles et admissibilité
 
 | Fondation | Classement | Interface / décision |

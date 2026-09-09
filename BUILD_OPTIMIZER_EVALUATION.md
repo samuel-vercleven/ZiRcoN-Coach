@@ -1,8 +1,25 @@
 # Build Optimizer v1 — évaluation et gate produit
 
-2026-09-10 — `feature/build-optimizer`. **REVIEW_REQUIRED / NO FREEZE.**
-Le socle indépendant est implémenté et testé ; la mission produit complète ne
-peut pas être déclarée accomplie. Aucun « meilleur achat » n'est validé.
+2026-09-10 — `feature/build-optimizer`. **TECHNICAL PASS / REVIEW_REQUIRED FOR FREEZE.**
+Le socle indépendant est implémenté et testé. Le premier produit contextualisé
+est une heuristique déterministe, pas un « meilleur achat » optimal validé.
+
+## Contextual heuristic pass
+
+- Modèle : `DETERMINISTIC_CONTEXTUAL_HEURISTIC_V1`; profil unique
+  `shyvana_ap_build_profile_v1`; profils/admissibilité exact-patch 16.9, 16.16,
+  16.17 et 16.18. Le runtime Data Dragon vérifié est 16.18.1.
+- Huit items AP majeurs SR ont des traits déclarés, revus et fingerprintés par
+  ID/prix/recette. Aucun tag n'est déduit à l'exécution d'un substring.
+- Signaux percentile frame-observed contre parties antérieures du même patch et
+  bucket: frontline, armure, MR, menace AD/AP et delta gold équipe. Les poids
+  bornés (30/25/15/10/10/5/5) sont `EXPERIMENTAL_PRODUCT_HEURISTIC`.
+- Replay Shyvana : 64 parties vues, 45 éligibles patch, 180 snapshots, 14
+  recommandations non vides et 166 abstentions. 0 achat invalide, fuite future,
+  erreur de recomposition ou explication non traçable. 14/20 reste insuffisant
+  pour l'objectif de revue humaine; aucune donnée synthétique n'a été comptée.
+- `buy_now` = plan de recette avec le gold échantillonné **si shopping maintenant**;
+  le statut d'accès magasin reste `UNMODELED`.
 
 ## Ce qui fonctionne réellement
 

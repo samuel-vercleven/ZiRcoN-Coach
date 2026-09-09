@@ -1,6 +1,23 @@
 # ZiRcoN Coach - Project State
 
-## Build Optimizer v1 — independent foundation tested; REVIEW_REQUIRED / NO FREEZE
+## Build Optimizer v1 — contextual heuristic technical PASS; REVIEW_REQUIRED FOR FREEZE
+
+- Model: `DETERMINISTIC_CONTEXTUAL_HEURISTIC_V1`, explicitly not an optimal-build
+  or combat simulator. First and only profile: `shyvana_ap_build_profile_v1`.
+- Exact supported patches: 16.9, 16.16, 16.17 and 16.18; unsupported patch or
+  champion fails closed. The live Data Dragon source checked for this run is 16.18.1.
+- Read-only item semantics and legality contracts whitelist eight reviewed AP
+  major SR items. They reject special, mode, quest/support, jungle, trinket,
+  boot, duplicate, unknown-semantic and unresolved-recipe candidates.
+- `buy_now` is an executable recipe plan **if shopping now**, with sampled gold;
+  `shop_access` remains UNMODELED.
+- Historical baseline is phase-bucketed and consumes only completed earlier
+  matches; all timestamps from a current match are evaluated before it enters history.
+- Real chronological Shyvana replay: 64 games seen, 45 exact-patch candidates,
+  180 snapshots, 14 nonempty recommendations and 166 abstentions. Emitted rows:
+  0 invalid purchases, future leaks, recomputation errors and untraceable explanations.
+- Zero Gate technical lines pass; gameplay quality and 14/20 review coverage
+  remain REVIEW_REQUIRED. No Build Optimizer freeze is declared.
 
 - Explicit new project task on `feature/build-optimizer`, baseline `9b9af01`.
 - Baseline main.py and 43/43 Stable Base suites pass; all 89 frozen paths unchanged.
