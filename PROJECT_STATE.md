@@ -10,12 +10,19 @@
 - Complete shop restrictions and contextual item utility remain unsupported;
   numeric recipe coverage is diagnostic only, not a champion/item recommendation.
 - Final independent checks: 169 modules compiled, 43/43 Stable Base suites,
-  23 new unittest checks, 8,385 real-catalog controlled recipe cases.
-- Replay: 7 Golden Games / 28 nominal timestamps; 118 local matches / 472 nominal
+  23 unit/scenario checks, 15 adversarial product-gate checks, and 8,385
+  real-catalog controlled recipe cases.
+- Recipe audit now independently rejects forged credits from unrelated items,
+  duplicate/excess or ancestor+descendant component claims, excluded items,
+  off-recipe steps, invalid bool/unknown IDs and slot overflow. This fixes a
+  validation gap; it does not prove complete client purchase admissibility.
+- Replay: 7 Golden Games / 28 nominal timestamps; 129 local SoloQ matches / 516 nominal
   timestamps, with separate preceding-frame budgets. 10,760 recipe plans checked
   at observed frame timestamps; no guessed gold at the requested minute.
-- All 472 nominal outputs abstain; 0 contextual recommendations validated.
-  This is a blocked product gate, not evidence of an optimizer ready for freeze.
+- All 516 nominal outputs abstain; 0 contextual recommendations or final scores
+  are exercised. The explicit zero-gate runner reports technical PASS but four
+  product gates BLOCKED: recommendation integration, scenario gameplay quality,
+  final score/explanation, and complete purchase feasibility.
 - No owner promotion, frozen change, successor feature or optimizer freeze.
 - See BUILD_OPTIMIZER_AUDIT.md and BUILD_OPTIMIZER_EVALUATION.md for contracts
   still requiring project review. The full TODO remains unfinished.

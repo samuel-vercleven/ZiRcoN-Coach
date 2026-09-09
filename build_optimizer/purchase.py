@@ -38,6 +38,8 @@ class RecipePlanner:
         self.reconstruction = catalog.reconstruction_catalog()
 
     def _graph_valid(self, item_id, visiting=()):
+        if not natural(item_id, True):
+            return False
         item = self.catalog.items.get(item_id)
         if item is None or item_id in visiting or item.structural_blockers:
             return False
@@ -47,6 +49,10 @@ class RecipePlanner:
 
     def quote(self, inventory, item_id):
         """Marginal price after actual v22 component consumption; no double credit."""
+        if not all(natural(i, True) and i in self.catalog.items for i in inventory):
+            return None
+        if _slot_count(Counter(inventory), self.reconstruction) > MAX_INVENTORY_SLOTS:
+            return None
         if not self._graph_valid(item_id):
             return None
         item = self.catalog.items[item_id]

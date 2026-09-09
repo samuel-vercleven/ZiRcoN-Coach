@@ -82,9 +82,46 @@ def mutate_future(game, timestamp):
 
 def validate_recipe_plan(plan, inventory, budget, catalog):
     """Independent invoice/counter checks, not equality with planner output."""
+    def recipe_tree(item_id, ancestors=()):
+        assert item_id in catalog.items and item_id not in ancestors, 'INVALID_RECIPE_GRAPH'
+        item = catalog.items[item_id]
+        assert not item.structural_blockers, 'ITEM_STRUCTURALLY_BLOCKED'
+        children = tuple(recipe_tree(c, (*ancestors, item_id)) for c in item.components)
+        assert item.total_cost == item.purchase_cost + sum(
+            catalog.items[c].total_cost for c in item.components), 'INCONSISTENT_RECIPE_PRICE'
+        return item_id, children
+
+    def check_consumed(tree, consumed):
+        # Match claimed credits to a cut through the recipe tree: accepting a
+        # built component forbids also crediting its descendants on that branch.
+        # Multiplicity is preserved. No production consumption helper is called.
+        unassigned = Counter(consumed)
+
+        def assign(node):
+            item_id, children = node
+            if unassigned[item_id]:
+                unassigned[item_id] -= 1
+            else:
+                for child in children:
+                    assign(child)
+
+        for child in tree[1]:
+            assign(child)
+        assert not +unassigned, 'INVALID_RECIPE_COMPONENTS'
+
+    target_tree = recipe_tree(plan.target_item)
+
+    def node_ids(tree):
+        item_id, children = tree
+        return {item_id, *(node_id for child in children for node_id in node_ids(child))}
+
+    valid_step_ids = node_ids(target_tree)
     remaining = Counter(inventory)
     spent = 0
     for step in plan.steps:
+        assert step.item_id in valid_step_ids, 'STEP_NOT_IN_TARGET_RECIPE'
+        tree = recipe_tree(step.item_id)
+        check_consumed(tree, step.consumed)
         consumed = Counter(step.consumed)
         assert not consumed - remaining, 'CONSUMED_COMPONENT_NOT_OWNED'
         price = catalog.items[step.item_id].total_cost - sum(catalog.items[i].total_cost for i in step.consumed)

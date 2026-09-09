@@ -2,22 +2,23 @@
 
 ## Status
 REVIEW_REQUIRED / NO FREEZE.
-Independent technical foundation: PASS. Full Build Optimizer mission: NOT COMPLETE.
+Hardening technique: PASS. Full Build Optimizer mission: NOT COMPLETE.
 
 ## Date
-2026-09-09 01:17 local
+2026-09-10 00:34 local
 
 ## Command
 `python -m build_optimizer.validation`:
 - `python -m app.stabilization_checks final` (includes `python main.py`);
 - `python -m build_optimizer.checks`;
+- `python -m build_optimizer.gate_checks`;
 - `python -m build_optimizer.catalog_checks`;
 - `python -m build_optimizer.replay --mode golden`;
 - `python -m build_optimizer.replay --mode batch`.
 
 ## Runtime
-- All five child commands completed successfully; about 173 seconds combined.
-- Latest main.py: PASS, 2.26 seconds.
+- All six child commands completed successfully; about 194.3 seconds combined.
+- Latest main.py: PASS, via the Stable Base runner.
 - Validation intentionally returns nonzero for the blocked product gate.
 - Main raw output: logs/latest_full_run.txt.
 - Baseline: logs/build_optimizer/baseline/.
@@ -35,12 +36,13 @@ Independent technical foundation: PASS. Full Build Optimizer mission: NOT COMPLE
 - Baseline main.py + 43/43 Stable Base suites: PASS.
 - Final compile: 169 modules; 43/43 Stable Base suites: PASS.
 - 23 new unittest methods including ten scenario subcases: PASS.
+- 15 adversarial product-gate checks: PASS.
 - Real catalog recipes: 3 patches, 8,385 controlled cases, 13,552 steps: PASS.
 - Seven Golden Games: 28 nominal and 28 preceding-frame temporal checks: PASS.
   No admissible own inventory for recipe execution on those seven games;
   Golden recipe result explicitly NOT_EXERCISED, not a vacuous PASS.
-- Batch: 118 games, 472 nominal checks + 472 preceding-frame mutation checks,
-  472 prefix-sensitivity checks: PASS.
+- Batch: 129 local SoloQ games, 516 nominal checks + 516 preceding-frame
+  mutation checks, 516 prefix-sensitivity checks: PASS.
 - 50 observed-frame snapshots admit recipe diagnostics: 10,760 plans,
   13,942 steps, 1,482 model-completable targets; invoice/slot invariants PASS.
 - Frozen guard: all 89 baseline paths unchanged.
@@ -55,13 +57,18 @@ Independent technical foundation: PASS. Full Build Optimizer mission: NOT COMPLE
   Earlier sampled budgets are tested with the complete earlier inventory.
 - Trailing EOF blank lines in the first checkpoint were found and corrected;
   final baseline-relative diff check passes.
+- Recipe audit gap found: its prior independent invoice accepted unrelated,
+  duplicate/excess and ancestor+descendant component credits. Fixed by a
+  separately traversed target recipe tree; off-recipe steps and invalid IDs are
+  now rejected. No frozen code changed.
 
 ## Main analyzer results
 - Frozen v11/v22 and Phases 2A–2I unchanged.
 - v22 reconstruction reused on event prefixes, with no final inventory reference;
   retrospective reliability is not admitted as contemporaneous evidence.
 - Ambiguous item events, unobserved rune grants and possession stay PARTIAL.
-- Contextual outputs: 472 abstentions, zero validated best-item recommendations.
+- Contextual outputs: 516 abstentions, zero validated best-item recommendations
+  and zero final scores exercised.
 - All requested scenario names remain evidence-gated; observed synthetic
   HP/AD/AP/MR do not manufacture a matchup utility function.
 
@@ -72,6 +79,9 @@ Independent technical foundation: PASS. Full Build Optimizer mission: NOT COMPLE
 - 7 Golden / 39 batch requests fall after the last observed frame; no current
   state is invented. Earlier snapshots are identified separately.
 - Golden and batch overlap; timestamp counts are not independent game outcomes.
+- The ignored local DB contained 129 SoloQ games on this final run (118 in the
+  prior checkpoint); the current count is reported as local audit coverage, not
+  a frozen dataset invariant.
 
 ## Methodological concerns
 - No owner promotion, stat arithmetic, LLM, ML or new combat model.
@@ -79,6 +89,8 @@ Independent technical foundation: PASS. Full Build Optimizer mission: NOT COMPLE
   eight gameplay/legality factors remain null/UNMODELED.
 - Diagnostic subtotal is not a final utility score. No price-ranked best item.
 - Empty buy_now means zero emitted invalid purchases, not validated legality.
+- The Zero Gate marks four product lines BLOCKED instead of converting empty
+  outputs into zero-error PASS counts.
 
 ## Remaining issues
 - Complete patch-specific purchase admissibility: unique groups, champion/rune/

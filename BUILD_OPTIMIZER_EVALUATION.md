@@ -1,6 +1,6 @@
 # Build Optimizer v1 — évaluation et gate produit
 
-2026-09-09 — `feature/build-optimizer`. **REVIEW_REQUIRED / NO FREEZE.**
+2026-09-10 — `feature/build-optimizer`. **REVIEW_REQUIRED / NO FREEZE.**
 Le socle indépendant est implémenté et testé ; la mission produit complète ne
 peut pas être déclarée accomplie. Aucun « meilleur achat » n'est validé.
 
@@ -74,10 +74,16 @@ pas de nouveau seuil gameplay ni de retuning d'un analyzer.
   demandées, 28 tests de mutation future, 28 contrôles des snapshots précédents.
   Inventaires propres trop incertains : aucun plan historique admis dans ces
   sept cas ; le rapport dit NOT_EXERCISED, pas une validation de recettes vide.
-- Batch : 118 matchs SoloQ locaux, 472 heures demandées, 472 mutations futures,
-  472 contrôles des snapshots précédents et 472 contrôles de sensibilité au passé.
+- Batch : 129 matchs SoloQ locaux, 516 heures demandées, 516 mutations futures,
+  516 contrôles des snapshots précédents et 516 contrôles de sensibilité au passé.
   Sur les 50 snapshots admissibles : 10 760 plans, 13 942 étapes et 1 482 recettes
   complétables dans le modèle. Ces nombres ne sont pas des achats recommandés.
+- Hardening de l'audit : 15 contrôles adversariaux vérifient indépendamment
+  l'arbre de recette. Ils rejettent un crédit avec un item étranger, le
+  surcrédit de composants répétés, un ancêtre et ses descendants comptés en
+  même temps, un item exclu, une étape hors recette cible, les IDs invalides,
+  les dépassements de budget et de slots. C'est une correction de validation,
+  pas un contrat exhaustif avec le client de jeu.
 - Aucune donnée Riot nouvelle synchronisée ; données de match lues localement.
   Chargement des catalogues publics Data Dragon exacts autorisé hors UI.
 
@@ -105,7 +111,7 @@ connus à t.
 
 ## Classement de l'évaluation
 
-Les 472 sorties demandées sont `QUESTIONABLE` au sens produit : abstention
+Les 516 sorties demandées sont `QUESTIONABLE` au sens produit : abstention
 sûre, décision demandée indisponible. Aucun label GOOD/PLAUSIBLE n'est attribué
 à un item sur la seule base d'une facture correcte ou de l'achat réel du joueur.
 Le replay et les cas contrôlés n'ont observé ni exception fatale, ni violation
@@ -116,12 +122,17 @@ de leurs invariants. Cela ne valide pas tous les cas du client Riot.
 | Gate | Résultat |
 |---|---|
 | Régression Stable Base | PASS à la baseline et à la validation finale |
-| Tests unitaires / scénarios d'invariants | PASS |
+| Tests unitaires / scénarios d'invariants | PASS (23 + 15 contrôles adversariaux) |
+| Intégration / sérialisation des invariants | PASS |
 | Recettes sur vrais catalogues | PASS dans le modèle structurel |
 | Replay historique / temporal integrity | PASS sur les mutations exécutées |
-| Recommandations contextuelles validées | **0 — BLOCKED** |
+| Recommandations contextuelles intégrées | **BLOCKED** — 516 abstentions, aucune sortie non vide exercée |
+| Qualité gameplay des scénarios | **BLOCKED** — les scénarios restent des invariants, pas des recommandations vérifiées |
+| Scoring final / breakdown / explication | **BLOCKED** — `score=None`, seul le diagnostic économique existe |
 | Légalité complète d'achat | **UNMODELED — BLOCKED** |
-| Invalid buy_now | 0 parce que buy_now est vide, pas une preuve de légalité |
+| Invalid purchase / buy_now | 0 sur sorties vides ; non validant pour la légalité complète |
+| Explications non justifiées | 0 sur sorties vides ; non validant pour les recommandations |
+| Erreurs fatales de scoring | non mesurable : aucun score final n'est exercé |
 | Fuite future détectée dans les tests | 0 |
 | Freeze produit | **NO FREEZE** |
 

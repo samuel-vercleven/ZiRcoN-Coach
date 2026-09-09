@@ -1,6 +1,6 @@
 # ZiRcoN Coach — Build Optimizer v1
 
-## État d'exécution — 2026-09-09 — REVIEW_REQUIRED / NO FREEZE
+## État d'exécution — 2026-09-10 — REVIEW_REQUIRED / NO FREEZE
 
 Mission produit **non terminée** : les branches indépendantes sont testées, mais
 le moteur ne sait pas encore recommander le meilleur achat contextuel.
@@ -13,18 +13,21 @@ Voir BUILD_OPTIMIZER_AUDIT.md et BUILD_OPTIMIZER_EVALUATION.md.
 | 3 Item Knowledge | Réutilisé sans modification ; restriction complète d'achat UNMODELED |
 | 4 Candidats | Filtrage structurel testé, pas une validation complète des achats |
 | 5–6 Scoring / breakdown | Sous-total de recette diagnostic seulement ; score d'utilité contextuelle BLOCKED |
-| 7 Purchase Optimizer | Recettes/budget/slots testés ; buy_now reste vide sans contrat de légalité |
+| 7 Purchase Optimizer | Recettes/budget/slots et crédit de composants indépendamment audités ; buy_now reste vide sans contrat de légalité |
 | 8 Explications | Raisons des contributions diagnostiques testées ; aucune raison combat inventée |
 | 9 Alternatives | BLOCKED : pas de condition de switch contextuelle validée |
-| 10 Scénarios | 23 tests dont 10 scénarios d'invariants/abstention ; qualité gameplay NON VALIDÉE |
-| 11–12 Replay / évaluation | 7 Golden Games + 118 matchs, invariance temporelle vérifiée ; 472 abstentions QUESTIONABLE au sens produit |
+| 10 Scénarios | 23 tests d'invariants/scénarios + 15 adversarial gate checks ; qualité gameplay NON VALIDÉE |
+| 11–12 Replay / évaluation | 7 Golden Games + 129 matchs SoloQ locaux, invariance temporelle vérifiée ; 516 abstentions QUESTIONABLE au sens produit |
 | 13–14 API / E2E | API sérialisable sans UI ; E2E jusqu'à l'abstention explicite |
-| 15 Zero Gate | Technique testée ; scoring et légalité BLOCKED |
+| 15 Zero Gate | 8 gates techniques PASS ; recommandations, qualité scénario, scoring final et légalité complète BLOCKED |
 | 16 Freeze | NON EFFECTUÉ ; aucun fichier ajouté au FROZEN guard |
 
 8 385 cas contrôlés sur catalogues réels et 10 760 plans historiques de recettes
-vérifiés ne prouvent pas une recommandation valide. Aucun poids combat ni owner
-inventé. Aucun successeur commencé. La mission originale reste ci-dessous.
+vérifiés ne prouvent pas une recommandation valide. Les contrôles adversariaux
+rejettent maintenant un crédit de composant étranger, un surcrédit répété,
+un crédit ancêtre+descendant, un item structurellement exclu et une étape hors
+de la recette cible. Aucun poids combat ni owner inventé. Aucun successeur
+commencé. La mission originale reste ci-dessous.
 
 ## Objectif de cette phase
 
