@@ -46,4 +46,3 @@ def score_recipe(plan, catalog):
             'positive_reasons': [reason for f in factors if f.contribution is not None and f.contribution > 0 for reason in f.reasons],
             'negative_reasons': [reason for f in factors if f.contribution is not None and f.contribution < 0 for reason in f.reasons],
             'warnings': ['NO_CONTEXTUAL_UTILITY_CONTRACT', 'ECONOMIC_SUBTOTAL_IS_NOT_FINAL_SCORE']}
-

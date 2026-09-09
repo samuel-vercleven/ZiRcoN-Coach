@@ -9,6 +9,10 @@ from analysis.itemization_analyzer import (
 from services.game_context import GameContext
 from build_optimizer.catalog import CatalogView, natural, patch_of
 
+# Same input-cadence tolerance as services.game_context.GameContext; not a
+# scoring threshold. Riot's nominal minute frames have millisecond drift.
+MAX_PREFIX_FRAME_GAP_MS = 90000
+
 
 def number(value):
     return type(value) in (int, float) and math.isfinite(value)
@@ -109,7 +113,7 @@ def build_context(game: GameContext, timestamp: int, catalog: CatalogView, champ
     if sample_ts != timestamp:
         warnings.append('EXACT_GOLD_SAMPLE_UNAVAILABLE')
     events = [e for e in game.events if number(e.get('timestamp')) and 0 <= e['timestamp'] <= timestamp]
-    if any(b['timestamp'] - a['timestamp'] > 60000 for a, b in zip(frames, frames[1:])):
+    if any(b['timestamp'] - a['timestamp'] > MAX_PREFIX_FRAME_GAP_MS for a, b in zip(frames, frames[1:])):
         warnings.append('PREFIX_FRAME_GAP')
     subjects = (game.player, *game.allies, *game.enemies)
     if len({p.get('participantId') for p in subjects}) != len(subjects):

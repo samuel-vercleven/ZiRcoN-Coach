@@ -135,4 +135,3 @@ class RecipePlanner:
     def candidates(self, inventory, gold):
         return tuple(self.plan(i, inventory, gold) for i, item in sorted(self.catalog.items.items())
                      if not item.structural_blockers and i not in inventory and self._graph_valid(i))
-

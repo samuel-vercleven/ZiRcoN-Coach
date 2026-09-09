@@ -1,17 +1,30 @@
 # ZiRcoN Coach — Build Optimizer v1
 
-## Exécution en cours — 2026-09-08
+## État d'exécution — 2026-09-09 — REVIEW_REQUIRED / NO FREEZE
 
-- Baseline `9b9af010885acf19b647d0c75d763f628e8f5d2b` : main.py PASS,
-  43/43 suites Stable Base PASS, 89 fichiers FROZEN inchangés.
-- Audit préalable : BUILD_OPTIMIZER_AUDIT.md ; projection temporelle,
-  consommation de recettes v22 et diagnostics économiques en cours de validation.
-- Blocages explicites : restrictions complètes d'achat et scoring d'utilité
-  contextuelle non validés. Aucun poids combat ni owner inventé.
-- Les plans de recettes diagnostiques ne sont PAS des recommandations `buy_now`.
-- Freeze non acquis : les tests d'abstention ne valident pas le meilleur achat.
-- Les étapes/scénarios/replays restants restent suivis ci-dessous, sans remplacer
-  la mission originale ni autoriser de successeur.
+Mission produit **non terminée** : les branches indépendantes sont testées, mais
+le moteur ne sait pas encore recommander le meilleur achat contextuel.
+Voir BUILD_OPTIMIZER_AUDIT.md et BUILD_OPTIMIZER_EVALUATION.md.
+
+| Étapes de ce TODO | État réel |
+|---|---|
+| 0–1 Baseline / audit | PASS : 43/43 suites, main.py, 89 fichiers FROZEN inchangés |
+| 2 BuildContext | Projection préfixe testée ; rôle post-game, gold exact absent et inventaires ambigus restent inconnus |
+| 3 Item Knowledge | Réutilisé sans modification ; restriction complète d'achat UNMODELED |
+| 4 Candidats | Filtrage structurel testé, pas une validation complète des achats |
+| 5–6 Scoring / breakdown | Sous-total de recette diagnostic seulement ; score d'utilité contextuelle BLOCKED |
+| 7 Purchase Optimizer | Recettes/budget/slots testés ; buy_now reste vide sans contrat de légalité |
+| 8 Explications | Raisons des contributions diagnostiques testées ; aucune raison combat inventée |
+| 9 Alternatives | BLOCKED : pas de condition de switch contextuelle validée |
+| 10 Scénarios | 23 tests dont 10 scénarios d'invariants/abstention ; qualité gameplay NON VALIDÉE |
+| 11–12 Replay / évaluation | 7 Golden Games + 118 matchs, invariance temporelle vérifiée ; 472 abstentions QUESTIONABLE au sens produit |
+| 13–14 API / E2E | API sérialisable sans UI ; E2E jusqu'à l'abstention explicite |
+| 15 Zero Gate | Technique testée ; scoring et légalité BLOCKED |
+| 16 Freeze | NON EFFECTUÉ ; aucun fichier ajouté au FROZEN guard |
+
+8 385 cas contrôlés sur catalogues réels et 10 760 plans historiques de recettes
+vérifiés ne prouvent pas une recommandation valide. Aucun poids combat ni owner
+inventé. Aucun successeur commencé. La mission originale reste ci-dessous.
 
 ## Objectif de cette phase
 

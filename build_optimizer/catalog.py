@@ -72,4 +72,3 @@ class CatalogView:
     def reconstruction_catalog(self):
         from analysis.itemization_analyzer import ItemCatalog
         return ItemCatalog(self.version, {str(k): v['raw_data'] for k, v in self.records.items()})
-

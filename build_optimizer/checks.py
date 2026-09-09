@@ -104,6 +104,18 @@ class ContextChecks(unittest.TestCase):
         self.assertIsNone(context.gold)
         self.assertIn('GOLD_ITEM_SAME_TIMESTAMP_ORDER_UNRESOLVED', context.warnings)
 
+    def test_realistic_frame_jitter_and_separate_asof_budget(self):
+        source = game([event(59999)])
+        source.timeline[1]['timestamp'] = 60003
+        nominal = build_context(source, 60000, catalog(), CHAMPIONS)
+        self.assertIsNone(nominal.gold)
+        asof = build_context(source, 60003, catalog(), CHAMPIONS)
+        self.assertEqual(asof.gold, 500)
+        self.assertNotIn('PREFIX_FRAME_GAP', asof.warnings)
+        before = build_context(source, nominal.sample_timestamp, catalog(), CHAMPIONS)
+        self.assertEqual(before.timestamp, 0)
+        self.assertEqual(before.inventory, ())  # No mixing old gold with newer purchases.
+
     def test_missing_frame_unknown_champion_and_item(self):
         source = game([event(1000, item_id=888)])
         source.timeline[1]['participantFrames'].pop('2')
@@ -259,6 +271,16 @@ class ScenarioChecks(unittest.TestCase):
             with self.subTest(scenario=label):
                 source = game([event(1000)] if index == 6 else [])
                 source.timeline[1]['participantFrames']['1']['currentGold'] = (50 if index == 7 else 200 if index == 8 else 700)
+                source.timeline[1]['participantFrames']['1']['championStats']['abilityPower'] = 250
+                if index in (0, 1):
+                    second_enemy = {**source.enemies[0], 'participantId': 3, 'puuid': 'r'}
+                    source = replace(source, enemies=(*source.enemies, second_enemy))
+                    for frame in source.timeline:
+                        frame['participantFrames']['3'] = deepcopy(frame['participantFrames']['2'])
+                        frame['participantFrames']['3']['participantId'] = 3
+                        for pid in ('2', '3'):
+                            frame['participantFrames'][pid]['championStats'].update(
+                                healthMax=3000 if index == 0 else 900, armor=150 if index == 0 else 30)
                 # Scenario names are NOT evidence. Enemy values are only frame facts.
                 stats = source.timeline[1]['participantFrames']['2']['championStats']
                 if index == 2:
@@ -268,6 +290,10 @@ class ScenarioChecks(unittest.TestCase):
                 if index == 4:
                     stats['magicResist'] = 200
                 context = build_context(source, 60000, cat, CHAMPIONS)
+                if index in (0, 1):
+                    self.assertEqual(len(context.enemies), 2)
+                    self.assertTrue(all(enemy.observed_stats['healthMax'] == (3000 if index == 0 else 900)
+                                        for enemy in context.enemies))
                 output = BuildOptimizer(cat).recommend(context)
                 self.assertIsNone(output.target_item)
                 self.assertEqual(output.buy_now, ())

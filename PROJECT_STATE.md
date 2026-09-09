@@ -1,6 +1,6 @@
 # ZiRcoN Coach - Project State
 
-## Build Optimizer v1 — in development, not FROZEN
+## Build Optimizer v1 — independent foundation tested; REVIEW_REQUIRED / NO FREEZE
 
 - Explicit new project task on `feature/build-optimizer`, baseline `9b9af01`.
 - Baseline main.py and 43/43 Stable Base suites pass; all 89 frozen paths unchanged.
@@ -9,8 +9,16 @@
   are not admitted to historical scoring. Role inferred post-game stays UNKNOWN.
 - Complete shop restrictions and contextual item utility remain unsupported;
   numeric recipe coverage is diagnostic only, not a champion/item recommendation.
+- Final independent checks: 169 modules compiled, 43/43 Stable Base suites,
+  23 new unittest checks, 8,385 real-catalog controlled recipe cases.
+- Replay: 7 Golden Games / 28 nominal timestamps; 118 local matches / 472 nominal
+  timestamps, with separate preceding-frame budgets. 10,760 recipe plans checked
+  at observed frame timestamps; no guessed gold at the requested minute.
+- All 472 nominal outputs abstain; 0 contextual recommendations validated.
+  This is a blocked product gate, not evidence of an optimizer ready for freeze.
 - No owner promotion, frozen change, successor feature or optimizer freeze.
-- See BUILD_OPTIMIZER_AUDIT.md for independent branches and proof requirements.
+- See BUILD_OPTIMIZER_AUDIT.md and BUILD_OPTIMIZER_EVALUATION.md for contracts
+  still requiring project review. The full TODO remains unfinished.
 
 ## Stable Base v1 stabilization — technical PASS / REVIEW_REQUIRED
 

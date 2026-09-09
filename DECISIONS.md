@@ -4,6 +4,21 @@
 Develop and validate major analyzers one by one.
 Freeze when measurement semantics are coherent, real-game audit is plausible, no major correctness bug remains, validation is appropriate, and limitations are documented.
 
+## Build Optimizer temporal / recommendation boundary — REVIEW_REQUIRED, not FROZEN
+
+- The explicit new Build Optimizer task permits independent projection/recipe
+  work; it does not promote frozen 2I owners or description tags to combat utility.
+- Historical v22 reconstruction receives only prefix events and no final Riot
+  inventory reference. Its retrospective reliability classification is not
+  silently reused as evidence available before the outcome.
+- A frame budget is tied to that frame's inventory/event cutoff. It cannot be
+  combined with later purchases to claim a budget at a nominal minute.
+- Recipe coverage is a diagnostic fraction, not item utility. Unsupported score
+  factors are null/UNMODELED; recommendations abstain instead of ranking prices.
+- Empty buy_now cannot satisfy a purchase-legality or recommendation-quality
+  gate. Full legality and contextual scoring require reviewed contracts.
+- No Build Optimizer freeze is declared while those product gates are blocked.
+
 ## Stable Base v1 integration boundaries — review required, not a freeze
 
 - Presentation caches require explicit player identity as well as match and
