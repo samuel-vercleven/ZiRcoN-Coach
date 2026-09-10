@@ -36,7 +36,32 @@ class CacheRepository:
                 puuid TEXT NOT NULL, queue_id INTEGER NOT NULL, completed_at TEXT NOT NULL,
                 status TEXT NOT NULL, message TEXT NOT NULL, payload_json TEXT NOT NULL,
                 PRIMARY KEY(puuid, queue_id))""")
+            connection.execute("""CREATE TABLE IF NOT EXISTS app_match_journal (
+                match_id TEXT PRIMARY KEY, starred INTEGER NOT NULL DEFAULT 0,
+                note TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL)""")
             connection.commit()
+
+    def match_journal(self, match_id: str) -> dict:
+        self.initialize()
+        if not self.db_path.exists():
+            return {'starred': False, 'note': ''}
+        with closing(sqlite3.connect(self.db_path)) as connection:
+            row = connection.execute('SELECT starred, note FROM app_match_journal WHERE match_id=?', (match_id,)).fetchone()
+        return {'starred': bool(row[0]), 'note': str(row[1] or '')} if row else {'starred': False, 'note': ''}
+
+    def save_match_journal(self, match_id: str, starred: bool, note: str) -> None:
+        self.initialize()
+        with closing(sqlite3.connect(self.db_path)) as connection:
+            connection.execute('INSERT OR REPLACE INTO app_match_journal VALUES (?, ?, ?, ?)',
+                (match_id, int(starred), note.strip()[:1000], datetime.now(timezone.utc).isoformat()))
+            connection.commit()
+
+    def starred_match_ids(self) -> set[str]:
+        self.initialize()
+        if not self.db_path.exists():
+            return set()
+        with closing(sqlite3.connect(self.db_path)) as connection:
+            return {row[0] for row in connection.execute('SELECT match_id FROM app_match_journal WHERE starred=1')}
 
     def save_profile(self, puuid: str, profile: dict) -> None:
         self.initialize()

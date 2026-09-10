@@ -62,3 +62,11 @@ Implementation commit: `871e338fdc0c36de3646cc119e86b8b6501cd798`, pushed to
   display (champions plus observed HP/armor), and its reasons are shown as the
   explanation for that composition. Final-match information is never fed back
   into the historical optimizer decision.
+
+## Professional UX pass
+
+- Added an action-oriented dashboard review entry point, history filters and
+  local match favorites/notes.
+- Added post-game direct-role comparison and a factual local team-gold
+  timeline with observed objectives. Missing local timeline data fails closed
+  in the UI; no synthetic graph is rendered.

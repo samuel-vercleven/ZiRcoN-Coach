@@ -18,6 +18,7 @@ optimal-build or combat simulator. `buy_now` means `IF_SHOPPING_NOW`.
 [x] Post-game UI: Build Optimizer tab with item, score, purchase plan, alternatives and limitations
 [x] Post-game UI: first-tab global match recap with both teams, K/D/A, CS, gold, damage and final item strips
 [x] Build Optimizer UI: snapshot-scoped enemy composition (HP/armor where observed) shown beside contextual reasons
+[x] Professional UX pass: action-oriented dashboard, history filters, matchup preview, match timeline and local notes/favorites
 [x] Documentation coherent with the contextual engine
 [ ] Human gameplay review of emitted Viego recommendations
 [x] Commit and push `feature/build-optimizer` after all final gates pass

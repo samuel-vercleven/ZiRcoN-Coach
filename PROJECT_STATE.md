@@ -37,6 +37,11 @@
   composition and observed HP/armor at its dated prefix snapshot, next to the
   contextual reasons, so a player can distinguish post-game facts from the
   heuristic's admissible decision context.
+- Product UI pass: the dashboard exposes a factual next-review entry point;
+  match history supports champion, role, patch and favorites filters; each
+  match has a local team-gold timeline, observed objective moments, direct
+  same-role comparison and private local notes/favorites. These are UI/read-only
+  projections and do not alter frozen analyzers or the optimizer contract.
 
 ## Stable Base v1 stabilization — technical PASS / REVIEW_REQUIRED
 

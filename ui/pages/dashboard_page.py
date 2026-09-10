@@ -1,5 +1,5 @@
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QPushButton, QScrollArea, QVBoxLayout, QWidget
 
 from services.asset_service import AssetService
 from services.local_data import LocalDataService
@@ -23,6 +23,9 @@ class DashboardPage(QWidget):
         cards = QGridLayout(); cards.setSpacing(10); self.cards = [StatCard("PARTIES SOLOQ"), StatCard("TAUX DE VICTOIRE"), StatCard("KDA"), StatCard("CS / MIN"), StatCard("MORTS / PARTIE")]
         for index, card in enumerate(self.cards): cards.addWidget(card, 0, index)
         self.layout.addLayout(cards)
+        self.action_card = QFrame(); self.action_card.setObjectName('CoachCard'); action = QHBoxLayout(self.action_card); action.setContentsMargins(18, 14, 18, 14)
+        action_text = QVBoxLayout(); action_title = QLabel('À retenir maintenant'); action_title.setObjectName('SectionTitle'); self.next_action = QLabel(); self.next_action.setObjectName('Muted'); self.next_action.setWordWrap(True); action_text.addWidget(action_title); action_text.addWidget(self.next_action); action.addLayout(action_text, 1)
+        self.review_latest = QPushButton('Revoir la partie'); self.review_latest.setObjectName('CompactButton'); self.review_latest.clicked.connect(self._open_latest); action.addWidget(self.review_latest); self.layout.addWidget(self.action_card)
         recent_header = QHBoxLayout(); title = QLabel("Parties récentes"); title.setObjectName("SectionTitle"); recent_header.addWidget(title); recent_header.addStretch(); self.form = QLabel(); self.form.setObjectName("Muted"); recent_header.addWidget(self.form); self.layout.addLayout(recent_header)
         self.match_host = QWidget(); self.match_layout = QVBoxLayout(self.match_host); self.match_layout.setContentsMargins(0, 0, 0, 0); self.match_layout.setSpacing(8); self.layout.addWidget(self.match_host); self.layout.addStretch(); scroll.setWidget(content); root.addWidget(scroll); self.refresh()
 
@@ -47,7 +50,18 @@ class DashboardPage(QWidget):
         values = [str(progress.total_games), "—" if progress.win_rate is None else f"{progress.win_rate:.1f}%", "—" if progress.kda is None else f"{progress.kda:.2f}", "—" if progress.cs_per_min is None else f"{progress.cs_per_min:.1f}", "—" if progress.deaths_per_match is None else f"{progress.deaths_per_match:.1f}"]
         for card, value in zip(self.cards, values): card.set_value(value)
         recent = matches[:5]; wins = sum(row.result == "WIN" for row in recent); self.form.setText("Forme récente  " + " ".join({'WIN': 'V', 'LOSS': 'D'}.get(row.result, '?') for row in recent) + (f"  •  {wins}/{len(recent)} victoires observées" if recent else ""))
+        self._latest_id = matches[0].match_id if matches else None
+        if matches:
+            latest = matches[0]
+            result = 'Victoire' if latest.result == 'WIN' else 'Défaite' if latest.result == 'LOSS' else 'Partie'
+            self.next_action.setText(f"{result} sur {latest.champion}. Ouvre la partie pour revoir la composition, le déroulé et écrire une leçon personnelle.")
+            self.review_latest.setVisible(True)
+        else:
+            self.next_action.setText('Synchronise tes parties pour obtenir une prochaine action locale.'); self.review_latest.setVisible(False)
         if not matches:
             self.match_layout.addWidget(EmptyState("Aucune donnée SoloQ pour le compte actif", "1. Configurez le Riot ID  2. Ajoutez la clé dans Réglages  3. Synchronisez"))
         for match in matches:
             card = MatchCard(match, self.assets); card.opened.connect(self.open_match); self.match_layout.addWidget(card)
+
+    def _open_latest(self):
+        if self._latest_id: self.open_match.emit(self._latest_id)

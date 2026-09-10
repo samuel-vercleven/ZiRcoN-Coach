@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QThreadPool, Signal
-from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QPushButton, QScrollArea, QTabWidget, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QPlainTextEdit, QPushButton, QScrollArea, QTabWidget, QVBoxLayout, QWidget
 
 from services.asset_service import AssetService
 from services.local_data import LocalDataService
@@ -10,6 +10,7 @@ from services.build_optimizer_presentation import BuildOptimizerPresentationServ
 from ui.components.asset_icon import AssetIcon
 from ui.components.empty_state import EmptyState
 from ui.components.insight_card import AnalyzerEventCard, InsightCard
+from ui.components.gold_timeline import GoldTimeline
 from ui.components.status_badge import SeverityBadge, StatusBadge
 from ui.workers import FunctionWorker
 from viewmodels import CoachingReport
@@ -118,9 +119,57 @@ class MatchDetailPage(QWidget):
                 teams.addWidget(panel, 0, column)
                 teams.setColumnStretch(column, 1)
             layout.addLayout(teams)
+            player_row = next((row for row in roster if row['is_player']), None)
+            opponent = next((row for row in roster if row['is_enemy'] and player_row and row['position'] == player_row['position']), None)
+            if player_row and opponent:
+                compare = QFrame(); compare.setObjectName('Card'); compare_box = QVBoxLayout(compare); compare_box.setContentsMargins(15, 13, 15, 13)
+                compare_title = QLabel(f"Comparaison directe · {player_row['position']}"); compare_title.setObjectName('SectionTitle'); compare_box.addWidget(compare_title)
+                def shown(value): return '—' if value is None else f"{value:,}".replace(',', ' ')
+                comparison = QLabel(f"Vous · {player_row['champion']} : {shown(player_row['kills'])}/{shown(player_row['deaths'])}/{shown(player_row['assists'])} KDA · {shown(player_row['cs'])} CS · {shown(player_row['gold'])} or\n"
+                                    f"Face à · {opponent['champion']} : {shown(opponent['kills'])}/{shown(opponent['deaths'])}/{shown(opponent['assists'])} KDA · {shown(opponent['cs'])} CS · {shown(opponent['gold'])} or")
+                comparison.setObjectName('ContextLine'); comparison.setWordWrap(True); compare_box.addWidget(comparison); layout.addWidget(compare)
             boundary = QLabel("Les chiffres de ce résumé sont les données finales. L’onglet Build Optimizer indique séparément la frame exacte utilisée pour son conseil.")
             boundary.setObjectName("MicroLabel"); boundary.setWordWrap(True); layout.addWidget(boundary)
         tabs.addTab(self._scroll_panel(build), "Résumé de partie")
+
+    def _story_tab(self, tabs, match):
+        story = self.service.match_story(match.match_id)
+        def build(layout):
+            card = QFrame(); card.setObjectName('Card'); box = QVBoxLayout(card); box.setContentsMargins(18, 15, 18, 15); box.setSpacing(9)
+            title = QLabel('Déroulé de la partie'); title.setObjectName('SectionTitle'); box.addWidget(title)
+            note = QLabel("Écart d’or d’équipe observé sur les frames locales : positif si votre équipe est devant. Ce graphique décrit la partie, il ne prouve pas une cause.")
+            note.setObjectName('Muted'); note.setWordWrap(True); box.addWidget(note)
+            chart = GoldTimeline(); chart.set_points(story.get('points')); box.addWidget(chart)
+            layout.addWidget(card)
+            events = story.get('events') or ()
+            if events:
+                milestones = QFrame(); milestones.setObjectName('Card'); line = QVBoxLayout(milestones); line.setContentsMargins(18, 15, 18, 15); line.setSpacing(6)
+                heading = QLabel('Moments observés'); heading.setObjectName('SectionTitle'); line.addWidget(heading)
+                for event in events:
+                    seconds = int(event.get('timestamp', 0) // 1000)
+                    label = QLabel(f"{seconds // 60:02d}:{seconds % 60:02d}  ·  {event.get('label', 'Événement')}"); label.setObjectName('ContextLine'); line.addWidget(label)
+                layout.addWidget(milestones)
+        tabs.addTab(self._scroll_panel(build), 'Déroulé')
+
+    def _journal_tab(self, tabs, match):
+        cache = self.service.cache
+        journal = cache.match_journal(match.match_id) if cache else {'starred': False, 'note': ''}
+        def build(layout):
+            card = QFrame(); card.setObjectName('Card'); box = QVBoxLayout(card); box.setContentsMargins(18, 15, 18, 15); box.setSpacing(9)
+            title = QLabel('Notes de coaching'); title.setObjectName('SectionTitle'); box.addWidget(title)
+            note = QLabel('Garde ici une leçon courte à revoir. Cette note reste uniquement dans ta base locale.'); note.setObjectName('Muted'); note.setWordWrap(True); box.addWidget(note)
+            favorite = QPushButton('★ Partie à revoir'); favorite.setObjectName('CompactButton'); favorite.setCheckable(True); favorite.setChecked(bool(journal['starred'])); box.addWidget(favorite, 0)
+            editor = QPlainTextEdit(); editor.setPlaceholderText('Exemple : mieux préparer le dragon à 14:00.'); editor.setPlainText(journal['note']); editor.setMaximumHeight(150); box.addWidget(editor)
+            save = QPushButton('Enregistrer ma note'); save.setObjectName('PrimaryButton'); box.addWidget(save, 0)
+            status = QLabel(''); status.setObjectName('Muted'); box.addWidget(status)
+            def persist():
+                if not cache: status.setText('Base locale indisponible.'); return
+                try:
+                    cache.save_match_journal(match.match_id, favorite.isChecked(), editor.toPlainText()); status.setText('Note enregistrée localement.')
+                except Exception:
+                    status.setText('Enregistrement local impossible.')
+            save.clicked.connect(persist); layout.addWidget(card)
+        tabs.addTab(self._scroll_panel(build), 'Notes')
 
     def _show_optimizer_result(self, match_id, version, result, game_version):
         if match_id != self._optimizer_match_id or version != self._optimizer_version or self._optimizer_layout is None:
@@ -194,6 +243,7 @@ class MatchDetailPage(QWidget):
 
         tabs = QTabWidget(); self.tabs = tabs
         self._match_summary_tab(tabs, match)
+        self._story_tab(tabs, match)
         def overview(layout):
             summary_card = QFrame(); summary_card.setObjectName("CoachCard"); summary_layout = QVBoxLayout(summary_card); summary_layout.setContentsMargins(17, 14, 17, 14); summary_layout.setSpacing(7)
             summary_title = QLabel("Synthèse coach"); summary_title.setObjectName("SectionTitle"); summary_layout.addWidget(summary_title)
@@ -223,4 +273,5 @@ class MatchDetailPage(QWidget):
                     layout.addWidget(AnalyzerEventCard({"title": "Journal technique", "subtitle": "Événements bruts de reconstruction", "status": current.status, "metrics": [], "context": [], "technical": list(current.technical_details)}, self.assets, match.game_version))
             tabs.addTab(self._scroll_panel(build), insight.title)
         self._optimizer_tab(tabs, match)
+        self._journal_tab(tabs, match)
         self.content.addWidget(tabs, 1)

@@ -1,4 +1,5 @@
 import os
+import json
 import sqlite3
 from contextlib import closing
 from datetime import datetime
@@ -234,6 +235,35 @@ class LocalDataService:
                 result[match_id][side].append((role + ' ' if role and role != 'UNKNOWN' else '') + champion)
         return {match_id: {side: tuple(values) for side, values in composition.items()}
                 for match_id, composition in result.items()}
+
+    def match_story(self, match_id: str) -> dict:
+        """Read-only post-game team-gold timeline and notable objective events."""
+        player = self._primary_player()
+        if player is None or not self.is_available():
+            return {'points': (), 'events': (), 'reason': 'JOUEUR_LOCAL_INDISPONIBLE'}
+        try:
+            with closing(self._connection()) as connection:
+                match_row = connection.execute('SELECT raw_json FROM matches WHERE match_id=?', (match_id,)).fetchone()
+                timeline_row = connection.execute('SELECT raw_json FROM timelines WHERE match_id=?', (match_id,)).fetchone()
+            raw, timeline = json.loads(match_row['raw_json']), json.loads(timeline_row['raw_json'])
+            participants = raw['info']['participants']; own = next(row for row in participants if row.get('puuid') == player['puuid'])
+            own_team = own['teamId']; own_ids = {str(row['participantId']) for row in participants if row.get('teamId') == own_team}
+            enemy_ids = {str(row['participantId']) for row in participants if row.get('teamId') != own_team}
+            points, events = [], []
+            for frame in timeline['info']['frames']:
+                frames = frame.get('participantFrames') or {}
+                own_gold = sum(frames.get(pid, {}).get('totalGold', 0) for pid in own_ids)
+                enemy_gold = sum(frames.get(pid, {}).get('totalGold', 0) for pid in enemy_ids)
+                if isinstance(own_gold, (int, float)) and isinstance(enemy_gold, (int, float)):
+                    points.append({'timestamp': frame.get('timestamp', 0), 'delta': own_gold - enemy_gold})
+                for event in frame.get('events') or []:
+                    if event.get('type') == 'ELITE_MONSTER_KILL':
+                        events.append({'timestamp': event.get('timestamp', 0), 'label': str(event.get('monsterType') or 'Objectif'), 'team_id': event.get('killerTeamId')})
+                    elif event.get('type') == 'BUILDING_KILL' and event.get('buildingType') == 'TOWER_BUILDING':
+                        events.append({'timestamp': event.get('timestamp', 0), 'label': 'Tour', 'team_id': event.get('teamId')})
+            return {'points': tuple(points), 'events': tuple(events[:12]), 'own_team': own_team}
+        except (sqlite3.Error, KeyError, TypeError, ValueError, json.JSONDecodeError, StopIteration):
+            return {'points': (), 'events': (), 'reason': 'TIMELINE_LOCALE_INDISPONIBLE'}
 
     def progress(self, window: int | None = None) -> ProgressViewModel:
         all_matches = self.matches()

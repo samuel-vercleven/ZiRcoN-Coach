@@ -60,7 +60,7 @@ def main() -> None:
         # Post-game layout: hero + tab set; coach summary now lives in its tab.
         assert sample_window.match_detail_page.content.count() >= 2
         tabs = sample_window.match_detail_page.findChildren(QTabWidget)
-        assert tabs and tabs[0].count() == 8
+        assert tabs and tabs[0].count() == 10
         sample_window.resize(1100, 700)
         sample_window._sync_progress("Downloading match 1/2", 35)
         assert sample_window.progress.value() == 35
