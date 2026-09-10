@@ -15,6 +15,7 @@ optimal-build or combat simulator. `buy_now` means `IF_SHOPPING_NOW`.
 [x] Contextual replay generalized to Shyvana and Viego
 [x] Viego real replay: 34 nonempty recommendations (review target 20 reached)
 [x] Legality / recipe / slot / budget / temporal-invariance checks on emitted rows
+[x] Post-game UI: Build Optimizer tab with item, score, purchase plan, alternatives and limitations
 [x] Documentation coherent with the contextual engine
 [ ] Human gameplay review of emitted Viego recommendations
 [x] Commit and push `feature/build-optimizer` after all final gates pass

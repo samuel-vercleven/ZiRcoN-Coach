@@ -5,6 +5,7 @@ from pathlib import Path
 import sqlite3
 
 from services.asset_service import AssetService
+from services.build_optimizer_presentation import BuildOptimizerPresentationService
 from services.cache_repository import CacheRepository
 from services.local_data import LocalDataService
 from services.post_game_analysis import PostGameAnalysisService
@@ -19,6 +20,7 @@ class AppContext:
     assets: AssetService
     cache: CacheRepository
     analysis: PostGameAnalysisService
+    build_optimizer: BuildOptimizerPresentationService
     sync: RiotSyncService
 
 
@@ -35,5 +37,6 @@ def build_app_context(db_path: Path | str | None = None,
     local_data = LocalDataService(db_path or cache.db_path, cache=cache, settings=settings)
     assets = AssetService()
     analysis = PostGameAnalysisService(local_data, cache)
+    build_optimizer = BuildOptimizerPresentationService(local_data)
     sync = RiotSyncService(settings, local_data, cache, analysis)
-    return AppContext(local_data, settings, assets, cache, analysis, sync)
+    return AppContext(local_data, settings, assets, cache, analysis, build_optimizer, sync)

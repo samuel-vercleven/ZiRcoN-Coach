@@ -98,6 +98,11 @@ Frozen means: no retuning/refactor without a demonstrated correctness or integra
 - Real five-match adapter audit cross-checked 20 Tempo phases, 38 objective events, 50 reset events and five builds: required non-null field occurrences mapped 313/313, 1,099/1,099 and 1,574/1,574 respectively.
 - Validation: focused adapter/account/UI regressions, API/sync mocks, malformed Retry-After, Windows SQLite lifecycle, offscreen smoke, 22 native visual captures across all post-game tabs at 1400x850 and 1100x700, real analyzer audits, `run_app.py`, `main.py`, FROZEN guard and secret scan all pass.
 - Status: `PASS / REVIEW_REQUIRED FOR ALPHA FREEZE`; V0.1 is not frozen and no V0.2/backend phase was started.
+- Match detail now includes a local-only `Build Optimizer` tab. For supported
+  Shyvana/Viego exact-patch replays it displays the latest admissible post-game
+  snapshot recommendation, score, recipe steps, alternatives and explicit
+  heuristic/possession limitations. Missing local exact catalogs, data or
+  baseline render a reasoned abstention; the UI never downloads a catalog.
 
 ## Stat Owner Semantics Foundation Phase 2I v1
 - Status: FROZEN by project review; version `champion_spell_stat_owner_semantics_phase2i_v1`, top foundation `stat_scaling_formula_foundation_phase2i_v1`.
