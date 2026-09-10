@@ -50,3 +50,6 @@ still rejected.
 The final zero gate is `REVIEW_REQUIRED / NO FREEZE` solely because gameplay
 quality remains a human product review. It passes the 20-row coverage target,
 recipe/slot/budget validity, temporal integrity and explanation traceability.
+
+Implementation commit: `871e338fdc0c36de3646cc119e86b8b6501cd798`, pushed to
+`origin/feature/build-optimizer`. No merge into `main` was performed.

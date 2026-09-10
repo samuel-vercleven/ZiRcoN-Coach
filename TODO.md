@@ -17,5 +17,5 @@ optimal-build or combat simulator. `buy_now` means `IF_SHOPPING_NOW`.
 [x] Legality / recipe / slot / budget / temporal-invariance checks on emitted rows
 [x] Documentation coherent with the contextual engine
 [ ] Human gameplay review of emitted Viego recommendations
-[ ] Commit and push `feature/build-optimizer` after all final gates pass
+[x] Commit and push `feature/build-optimizer` after all final gates pass
 [x] REVIEW_REQUIRED — never freeze automatically
