@@ -11,6 +11,8 @@ from ui.components.asset_icon import AssetIcon
 from ui.components.empty_state import EmptyState
 from ui.components.insight_card import AnalyzerEventCard, InsightCard
 from ui.components.gold_timeline import GoldTimeline
+from ui.components.moments_timeline import MomentsTimeline
+from ui.components.performance_gauge import PerformanceGauge
 from ui.components.status_badge import SeverityBadge, StatusBadge
 from ui.workers import FunctionWorker
 from viewmodels import CoachingReport
@@ -122,7 +124,9 @@ class MatchDetailPage(QWidget):
             if player_row:
                 kda = (player_row['kills'] or 0) + (player_row['assists'] or 0)
                 ratio = kda / max(1, player_row['deaths'] or 0)
-                score = QLabel(f"{ratio:.1f} KDA"); score.setObjectName('PerformanceScore'); performance_box.addWidget(score)
+                performance_top = QHBoxLayout(); gauge = PerformanceGauge(); gauge.set_value(ratio); performance_top.addWidget(gauge)
+                score_box = QVBoxLayout(); score = QLabel(f"{ratio:.1f} KDA"); score.setObjectName('PerformanceScore'); score_box.addWidget(score)
+                score_detail = QLabel(f"{shown(player_row['kills'])} / {shown(player_row['deaths'])} / {shown(player_row['assists'])}\n{match.duration_text} · {match.queue}"); score_detail.setObjectName('Muted'); score_box.addWidget(score_detail); score_box.addStretch(); performance_top.addLayout(score_box, 1); performance_box.addLayout(performance_top)
                 metrics = QLabel(f"{shown(player_row['kills'])}/{shown(player_row['deaths'])}/{shown(player_row['assists'])}  ·  {shown(player_row['cs'])} CS  ·  {shown(player_row['gold'])} or\n{shown(player_row['damage'])} dégâts champions  ·  vision {shown(player_row['vision'])}")
                 metrics.setObjectName('ContextLine'); metrics.setWordWrap(True); performance_box.addWidget(metrics)
                 if opponent:
@@ -135,7 +139,8 @@ class MatchDetailPage(QWidget):
             item_row = QHBoxLayout(); item_row.setSpacing(6)
             for item_id in match.items[:6]:
                 icon = AssetIcon(self.assets, 38); icon.load('item', item_id, match.game_version); item_row.addWidget(icon)
-            item_row.addStretch(); build_box.addLayout(item_row); dashboard.addWidget(build, 0, 1)
+            item_row.addStretch(); build_box.addLayout(item_row)
+            runes = QLabel('Runes : non synchronisées pour cette partie'); runes.setObjectName('MicroLabel'); runes.setWordWrap(True); build_box.addWidget(runes); dashboard.addWidget(build, 0, 1)
             preview = QFrame(); preview.setObjectName('OptimizerPreview'); preview_box = QVBoxLayout(preview); preview_box.setContentsMargins(16, 14, 16, 14); preview_box.setSpacing(7)
             preview_title = QLabel('Build Optimizer'); preview_title.setObjectName('SectionTitle'); preview_box.addWidget(preview_title)
             waiting = QLabel('Calcul de la recommandation locale…'); waiting.setObjectName('Muted'); waiting.setWordWrap(True); preview_box.addWidget(waiting)
@@ -143,6 +148,15 @@ class MatchDetailPage(QWidget):
             dashboard.addWidget(preview, 0, 2)
             for column in range(3): dashboard.setColumnStretch(column, 1)
             layout.addLayout(dashboard)
+            story = self.service.match_story(match.match_id)
+            lower = QGridLayout(); lower.setHorizontalSpacing(12)
+            moments = QFrame(); moments.setObjectName('TimelineCard'); moments_box = QVBoxLayout(moments); moments_box.setContentsMargins(16, 14, 16, 14); moments_box.setSpacing(6)
+            moments_title = QLabel('Timeline des moments clés'); moments_title.setObjectName('SectionTitle'); moments_box.addWidget(moments_title)
+            timeline = MomentsTimeline(); timeline.set_data(story.get('events'), match.duration_seconds); moments_box.addWidget(timeline); lower.addWidget(moments, 0, 0)
+            recap = QFrame(); recap.setObjectName('RecapCard'); recap_box = QVBoxLayout(recap); recap_box.setContentsMargins(16, 14, 16, 14); recap_box.setSpacing(6)
+            recap_title = QLabel('Résumé de la partie'); recap_title.setObjectName('SectionTitle'); recap_box.addWidget(recap_title)
+            recap_text = QLabel(f"{match.result_text} · {match.champion} · {match.kda_text} KDA\nOuvre Analyse coach pour les constats strictement supportés."); recap_text.setObjectName('ContextLine'); recap_text.setWordWrap(True); recap_box.addWidget(recap_text); recap_box.addStretch(); lower.addWidget(recap, 0, 1)
+            lower.setColumnStretch(0, 2); lower.setColumnStretch(1, 1); layout.addLayout(lower)
             boundary = QLabel("Les chiffres de ce résumé sont les données finales. L’onglet Build Optimizer indique séparément la frame exacte utilisée pour son conseil.")
             boundary.setObjectName("MicroLabel"); boundary.setWordWrap(True); layout.addWidget(boundary)
         tabs.addTab(self._scroll_panel(build), "Vue d’ensemble")

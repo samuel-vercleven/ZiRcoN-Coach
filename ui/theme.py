@@ -29,6 +29,8 @@ QFrame#RosterRow[isPlayer="true"] { background: #17343a; border-color: #48c5ae; 
 QFrame#OptimizerHero { background: #112832; border: 1px solid #3b8490; border-radius: 16px; }
 QFrame#DashboardCard { background: #111d2a; border: 1px solid #2b4056; border-radius: 14px; }
 QFrame#OptimizerPreview { background: #0f2b31; border: 1px solid #348579; border-radius: 14px; }
+QFrame#TimelineCard { background: #101f2d; border: 1px solid #284a5f; border-radius: 14px; }
+QFrame#RecapCard { background: #10222b; border: 1px solid #285467; border-radius: 14px; }
 QFrame#MetricTile { background: #18293a; border: 1px solid #29445a; border-radius: 9px; }
 QFrame#MatchCard { background: #141b25; border: 1px solid #222d3b; border-left: 4px solid #637083; border-radius: 10px; }
 QFrame#MatchCard[result="win"] { border-left-color: #48c78e; }
