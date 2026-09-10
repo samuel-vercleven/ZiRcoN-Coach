@@ -147,5 +147,12 @@ class BuildOptimizerPresentationService:
             'alternatives_named': tuple({'item_id': row['target_item'], 'name': name(row['target_item']),
                                          'score': row['score'], 'reasons': tuple(row['positive_reasons'])}
                                         for row in recommendation.alternatives),
+            # Observations at exactly the decision snapshot.  They explain
+            # contextual scoring without leaking final-game information into it.
+            'enemy_snapshot': tuple({'champion': enemy.champion, 'level': enemy.level,
+                                     'health_max': enemy.observed_stats.get('healthMax'),
+                                     'armor': enemy.observed_stats.get('armor'),
+                                     'magic_resist': enemy.observed_stats.get('magicResist')}
+                                    for enemy in context.enemies),
         })
         return payload

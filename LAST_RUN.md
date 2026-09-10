@@ -53,3 +53,12 @@ recipe/slot/budget validity, temporal integrity and explanation traceability.
 
 Implementation commit: `871e338fdc0c36de3646cc119e86b8b6501cd798`, pushed to
 `origin/feature/build-optimizer`. No merge into `main` was performed.
+
+## Post-game match recap UI
+
+- The first post-game tab now presents both teams with champion, role, K/D/A,
+  CS, gold, damage and final item strips.
+- The contextual recommendation keeps a separate, dated frame-only opponent
+  display (champions plus observed HP/armor), and its reasons are shown as the
+  explanation for that composition. Final-match information is never fed back
+  into the historical optimizer decision.

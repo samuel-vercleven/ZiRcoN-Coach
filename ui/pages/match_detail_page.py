@@ -87,6 +87,32 @@ class MatchDetailPage(QWidget):
         worker.signals.finished.connect(lambda current=worker: setattr(self, '_optimizer_worker', None) if self._optimizer_worker is current else None)
         self._optimizer_worker = worker; QThreadPool.globalInstance().start(worker)
 
+    def _match_summary_tab(self, tabs, match):
+        roster = self.service.match_roster(match.match_id)
+        def build(layout):
+            title = QLabel("Résumé global de la partie"); title.setObjectName("SectionTitle"); layout.addWidget(title)
+            note = QLabel("Données finales de la partie : elles servent à comprendre le résultat. Le Build Optimizer utilise séparément une frame antérieure et explicitement datée.")
+            note.setObjectName("Muted"); note.setWordWrap(True); layout.addWidget(note)
+            if not roster:
+                layout.addWidget(EmptyState("Composition indisponible", "Les participants de cette partie ne sont pas présents localement.")); return
+            allies = [row for row in roster if not row['is_enemy']]
+            enemies = [row for row in roster if row['is_enemy']]
+            for heading, team in (("Votre équipe", allies), ("Équipe adverse", enemies)):
+                label = QLabel(heading); label.setObjectName("CardTitle"); layout.addWidget(label)
+                for row in team:
+                    card = QFrame(); card.setObjectName("CoachCard"); box = QHBoxLayout(card); box.setContentsMargins(11, 8, 11, 8); box.setSpacing(9)
+                    icon = AssetIcon(self.assets, 36); icon.load("champion", row['champion'], match.game_version, row['champion']); box.addWidget(icon)
+                    text = QVBoxLayout(); name = QLabel(("Vous · " if row['is_player'] else "") + row['champion'] + f" · {row['position']}"); name.setObjectName("EventTitle"); text.addWidget(name)
+                    def shown(value): return "—" if value is None else f"{value:,}".replace(',', ' ')
+                    stats = QLabel(f"K/D/A {shown(row['kills'])}/{shown(row['deaths'])}/{shown(row['assists'])}  ·  {shown(row['cs'])} CS  ·  {shown(row['gold'])} or  ·  {shown(row['damage'])} dégâts")
+                    stats.setObjectName("ContextLine"); stats.setWordWrap(True); text.addWidget(stats)
+                    box.addLayout(text, 1)
+                    items = QHBoxLayout(); items.setSpacing(3)
+                    for item_id in row['items'][:6]:
+                        asset = AssetIcon(self.assets, 22); asset.load("item", item_id, match.game_version); items.addWidget(asset)
+                    box.addLayout(items); layout.addWidget(card)
+        tabs.addTab(self._scroll_panel(build), "Résumé de partie")
+
     def _show_optimizer_result(self, match_id, version, result, game_version):
         if match_id != self._optimizer_match_id or version != self._optimizer_version or self._optimizer_layout is None:
             return
@@ -119,6 +145,16 @@ class MatchDetailPage(QWidget):
         if alternatives:
             alternatives_label = QLabel("Alternatives : " + " · ".join(f"{row['name']} ({row['score']:.1f})" for row in alternatives))
             alternatives_label.setObjectName("Muted"); alternatives_label.setWordWrap(True); box.addWidget(alternatives_label)
+        enemy_snapshot = result.get('enemy_snapshot') or ()
+        if enemy_snapshot:
+            readable = []
+            for enemy in enemy_snapshot:
+                stats = []
+                if enemy.get('health_max') is not None: stats.append(f"{int(enemy['health_max'])} PV max")
+                if enemy.get('armor') is not None: stats.append(f"{int(enemy['armor'])} armure")
+                readable.append(enemy.get('champion', 'Inconnu') + (f" ({', '.join(stats)})" if stats else ""))
+            matchup = QLabel("Composition adverse à cette frame : " + " · ".join(readable))
+            matchup.setObjectName("ContextLine"); matchup.setWordWrap(True); box.addWidget(matchup)
         limitation = QLabel("Heuristique déterministe, pas un simulateur de combat ni une preuve d’item optimal. Les possessions Viego et ses stats personnelles restent explicitement hors modèle.")
         limitation.setObjectName("MicroLabel"); limitation.setWordWrap(True); box.addWidget(limitation)
         layout.addWidget(card); layout.addStretch()
@@ -160,6 +196,7 @@ class MatchDetailPage(QWidget):
         self.content.addWidget(summary_card)
 
         tabs = QTabWidget(); self.tabs = tabs
+        self._match_summary_tab(tabs, match)
         def overview(layout):
             for insight in report.insights:
                 layout.addWidget(InsightCard(insight))

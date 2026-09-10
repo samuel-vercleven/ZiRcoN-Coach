@@ -167,6 +167,41 @@ class LocalDataService:
                 return MatchDetailViewModel(match=summary, items=summary.items)
         return None
 
+    def match_roster(self, match_id: str) -> tuple[dict, ...]:
+        """Return the ten post-game rows for a readable match recap.
+
+        This is deliberately a read-only projection of Riot's persisted
+        post-game participant data.  It is not used by the optimizer's
+        prefix-only decision model.
+        """
+        if not self.is_available():
+            return ()
+        player = self._primary_player()
+        if player is None:
+            return ()
+        with closing(self._connection()) as connection:
+            rows = connection.execute(
+                '''SELECT puuid, team_id, position, champion_name, kills, deaths, assists,
+                          cs, gold, damage_to_champions, vision_score,
+                          item0, item1, item2, item3, item4, item5, item6, win
+                   FROM participants WHERE match_id=? ORDER BY team_id, id''',
+                (match_id,),
+            ).fetchall()
+        if not rows:
+            return ()
+        own_team = next((row['team_id'] for row in rows if row['puuid'] == player['puuid']), None)
+        result = []
+        for row in rows:
+            inventory = tuple(int(row[f'item{index}']) for index in range(6) if row[f'item{index}'])
+            result.append({'team_id': row['team_id'], 'is_player': row['puuid'] == player['puuid'],
+                           'is_enemy': own_team is not None and row['team_id'] != own_team,
+                           'position': row['position'] or '—', 'champion': row['champion_name'] or 'Inconnu',
+                           'kills': row['kills'], 'deaths': row['deaths'], 'assists': row['assists'],
+                           'cs': row['cs'], 'gold': row['gold'], 'damage': row['damage_to_champions'],
+                           'vision': row['vision_score'], 'items': inventory,
+                           'trinket': int(row['item6']) if row['item6'] else None, 'win': row['win']})
+        return tuple(result)
+
     def progress(self, window: int | None = None) -> ProgressViewModel:
         all_matches = self.matches()
         matches = all_matches[:window] if window else all_matches

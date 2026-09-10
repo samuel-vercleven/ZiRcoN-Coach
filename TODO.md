@@ -16,6 +16,8 @@ optimal-build or combat simulator. `buy_now` means `IF_SHOPPING_NOW`.
 [x] Viego real replay: 34 nonempty recommendations (review target 20 reached)
 [x] Legality / recipe / slot / budget / temporal-invariance checks on emitted rows
 [x] Post-game UI: Build Optimizer tab with item, score, purchase plan, alternatives and limitations
+[x] Post-game UI: first-tab global match recap with both teams, K/D/A, CS, gold, damage and final item strips
+[x] Build Optimizer UI: snapshot-scoped enemy composition (HP/armor where observed) shown beside contextual reasons
 [x] Documentation coherent with the contextual engine
 [ ] Human gameplay review of emitted Viego recommendations
 [x] Commit and push `feature/build-optimizer` after all final gates pass

@@ -31,6 +31,12 @@
   nonempty contextual rows are exercised overall. No automatic freeze is
   declared: human gameplay review remains required; see BUILD_OPTIMIZER_AUDIT.md
   and BUILD_OPTIMIZER_EVALUATION.md.
+- The first post-game tab is a final-match recap: allied and enemy champions,
+  K/D/A, CS, gold, champion damage and final item strips.  It is explicitly
+  separated from the optimizer.  The Build Optimizer tab displays the enemy
+  composition and observed HP/armor at its dated prefix snapshot, next to the
+  contextual reasons, so a player can distinguish post-game facts from the
+  heuristic's admissible decision context.
 
 ## Stable Base v1 stabilization — technical PASS / REVIEW_REQUIRED
 
