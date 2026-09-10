@@ -14,6 +14,7 @@ from knowledge.item_knowledge import build_item_knowledge_catalog
 from services.game_context import GameContext, load_game_context
 from services.local_data import LocalDataService
 from services.runtime_settings import RuntimeSettingsService
+from analysis.itemization_analyzer import _slot_count
 from build_optimizer.catalog import CatalogView, patch_of
 from build_optimizer.context import build_context
 from build_optimizer.engine import BuildOptimizer
@@ -132,8 +133,9 @@ def validate_recipe_plan(plan, inventory, budget, catalog):
         remaining[step.item_id] += 1
         remaining = +remaining
         assert Counter(step.inventory_after) == remaining, 'INVENTORY_TRANSITION_MISMATCH'
-        # Conservative slot bound: stackable mechanics are not used to expand it.
-        assert sum(remaining.values()) <= 6, 'SLOT_CAPACITY_EXCEEDED'
+        # Use the same frozen v22 slot contract as RecipePlanner. Repeated
+        # stackable consumables occupy one slot, not one slot per charge.
+        assert _slot_count(remaining, catalog.reconstruction_catalog()) <= 6, 'SLOT_CAPACITY_EXCEEDED'
     assert spent == plan.total_spend, 'TOTAL_SPEND_MISMATCH'
     assert plan.target_completed == (plan.target_item in remaining), 'COMPLETION_MISMATCH'
 

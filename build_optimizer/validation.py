@@ -44,6 +44,15 @@ def product_zero_gate(checks, replay, diff_ok, contextual=None):
         'Minimum nonempty review target (20)': 'PASS' if contextual_count >= 20 else 'REVIEW_REQUIRED',
         'git diff --check': 'PASS' if diff_ok else 'FAIL',
     }
+    blockers = [
+        {'id': 'GAMEPLAY_QUALITY_REQUIRES_HUMAN_REVIEW', 'kind': 'PRODUCT_REVIEW',
+         'evidence': 'Experimental deterministic heuristic, not an optimality or combat proof.'},
+    ]
+    if contextual_count < 20:
+        blockers.append(
+            {'id': 'REVIEW_SAMPLE_TARGET_NOT_REACHED', 'kind': 'COVERAGE',
+             'evidence': f'{contextual_count}/20 real nonempty recommendations available from local exact-patch data.'}
+        )
     return {
         'title': 'BUILD OPTIMIZER V1 ZERO GATE', 'gates': gates, 'freeze': 'NO FREEZE',
         'status': 'FAIL' if 'FAIL' in gates.values() else 'REVIEW_REQUIRED',
@@ -54,12 +63,7 @@ def product_zero_gate(checks, replay, diff_ok, contextual=None):
         'future_information_leakage': 0 if gates['Temporal integrity'] == 'PASS' else None,
         'fatal_scoring_errors': contextual.get('score_recomputation_errors'),
         'counter_scope': 'Counters apply only to contextual replay emitted recommendations; gameplay quality remains human review.',
-        'blockers': [
-            {'id': 'GAMEPLAY_QUALITY_REQUIRES_HUMAN_REVIEW', 'kind': 'PRODUCT_REVIEW',
-             'evidence': 'Experimental deterministic heuristic, not an optimality or combat proof.'},
-            {'id': 'REVIEW_SAMPLE_TARGET_NOT_REACHED', 'kind': 'COVERAGE',
-             'evidence': f'{contextual_count}/20 real nonempty recommendations available from local exact-patch data.'},
-        ],
+        'blockers': blockers,
     }
 
 

@@ -8,9 +8,14 @@ Freeze when measurement semantics are coherent, real-game audit is plausible, no
 
 - The product contract is `DETERMINISTIC_CONTEXTUAL_HEURISTIC_V1`, not a combat
   simulator, causal claim, probability or optimal-build proof.
-- Only `shyvana_ap_build_profile_v1` is supported. Its reviewed major-item
-  semantic whitelist is exact-patch keyed; unsupported champions, patches and
-  unknown legality abstain.
+- `shyvana_ap_build_profile_v1` remains experimental and
+  `viego_build_profile_v1` is supported. Their reviewed major-item semantic
+  whitelists are exact-patch keyed; unsupported champions, patches and unknown
+  legality abstain.
+- Viego uses `PERMANENT_SHOP_INVENTORY`: only player-scoped prefix
+  `ITEM_PURCHASED`/`ITEM_SOLD`/`ITEM_UNDO` are reconstructed. Possession
+  runtime inventory is not reconstructed, `ITEM_DESTROYED` is excluded from
+  this narrow contract, and Viego personal frame stats are not scored.
 - `buy_now` means an executable recipe plan **IF_SHOPPING_NOW** with frame-sampled
   gold. It does not establish current shop access, which remains UNMODELED.
 - Historical percentile signals use only prior completed matches in the same
@@ -19,8 +24,9 @@ Freeze when measurement semantics are coherent, real-game audit is plausible, no
 - Experimental central score maxima are product weights, not empirical effects:
   ChampionFit 30, EnemyResponse 25, CurrentBuildSynergy 15, GameStateNeed 10,
   PowerSpikeValue 10, EconomyValue 5 and PurchaseFeasibility 5.
-- Product review is required before freeze: gameplay quality is not self-labeled
-  and the local real replay has 14 rather than the requested review target of 20.
+- Product review is required before freeze: gameplay quality is not self-labeled.
+  The Viego local replay reaches 34 real nonempty rows, exceeding the 20-row
+  coverage target, but this does not validate their gameplay quality.
 
 ## Build Optimizer temporal / recommendation boundary — REVIEW_REQUIRED, not FROZEN
 
@@ -31,8 +37,9 @@ Freeze when measurement semantics are coherent, real-game audit is plausible, no
   silently reused as evidence available before the outcome.
 - A frame budget is tied to that frame's inventory/event cutoff. It cannot be
   combined with later purchases to claim a budget at a nominal minute.
-- Recipe coverage is a diagnostic fraction, not item utility. Unsupported score
-  factors are null/UNMODELED; recommendations abstain instead of ranking prices.
+- Recipe coverage is a bounded heuristic contribution, not combat utility or a
+  price ranking. The contextual profiles expose their explicit contribution
+  breakdown and abstain when their exact-patch/inventory contracts are missing.
 - Empty buy_now cannot satisfy a purchase-legality or recommendation-quality
   gate. Full legality and contextual scoring require reviewed contracts.
 - No Build Optimizer freeze is declared while those product gates are blocked.
@@ -169,8 +176,9 @@ Rules:
 - AMBIGUOUS_TEMPORARY_STATE means a temporary/possession-like mechanic may make the observed inventory unreliable for that interval.
 - UNRESOLVED_TRANSFORMATION means Riot/Data Dragon chronology indicates a transformation or grant-related interval that cannot be safely materialized as an observed item event.
 - Do not fabricate corrected inventory events when Riot item chronology is ambiguous.
-- Viego-specific uncertainty must use the generic reliability mechanism and remain isolated from normal champion reconstruction.
-- Viego possession inventory is not reliably reconstructible from the current Riot data.
+- Viego possession runtime inventory is not reliably reconstructible and remains
+  isolated from normal champion reconstruction. The optimizer may instead use
+  only the separately named `PERMANENT_SHOP_INVENTORY` event-prefix contract.
 - ITEM_DESTROYED must not be treated globally as permanent item removal.
 - The non-Viego REAL_MISSED_TRANSFORMATION interval remains UNRESOLVED_TRANSFORMATION rather than a fabricated item event.
 - Magical Footwear derived timing remains DERIVED / INFERRED unless Riot emits an observed item event.

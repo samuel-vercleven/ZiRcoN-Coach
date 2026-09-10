@@ -1,85 +1,71 @@
-# Build Optimizer v1 — audit préalable
+# Build Optimizer v1 — audit
 
-Baseline : `9b9af010885acf19b647d0c75d763f628e8f5d2b`, branche
-`feature/build-optimizer`, 2026-09-08. Aucun fichier FROZEN modifié.
-`main.py` PASS ; 43/43 suites Stable Base PASS, compilation de 159 modules,
-89 chemins FROZEN inchangés. Journaux : `logs/build_optimizer/baseline/`.
-Les six suppressions locales de documents de stabilisation sont préexistantes
-et ne sont ni restaurées ni incluses dans les commits de cette mission.
+## Scope and frozen boundary
 
-## Contextual pass v1 — 2026-09-10
+This pass extends only `build_optimizer/`. Death v11, Tempo v17, Objectives
+v20, Reset v21, Itemization v22 and knowledge foundations 2A–2I remain
+FROZEN. The existing prefix projection, frozen Item Knowledge and v22 recipe
+consumption are reused; no UI, network access, ML, damage simulator or hidden
+text parsing is added.
 
-REUSED: GameContext prefix projection, frozen Item Knowledge facts, v22 recipe
-consumption and historical mutation framework. EXTENDED: totalGold observations,
-read-only legality and semantic contracts, phase-bucketed prior-match baseline,
-Shyvana AP heuristic scoring and traceable explanations. MISSING: no formal
-client rules engine or combat simulation; neither is claimed.
+The product contract remains `DETERMINISTIC_CONTEXTUAL_HEURISTIC_V1`:
+deterministic, bounded and explainable, but neither a combat calculation nor a
+proof of an optimal build. A recommendation is conditional on
+`IF_SHOPPING_NOW`; shop access itself remains unmodeled.
 
-The only supported champion profile is `shyvana_ap_build_profile_v1`. Semantic
-profiles are reviewed literal contracts for eight major AP SR item IDs, fingerprinted
-by exact patch, price and direct recipe. They are not description parsing at runtime.
-Supported patches are 16.9/16.16/16.17/16.18; any other patch fails closed.
+## Viego possession audit
 
-Legality is `LEGAL_SUPPORTED` only for that explicit whitelist after frozen Item
-Knowledge SR/purchasable/in-store/graph checks, v1 duplicate policy and a valid
-recipe plan. Boots, consumables, trinkets, starters/pets, support/quest/special,
-mode-specific and champion-specific items remain excluded. Shop presence is not
-known: the plan is `IF_SHOPPING_NOW` only.
+`python -m build_optimizer.viego_audit` reads 30 local Viego SoloQ timelines.
+It observes 527 own shop transactions: 514 `ITEM_PURCHASED`, 2 `ITEM_SOLD`
+and 11 `ITEM_UNDO`, alongside 4,279 own `ITEM_DESTROYED` events and 271 Viego
+kill opportunities. No event, frame or champion-stat field names a possession
+state, start/end interval or inventory owner.
 
-## Interfaces réelles et admissibilité
-
-| Fondation | Classement | Interface / décision |
-|---|---|---|
-| GameContext | REUSED | `services.game_context.GameContext` ; données locales validées, mais contient toute la partie et les items finaux. Ne jamais transmettre l'objet entier au scorer. |
-| Player / Enemy / Timeline / Frames / Gold | EXTENDED | Projection vers un petit BuildContext à timestamp explicite ; allowlist des identités et des champs de frame. Pas de niveau final, résultat, durée finale, statistiques finales ou gold futur. |
-| Inventory v22 | REUSED | `reconstruct_item_timeline(meta, events, ItemCatalog)` sur le seul préfixe. Ne pas utiliser `build_itemization_history` puis filtrer : la fiabilité dépend d'acquisitions/remplacements ultérieurs et du compteur final. |
-| Fiabilité temporelle inventaire | EXTENDED | Une transaction ambiguë ou warning reste PARTIAL dans la projection. Pas de restauration rétrospective d'un état fiable. Grants/transformations non observés restent non exécutables. |
-| Item Knowledge 2A | REUSED | `build_item_knowledge_catalog(..., raw_items, versions)` ; coût total/base, composants avec multiplicité, graphe, stats et provenance. Fallback latest refusé. |
-| Restrictions d'achat exhaustives | MISSING | `applicability` expose map, purchasable, requiredChampion, inStore, classes ; aucun contrat complet des groupes mutuellement exclusifs, restrictions liées aux runes/quêtes ou accès magasin. L'absence d'un champ n'est pas preuve d'absence de restriction. |
-| Champion Knowledge 2B1 | REUSED | Identité et provenance patch ; tags et descriptions ne valident ni AP/AD synergy ni force d'un matchup. |
-| Rune Knowledge 2C1 | REUSED | Identités/perks et source du grant Magical Footwear, pas d'exécution des effets. |
-| Level stats 2D | BLOCKED | AS pin 16.16 non transposable au patch 16.17. Pas nécessaire au calcul de coût d'une recette. |
-| Resistance / penetration 2E | NOT_NEEDED | Math disponible, mais ne fournit ni profil de dégâts futur ni valeur marginale globale d'un item. Pas de duplication. |
-| Spell source 2F | REUSED | Provenance structurelle consultée ; pas d'exécution ajoutée. |
-| Formula foundation 2G | BLOCKED | Zéro composant réel de dégâts résolu ; 13 calculs arithmétiques résolus ne sont pas 13 sorts exécutables. |
-| Stat references 2H / owners 2I | BLOCKED | 0/569 owner exécutable ; ne pas convertir CONTEXT_DEPENDENT en CASTER. |
-| Death v11 et statistiques | NOT_NEEDED | Coûts post-mort et références historiques ne constituent pas un scorer marginal d'items à t. Ne pas injecter des fenêtres futures ou des interprétations EXPERIMENTAL comme une vérité combat. |
-| Golden Games | REUSED | Sept paires brutes locales avec SHA-256 et faits vérifiés ; nouveaux replays 10/15/20/25 minutes distincts de l'audit post-game. |
-| Scoring champion/counter/game need | MISSING | Aucun contrat numérique validé de contribution item -> utilité contextuelle. Les poids de l'exemple utilisateur ne sont pas une calibration ni une preuve. |
-
-## Architecture autorisée sans changer les fondations
+The admitted contract is therefore deliberately narrow:
 
 ```text
-GameContext existant -> projection temporelle BuildContext
-Item Knowledge existant -> vue coût/recettes/provenance
-                       -> candidats structurels + plans budget/slots
-                       -> contributions économiques diagnostiques
-                       -> recommandation explicite ou abstention motivée
+PERMANENT_SHOP_INVENTORY
+  = prefix reconstruction of this player's ITEM_PURCHASED / ITEM_SOLD / ITEM_UNDO
+  ≠ possession runtime inventory
+  ≠ proof of current shop access
 ```
 
-Le module n'a ni dépendance UI, ni réseau implicite, ni lecture SQLite dans le
-scorer. L'audit historique injecte les catalogues exacts et les GameContexts.
-La planification de recette ne devient pas une preuve d'achat légal dans le
-client. Les plans diagnostiques sont distincts de `buy_now`.
+`ITEM_DESTROYED` is excluded for Viego because its high-volume discontinuities
+are possession/runtime-sensitive. Viego's own frame `championStats` are marked
+`VIEGO_FRAME_STATS_POSSESSION_SENSITIVE` and removed from personal scoring.
+Enemy frame observations remain independently scoped and can provide only the
+declared contextual signals. No possession passive/reset/damage calculation is
+claimed.
 
-## Limite de décision avant implémentation importante
+## Exact-patch semantic and purchase contracts
 
-Les branches indépendantes peuvent être construites et testées : projection,
-recettes, coût restant, slots, sérialisation, absence de fuite, abstention.
-Une recommandation du « meilleur achat » ne sera pas fabriquée en classant
-simplement les dépenses ou les tags. ChampionSynergy, EnemyCounter, GameNeed,
-PowerSpikeValue et restrictions sans preuve restent UNMODELED.
-Sans contrat d'admissibilité des achats et de scoring défendable, le gate
-produit reste BLOCKED / NO FREEZE, même si les invariants techniques passent.
-Le rapport final distinguera tests d'abstention et recommandations réellement
-validées ; zéro recommandation ne prouve pas la qualité du moteur demandé.
+`viego_build_profile_v1` allows twelve reviewed major-item semantic profiles:
+Blade of the Ruined King, Kraken Slayer, Terminus, Black Cleaver, Lord
+Dominik's Regards, Death's Dance, Maw of Malmortius, Sundered Sky, Trinity
+Force, Wit's End, Immortal Shieldbow and The Collector (catalog applicability
+can still structurally reject a profile). Their traits are literal declarations,
+not runtime substring parsing. Every candidate must match exact patch, ID,
+price and direct recipe fingerprints on 16.9/16.16/16.17/16.18.
 
-## Sources techniques
+The whitelist spans AD, attack speed, on-hit, crit, sustained damage,
+anti-HP, percentage/flat armor penetration, health, armor, MR, lifesteal and
+survivability. Unsupported patches, stale prices/recipes, unsupported items,
+duplicate owned targets, unresolved inventory/gold, blocked graph, unknown
+restriction or search truncation fail closed.
 
-- Code local : `services/game_context.py`, `analysis/itemization_analyzer.py`
-  (`_destroyed_evidence_context` utilise explicitement later/final),
-  `knowledge/item_knowledge.py` (`classify_applicability`, `attach_item_graph`),
-  `knowledge/champion_spell_stat_owner_semantics.py` (`build_execution_gate`).
-- [Documentation officielle Riot — Data Dragon](https://developer.riotgames.com/docs/lol#data-dragon) : catalogues et versionnement, pas un contrat exhaustif d'achats contextuels.
-- Catalogues Data Dragon exacts déjà conservés localement en 16.9.1, 16.16.1
-  et 16.17.1. Aucun mapping issu d'un forum ou d'une table historique n'est admis.
+## Contextual decision contract
+
+Champion fit uses centrally declared Viego traits (AD, AS, on-hit, sustained
+damage, lifesteal and crit), so different candidates do not all receive 30/30.
+Enemy response is directional and explicit: frontline rewards anti-HP/sustained
+damage, armor rewards percentage armor penetration, low-frontline rewards
+crit/burst, and very high AD/AP threat rewards compatible armor/MR defense.
+Current reviewed-build overlap, observed team-gold state, recipe spike,
+recipe coverage and exact-whitelist feasibility form the remaining bounded
+contributions. All outputs expose a recomputable score breakdown and only cite
+reasons attached to contributions.
+
+The replay invoice now uses frozen v22 `_slot_count`, preventing a false slot
+failure where stacked consumables had been counted as separate slots. It still
+rejects non-stackable over-capacity states, bad component credits, invalid IDs,
+budget overruns and off-recipe steps.

@@ -1,7 +1,8 @@
-"""Chronological Shyvana AP replay; baseline never receives the current game."""
+"""Chronological contextual replay; a baseline never receives its current game."""
 from collections import Counter, defaultdict
 from copy import deepcopy
 from dataclasses import asdict
+import argparse
 import json
 from pathlib import Path
 import sqlite3
@@ -13,32 +14,35 @@ from services.game_context import load_game_context
 from build_optimizer.catalog import patch_of
 from build_optimizer.context import build_context
 from build_optimizer.engine import BuildOptimizer
-from build_optimizer.profiles import SUPPORTED_PATCHES
+from build_optimizer.profiles import SUPPORTED_PATCHES, champion_profile
 from build_optimizer.replay import TIMESTAMPS, exact_catalogs, mutate_future, validate_recipe_plan
 from build_optimizer.signals import build_baseline
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def sources():
+def sources(champions=('Shyvana', 'Viego')):
     local = LocalDataService(DEFAULT_DB_PATH, settings=RuntimeSettingsService())
     player = local.player()
     assert player.puuid, 'LOCAL_PLAYER_UNAVAILABLE'
     with sqlite3.connect(DEFAULT_DB_PATH) as connection:
+        placeholders = ','.join('?' for _ in champions)
         rows = connection.execute(
-            '''SELECT m.match_id, m.game_creation FROM matches m JOIN participants p ON p.match_id=m.match_id
-               WHERE p.puuid=? AND p.champion_name='Shyvana' AND m.queue_id=420
-               ORDER BY m.game_creation, m.match_id''', (player.puuid,)).fetchall()
+            f'''SELECT m.match_id, m.game_creation FROM matches m JOIN participants p ON p.match_id=m.match_id
+                WHERE p.puuid=? AND p.champion_name IN ({placeholders}) AND m.queue_id=420
+                ORDER BY m.game_creation, m.match_id''', (player.puuid, *champions)).fetchall()
     for match_id, creation in rows:
         yield creation, load_game_context(DEFAULT_DB_PATH, match_id, player.puuid)
 
 
-def run():
+def run(champions=('Shyvana', 'Viego')):
     catalogs, history, counts, rows = {}, defaultdict(list), Counter(), []
-    for creation, game in sources():
+    for creation, game in sources(champions):
         patch = patch_of(game.game_state.get('patch'))
-        counts['shyvana_games_seen'] += 1
-        if patch not in SUPPORTED_PATCHES:
+        champion = game.player.get('championName')
+        counts['games_seen'] += 1
+        counts[f'{str(champion).lower()}_games_seen'] += 1
+        if patch not in SUPPORTED_PATCHES or champion_profile(champion, patch) is None:
             counts['unsupported_patch_games'] += 1
             continue
         catalog, champions = catalogs.setdefault(patch, exact_catalogs(patch))
@@ -62,15 +66,24 @@ def run():
             game_contexts.append(context)
             if recommendation.target_item is None:
                 counts['abstentions'] += 1
+                counts[f'{str(champion).lower()}_abstentions'] += 1
                 continue
             plan = optimizer.planner.plan(recommendation.target_item, context.inventory, context.gold)
-            validate_recipe_plan(plan, context.inventory, context.gold, catalog)
+            try:
+                validate_recipe_plan(plan, context.inventory, context.gold, catalog)
+            except AssertionError as error:
+                raise AssertionError(
+                    f'CONTEXTUAL_PLAN_INVALID match={context.match_id} champion={champion} '
+                    f'timestamp={timestamp} inventory={context.inventory} target={recommendation.target_item}: {error}'
+                ) from error
             assert recommendation.buy_now == plan.steps, 'BUY_NOW_PLAN_MISMATCH'
             assert recommendation.score == sum(row['contribution'] for row in recommendation.score_breakdown), 'SCORE_RECOMPUTE_ERROR'
             positive = {reason for line in recommendation.score_breakdown for reason in line['reasons']}
             assert set(recommendation.reasons) <= positive, 'UNTRACEABLE_EXPLANATION'
             counts['nonempty_recommendations'] += 1
+            counts[f'{str(champion).lower()}_nonempty_recommendations'] += 1
             rows.append({'match_id': context.match_id, 'game_creation': creation, 'timestamp': timestamp,
+                         'champion': champion, 'profile': champion_profile(champion, patch).version,
                          'patch': patch, 'inventory': context.inventory, 'gold': context.gold,
                          'baseline_samples': baseline.sample_count, 'target_item': recommendation.target_item,
                          'buy_now': [asdict(step) for step in recommendation.buy_now],
@@ -92,4 +105,7 @@ def run():
 
 
 if __name__ == '__main__':
-    run()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--champion', action='append', choices=('Shyvana', 'Viego'))
+    args = parser.parse_args()
+    run(tuple(args.champion) if args.champion else ('Shyvana', 'Viego'))

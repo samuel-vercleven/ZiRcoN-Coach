@@ -51,6 +51,37 @@ class ContextualRecommendationChecks(unittest.TestCase):
             self.assertEqual(profile.status, 'SUPPORTED')
             self.assertTrue(profile.source.startswith('DATA_DRAGON_16.18.1'))
 
+    def test_viego_profiles_are_patch_pinned_and_cover_distinct_directions(self):
+        for patch in ('16.9', '16.16', '16.17', '16.18'):
+            catalog, _ = exact_catalogs(patch)
+            profiles = [item_profile(item, patch, 'Viego') for item in catalog.items.values()]
+            profiles = [profile for profile in profiles if profile]
+            self.assertGreaterEqual(len(profiles), 10)
+            traits = set().union(*(profile.traits for profile in profiles))
+            self.assertTrue({'AD', 'ATTACK_SPEED', 'ON_HIT', 'CRIT', 'PERCENT_ARMOR_PEN',
+                             'DEFENSE_ARMOR', 'DEFENSE_MR'} <= traits)
+
+    def test_viego_uses_permanent_shop_inventory_not_possession_destroy_events(self):
+        catalog, champions = exact_catalogs('16.18')
+        source = game()
+        source = replace(source, player={**source.player, 'championName': 'Viego'},
+                         game_state={**source.game_state, 'patch': '16.18.1'},
+                         events=({'timestamp': 1000, 'type': 'ITEM_PURCHASED', 'itemId': 1042, 'participantId': 1},
+                                 {'timestamp': 2000, 'type': 'ITEM_DESTROYED', 'itemId': 1042, 'participantId': 1}))
+        context = build_context(source, 60000, catalog, champions)
+        self.assertEqual(context.inventory, (1042,))
+        self.assertEqual(context.inventory_status, 'OBSERVED_PREFIX')
+        self.assertIn('PERMANENT_SHOP_INVENTORY', context.warnings)
+        self.assertIn('VIEGO_FRAME_STATS_POSSESSION_SENSITIVE', context.warnings)
+
+        baseline = build_baseline(prior_contexts(context, catalog), context)
+        output = BuildOptimizer(catalog).recommend(context, baseline)
+        self.assertEqual(output.status, 'SUPPORTED_HEURISTIC')
+        self.assertIsNotNone(output.target_item)
+        self.assertIn('PERMANENT_SHOP_INVENTORY', output.warnings)
+        self.assertTrue(all('Viego' not in str(facts) for facts in
+                            [row['supporting_facts'] for row in output.score_breakdown]))
+
     def test_nonempty_shyvana_recommendation_is_recomputable_and_legal(self):
         output = self.optimizer.recommend(self.context, self.baseline)
         self.assertEqual(output.status, 'SUPPORTED_HEURISTIC')
@@ -83,7 +114,7 @@ class ContextualRecommendationChecks(unittest.TestCase):
         missing = self.optimizer.recommend(self.context, None)
         self.assertIsNone(missing.target_item)
         self.assertIn('HISTORICAL_BASELINE_UNAVAILABLE', missing.warnings)
-        unsupported = replace(self.context, champion='Viego')
+        unsupported = replace(self.context, champion='Azir')
         output = self.optimizer.recommend(unsupported, self.baseline)
         self.assertIsNone(output.target_item)
         self.assertIn('BLOCKED_UNSUPPORTED_CHAMPION_PROFILE', output.warnings)

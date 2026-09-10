@@ -58,7 +58,7 @@ class BuildOptimizer:
         if not warnings & essential and profile is not None and signals['status'] == 'SUPPORTED':
             candidates = []
             for item in self.catalog.items.values():
-                semantic = item_profile(item, context.patch)
+                semantic = item_profile(item, context.patch, context.champion)
                 legality = decide(item, context, self.planner)
                 if semantic is None or legality.status != 'LEGAL_SUPPORTED':
                     continue

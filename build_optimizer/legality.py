@@ -18,7 +18,7 @@ class LegalityDecision:
 
 def decide(item, context, planner):
     """Final candidates are a reviewed major-item whitelist; all else fails closed."""
-    profile = item_profile(item, context.patch)
+    profile = item_profile(item, context.patch, context.champion)
     reasons, evidence = [], []
     if profile is None:
         return LegalityDecision('LEGALITY_UNKNOWN', ('SEMANTIC_PROFILE_OR_PATCH_UNSUPPORTED',),

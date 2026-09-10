@@ -54,11 +54,18 @@ class BuildContext:
 
 
 def _inventory(game, subject, events, timestamp, catalog):
-    warnings = []
+    warnings, notes = [], []
     pid = subject['participantId']
+    viego = subject.get('championName') == 'Viego'
     selected = []
     for index, event in enumerate(events):
         if event.get('type') not in ITEM_EVENT_TYPES or event.get('participantId') != pid:
+            continue
+        # ITEM_DESTROYED is not an admissible Viego inventory mutation.  The
+        # audited timelines contain it in large possession-sensitive bursts;
+        # permanent shop inventory is deliberately reconstructed from only the
+        # player-scoped shop transaction stream.
+        if viego and event.get('type') not in {'ITEM_PURCHASED', 'ITEM_SOLD', 'ITEM_UNDO'}:
             continue
         if (not natural(event.get('itemId'), True) and event['type'] != 'ITEM_UNDO'):
             warnings.append('ITEM_EVENT_ID_UNRESOLVED')
@@ -71,8 +78,12 @@ def _inventory(game, subject, events, timestamp, catalog):
                 for selection in style.get('selections', [])]
     if MAGICAL_FOOTWEAR_PERK_ID in perk_ids:
         warnings.append('UNOBSERVED_RUNE_GRANT_UNMODELED')
-    if subject.get('championName') == 'Viego':
-        warnings.append('TEMPORARY_POSSESSION_INVENTORY_UNRELIABLE')
+    if viego:
+        notes.extend((
+            'PERMANENT_SHOP_INVENTORY',
+            'VIEGO_FRAME_STATS_POSSESSION_SENSITIVE',
+            'VIEGO_POSSESSION_RUNTIME_STATE_UNOBSERVED',
+        ))
     # Required v22 final-reference fields are explicitly absent/unknown. Its
     # final_validation and retrospective reliability are NOT consumed below.
     meta = {'match_id': game.game_state['match_id'], 'game_creation': None,
@@ -92,7 +103,7 @@ def _inventory(game, subject, events, timestamp, catalog):
     # Prefix-only reconstruction is observational, not a proof that every
     # game mechanic emits an event. Completeness remains a separate contract.
     status = 'PARTIAL' if warnings else 'OBSERVED_PREFIX'
-    return inventory, status, tuple(sorted(set(warnings)))
+    return inventory, status, tuple(sorted(set((*warnings, *notes))))
 
 
 def build_context(game: GameContext, timestamp: int, catalog: CatalogView, champions: dict) -> BuildContext:
@@ -141,6 +152,11 @@ def build_context(game: GameContext, timestamp: int, catalog: CatalogView, champ
         raw_stats = frame.get('championStats') or {}
         stats = {k: raw_stats[k] for k in ('healthMax', 'armor', 'magicResist', 'attackDamage', 'abilityPower')
                  if number(raw_stats.get(k))}
+        if champion == 'Viego':
+            # Possession identity is unobservable in the timeline.  Viego's
+            # personal frame stats are therefore never admitted to scoring.
+            stats = {}
+            notes.append('VIEGO_FRAME_STATS_POSSESSION_SENSITIVE')
         total_gold = frame.get('totalGold') if number(frame.get('totalGold')) and frame.get('totalGold') >= 0 else None
         if total_gold is None:
             notes.append('TOTAL_GOLD_UNRESOLVED')

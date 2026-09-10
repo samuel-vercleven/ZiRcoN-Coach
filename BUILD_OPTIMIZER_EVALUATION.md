@@ -1,174 +1,57 @@
-# Build Optimizer v1 — évaluation et gate produit
+# Build Optimizer v1 — Viego evaluation and product gate
 
-2026-09-10 — `feature/build-optimizer`. **TECHNICAL PASS / REVIEW_REQUIRED FOR FREEZE.**
-Le socle indépendant est implémenté et testé. Le premier produit contextualisé
-est une heuristique déterministe, pas un « meilleur achat » optimal validé.
+## Result
 
-## Contextual heuristic pass
+**TECHNICAL PASS / REVIEW_REQUIRED / NO FREEZE.**
 
-- Modèle : `DETERMINISTIC_CONTEXTUAL_HEURISTIC_V1`; profil unique
-  `shyvana_ap_build_profile_v1`; profils/admissibilité exact-patch 16.9, 16.16,
-  16.17 et 16.18. Le runtime Data Dragon vérifié est 16.18.1.
-- Huit items AP majeurs SR ont des traits déclarés, revus et fingerprintés par
-  ID/prix/recette. Aucun tag n'est déduit à l'exécution d'un substring.
-- Signaux percentile frame-observed contre parties antérieures du même patch et
-  bucket: frontline, armure, MR, menace AD/AP et delta gold équipe. Les poids
-  bornés (30/25/15/10/10/5/5) sont `EXPERIMENTAL_PRODUCT_HEURISTIC`.
-- Replay Shyvana : 64 parties vues, 45 éligibles patch, 180 snapshots, 14
-  recommandations non vides et 166 abstentions. 0 achat invalide, fuite future,
-  erreur de recomposition ou explication non traçable. 14/20 reste insuffisant
-  pour l'objectif de revue humaine; aucune donnée synthétique n'a été comptée.
-- `buy_now` = plan de recette avec le gold échantillonné **si shopping maintenant**;
-  le statut d'accès magasin reste `UNMODELED`.
+The contextual engine emits real, nonempty Viego recommendations under the
+explicit heuristic contract. This is not a validation that those recommendations
+are gameplay-optimal; human gameplay review remains required.
 
-## Ce qui fonctionne réellement
+## Reproducible Viego replay
 
-```text
-Match/timeline locaux -> GameContext existant
-  -> BuildContext à t (identité et observations, aucune statistique finale)
-  -> Item Knowledge exact-patch -> candidats structurels
-  -> solveur de recettes (consommation v22, budget, slots)
-  -> sous-total économique diagnostic et provenance
-  -> BuildRecommendation : abstention motivée tant que les gates manquent
-```
+| Measure | Result |
+|---|---:|
+| Local Viego SoloQ games | 30 |
+| Exact-patch eligible games | 26 |
+| Candidate snapshots | 104 |
+| Nonempty Viego recommendations | 34 |
+| Abstentions | 70 |
+| Invalid emitted purchases | 0 |
+| Future-information leaks | 0 |
+| Score recomputation errors | 0 |
+| Untraceable explanations | 0 |
 
-API sans UI/réseau implicite :
+The 34-row review target exceeds the minimum 20. Target distribution: Blade of
+the Ruined King 11, Wit's End 10, Terminus 6, Kraken Slayer 3, Lord Dominik's
+Regards 2 and The Collector 2. Rows retain `PERMANENT_SHOP_INVENTORY`,
+`VIEGO_FRAME_STATS_POSSESSION_SENSITIVE` and
+`VIEGO_POSSESSION_RUNTIME_STATE_UNOBSERVED` as visible limitations.
 
-```python
-from build_optimizer.context import build_context
-from build_optimizer.engine import BuildOptimizer
+Each emitted row is checked against the exact target recipe, observed permanent
+shop prefix inventory, frame-sampled gold, six-slot v22 contract, and a future
+timeline mutation. The planner reports a conditional `buy_now` plan only for
+the current gold **if shopping now**; no current shop location is inferred.
 
-context = build_context(game_context, timestamp_ms, catalog_view, champion_records)
-recommendation = BuildOptimizer(catalog_view).recommend(context)
-payload = recommendation.to_dict()  # sérialisable en JSON
-```
+## Gate status
 
-`target_item=None`, `buy_now=[]`, `score=None`, alternatives vides restent
-explicites. `candidate_diagnostics` et `RecipePlanner.plan` ne sont pas une
-voie détournée pour annoncer un achat exécutable ou un item optimal.
-
-## Scoring réel, pas celui illustré dans le TODO
-
-| Facteur | Poids | État |
-|---|---:|---|
-| ChampionSynergy | null | UNMODELED, pas d'inférence AP/AD depuis un tag |
-| EnemyCounter | null | UNMODELED, présence d'armure/MR n'est pas un modèle d'utilité |
-| CurrentBuildSynergy | null | UNMODELED au sens gameplay |
-| GameNeed | null | UNMODELED ; pas de causalité depuis Death/Reset |
-| PowerSpikeValue | null | UNMODELED |
-| EconomyValue | 1 | EXPERIMENTAL, fraction du coût de recette couverte |
-| PurchaseFeasibility | null | Légalité complète UNMODELED |
-| RedundancyPenalty | null | Pas de pénalité inventée |
-| IncompatibilityPenalty | null | Restrictions connues filtrées, inconnues bloquantes |
-
-Seul diagnostic numérique : `(prix total - coût restant après plan) / prix total`.
-Le poids 1 conserve cette unité ; il n'est pas une calibration gameplay.
-Ce sous-total est recomputable depuis ses contributions mais **n'est pas un
-score final** et ne classe pas les items comme « meilleurs ».
-Les raisons positives/négatives ne viennent que de contributions non nulles.
-Les motifs d'abstention sont distincts des raisons de scoring.
-
-Configuration centralisée : `build_optimizer/scoring.py`. Limites techniques
-du planificateur : six slots (contrat v22), 5 000 états de recherche ; toute
-troncature est signalée. Cadence de parsing : tolérance 90 s de GameContext,
-pas de nouveau seuil gameplay ni de retuning d'un analyzer.
-
-## Tests et jeux réels
-
-- Baseline : main.py PASS, 43/43 suites Stable Base PASS, 159 modules compilés.
-- Final : compilation 169 modules ; 43/43 suites Stable Base, main.py (2,26 s),
-  89 chemins FROZEN, scan secrets et diff check PASS. Les cinq commandes du
-  validateur final passent ; disposition globale REVIEW_REQUIRED / NO FREEZE.
-- Nouveaux tests : 23 méthodes unittest, avec sous-cas et dix scénarios nommés.
-  Les scénarios double frontline/squishy ont des observations HP/armure
-  distinctes ; AD/AP/MR sont des observations synthétiques. Healing reste
-  explicitement non modélisé. Ce sont des tests d'invariants et d'abstention,
-  **pas dix matchups dont la recommandation aurait été validée**.
-- Trois catalogues réels : 16.9.1, 16.16.1, 16.17.1 ; 217 cibles structurelles
-  par patch, 8 385 cas contrôlés, 13 552 étapes vérifiées. Inventaires/budgets
-  de ces cas sont synthétiques et distincts des replays historiques.
-- Golden Games : sept paires match/timeline vérifiées par SHA-256 ; 28 heures
-  demandées, 28 tests de mutation future, 28 contrôles des snapshots précédents.
-  Inventaires propres trop incertains : aucun plan historique admis dans ces
-  sept cas ; le rapport dit NOT_EXERCISED, pas une validation de recettes vide.
-- Batch : 129 matchs SoloQ locaux, 516 heures demandées, 516 mutations futures,
-  516 contrôles des snapshots précédents et 516 contrôles de sensibilité au passé.
-  Sur les 50 snapshots admissibles : 10 760 plans, 13 942 étapes et 1 482 recettes
-  complétables dans le modèle. Ces nombres ne sont pas des achats recommandés.
-- Hardening de l'audit : 15 contrôles adversariaux vérifient indépendamment
-  l'arbre de recette. Ils rejettent un crédit avec un item étranger, le
-  surcrédit de composants répétés, un ancêtre et ses descendants comptés en
-  même temps, un item exclu, une étape hors recette cible, les IDs invalides,
-  les dépassements de budget et de slots. C'est une correction de validation,
-  pas un contrat exhaustif avec le client de jeu.
-- Aucune donnée Riot nouvelle synchronisée ; données de match lues localement.
-  Chargement des catalogues publics Data Dragon exacts autorisé hors UI.
-
-Golden IDs : EUW1_7965168777, EUW1_7965120221, EUW1_7963255011,
-EUW1_7959361127, EUW1_7951911875, EUW1_7836627546, EUW1_7839112939.
-Ils sont également présents dans le batch : ne pas additionner les deux comme
-des observations indépendantes. 7 timestamps Golden et 39 timestamps du batch
-sont après la dernière frame de la partie ; ils restent indisponibles à t.
-
-## Précision temporelle : correction issue du vrai replay
-
-Dans EUW1_7965120221 les frames commencent à 0, 60003, 120018, 180040 ms.
-L'ancien contrôle ajouté dans cette mission prenait une dérive de quelques
-millisecondes pour un trou >60 s. Correction au contrat d'admission 90 s déjà
-employé par GameContext, sans modifier GameContext.
-
-Une demande à 600000 ms ne donne pas le gold exact de 600142 ms. Le gold à
-540121 ms existe, mais n'est pas mélangé avec les achats de 540122–600000 ms.
-Le replay teste séparément le snapshot entier à 540121 ms. Toutes les
-reconstructions de recettes historiques portent leur `recipe_plan_timestamp`.
-Les dates, items finaux, résultats, niveaux finaux et suffixes de timeline
-modifiés artificiellement ne changent ni le contexte antérieur ni l'abstention.
-Le rôle attribué post-game et la visibilité des ennemis ne sont pas présumés
-connus à t.
-
-## Classement de l'évaluation
-
-Les 516 sorties demandées sont `QUESTIONABLE` au sens produit : abstention
-sûre, décision demandée indisponible. Aucun label GOOD/PLAUSIBLE n'est attribué
-à un item sur la seule base d'une facture correcte ou de l'achat réel du joueur.
-Le replay et les cas contrôlés n'ont observé ni exception fatale, ni violation
-de leurs invariants. Cela ne valide pas tous les cas du client Riot.
-
-## Zero Gate
-
-| Gate | Résultat |
+| Gate | Status |
 |---|---|
-| Régression Stable Base | PASS à la baseline et à la validation finale |
-| Tests unitaires / scénarios d'invariants | PASS (23 + 15 contrôles adversariaux) |
-| Intégration / sérialisation des invariants | PASS |
-| Recettes sur vrais catalogues | PASS dans le modèle structurel |
-| Replay historique / temporal integrity | PASS sur les mutations exécutées |
-| Recommandations contextuelles intégrées | **BLOCKED** — 516 abstentions, aucune sortie non vide exercée |
-| Qualité gameplay des scénarios | **BLOCKED** — les scénarios restent des invariants, pas des recommandations vérifiées |
-| Scoring final / breakdown / explication | **BLOCKED** — `score=None`, seul le diagnostic économique existe |
-| Légalité complète d'achat | **UNMODELED — BLOCKED** |
-| Invalid purchase / buy_now | 0 sur sorties vides ; non validant pour la légalité complète |
-| Explications non justifiées | 0 sur sorties vides ; non validant pour les recommandations |
-| Erreurs fatales de scoring | non mesurable : aucun score final n'est exercé |
-| Fuite future détectée dans les tests | 0 |
-| Freeze produit | **NO FREEZE** |
+| FROZEN foundation guard | PASS — 89 paths unchanged |
+| Contextual unit checks | PASS — 7 |
+| Existing optimizer checks | PASS — 23 |
+| Adversarial recipe/gate checks | PASS — 15 |
+| Viego provenance audit | PASS with explicit limitations |
+| Exact-patch Viego profiles | PASS |
+| Recipes, budget and slots on emitted rows | PASS |
+| Temporal prefix/future mutation integrity | PASS |
+| Real Viego recommendations | PASS — 34/20 |
+| Score and explanation traceability | PASS |
+| Human gameplay quality review | REVIEW_REQUIRED |
+| Build Optimizer freeze | **NO FREEZE** |
 
-Commande reproductible : `python -m build_optimizer.validation`.
-Code retour 2 signifie REVIEW_REQUIRED si les tests techniques passent ;
-code 1 signale un échec technique. Ce n'est pas un script qui retourne PASS
-inconditionnellement lorsque toutes les recommandations sont vides.
-Journaux : `logs/build_optimizer/final/`, `golden_replay.json`,
-`batch_replay.json`, `catalog_checks.json`. Aucun JSON brut privé ni DB dans Git.
-
-## Décision nécessaire avant la suite
-
-1. Un contrat patché et sourcé de légalité : groupes exclusifs, limites de
-   doublons, runes/quêtes/champions/modes, accès magasin, inventaire admissible.
-2. Un périmètre de scoring contextuel défendable et une grille d'évaluation,
-   avec poids explicitement expérimentaux si le projet accepte une heuristique.
-   Les sorties Phase 2I restent non exécutables sans nouvelle preuve ; un score
-   fondé sur des observations ne doit pas être présenté comme simulation combat.
-
-Il n'est pas nécessaire de modifier une fondation FROZEN pour conserver ce
-socle de projection/recettes. Aucun changement FROZEN, freeze, merge ou
-successeur n'est effectué. Les étapes bloquées du TODO restent ouvertes.
+Final validation passed Stable Base, unit, adversarial, real-catalog, Golden,
+batch and generalized contextual replay gates. It exercised 53 nonempty
+contextual rows overall, including the Viego-only 34 rows. A green technical
+replay cannot convert the heuristic into an optimality claim or auto-freeze the
+product.

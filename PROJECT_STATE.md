@@ -1,48 +1,36 @@
 # ZiRcoN Coach - Project State
 
-## Build Optimizer v1 — contextual heuristic technical PASS; REVIEW_REQUIRED FOR FREEZE
+## Build Optimizer v1 — Viego contextual technical PASS; REVIEW_REQUIRED FOR FREEZE
 
 - Model: `DETERMINISTIC_CONTEXTUAL_HEURISTIC_V1`, explicitly not an optimal-build
-  or combat simulator. First and only profile: `shyvana_ap_build_profile_v1`.
-- Exact supported patches: 16.9, 16.16, 16.17 and 16.18; unsupported patch or
-  champion fails closed. The live Data Dragon source checked for this run is 16.18.1.
-- Read-only item semantics and legality contracts whitelist eight reviewed AP
-  major SR items. They reject special, mode, quest/support, jungle, trinket,
-  boot, duplicate, unknown-semantic and unresolved-recipe candidates.
-- `buy_now` is an executable recipe plan **if shopping now**, with sampled gold;
-  `shop_access` remains UNMODELED.
-- Historical baseline is phase-bucketed and consumes only completed earlier
-  matches; all timestamps from a current match are evaluated before it enters history.
-- Real chronological Shyvana replay: 64 games seen, 45 exact-patch candidates,
-  180 snapshots, 14 nonempty recommendations and 166 abstentions. Emitted rows:
-  0 invalid purchases, future leaks, recomputation errors and untraceable explanations.
-- Zero Gate technical lines pass; gameplay quality and 14/20 review coverage
-  remain REVIEW_REQUIRED. No Build Optimizer freeze is declared.
-
-- Explicit new project task on `feature/build-optimizer`, baseline `9b9af01`.
-- Baseline main.py and 43/43 Stable Base suites pass; all 89 frozen paths unchanged.
-- Uses the existing GameContext, frozen Item Knowledge and v22 reconstruction
-  on prefix-only events. Final inventory/outcome and retrospective reliability
-  are not admitted to historical scoring. Role inferred post-game stays UNKNOWN.
-- Complete shop restrictions and contextual item utility remain unsupported;
-  numeric recipe coverage is diagnostic only, not a champion/item recommendation.
-- Final independent checks: 169 modules compiled, 43/43 Stable Base suites,
-  23 unit/scenario checks, 15 adversarial product-gate checks, and 8,385
-  real-catalog controlled recipe cases.
-- Recipe audit now independently rejects forged credits from unrelated items,
-  duplicate/excess or ancestor+descendant component claims, excluded items,
-  off-recipe steps, invalid bool/unknown IDs and slot overflow. This fixes a
-  validation gap; it does not prove complete client purchase admissibility.
-- Replay: 7 Golden Games / 28 nominal timestamps; 129 local SoloQ matches / 516 nominal
-  timestamps, with separate preceding-frame budgets. 10,760 recipe plans checked
-  at observed frame timestamps; no guessed gold at the requested minute.
-- All 516 nominal outputs abstain; 0 contextual recommendations or final scores
-  are exercised. The explicit zero-gate runner reports technical PASS but four
-  product gates BLOCKED: recommendation integration, scenario gameplay quality,
-  final score/explanation, and complete purchase feasibility.
-- No owner promotion, frozen change, successor feature or optimizer freeze.
-- See BUILD_OPTIMIZER_AUDIT.md and BUILD_OPTIMIZER_EVALUATION.md for contracts
-  still requiring project review. The full TODO remains unfinished.
+  or combat simulator. Profiles: retained experimental `shyvana_ap_build_profile_v1`
+  and `viego_build_profile_v1`.
+- Exact supported patches: 16.9, 16.16, 16.17 and 16.18. Viego has twelve
+  reviewed literal semantic profiles, fingerprinted by ID, price and direct
+  recipe; unsupported patch, stale fingerprint or unreviewed item fails closed.
+- Viego inventory is `PERMANENT_SHOP_INVENTORY`: player-scoped prefix
+  `ITEM_PURCHASED` / `ITEM_SOLD` / `ITEM_UNDO` only. `ITEM_DESTROYED` is
+  excluded as possession/runtime-sensitive; Viego personal frame stats are not
+  used. Possession runtime and shop access stay unobserved/unmodeled.
+- The deterministic scorer discriminates reviewed champion fit and explicit
+  frontline, armor, squishy and AD/AP-threat directions. Outputs have a
+  recomputable breakdown, traceable reasons, alternatives and `IF_SHOPPING_NOW`
+  recipe plans; they remain heuristic product advice.
+- Real Viego-only chronological replay: 30 games, 26 exact-patch, 104 snapshots,
+  34 nonempty outputs and 70 abstentions; 0 invalid emitted purchases, temporal
+  leaks, score-recomposition errors or untraceable explanations. The 34/20
+  review target is passed technically.
+- Target mix: Blade of the Ruined King 11, Wit's End 10, Terminus 6, Kraken
+  Slayer 3, Lord Dominik's Regards 2 and The Collector 2. This is evidence of
+  nonempty directional output, not a ground-truth proof of item quality.
+- Targeted validation passes: 7 contextual checks, 23 optimizer checks and 15
+  adversarial checks. The replay audit now shares frozen v22 stack-aware slot
+  counting with the planner.
+- Final validation passes Stable Base, exact catalog, Golden, batch and
+  generalized contextual replay gates; 89 FROZEN paths are unchanged and 53
+  nonempty contextual rows are exercised overall. No automatic freeze is
+  declared: human gameplay review remains required; see BUILD_OPTIMIZER_AUDIT.md
+  and BUILD_OPTIMIZER_EVALUATION.md.
 
 ## Stable Base v1 stabilization — technical PASS / REVIEW_REQUIRED
 
