@@ -20,12 +20,15 @@ QFrame#EventCard { background: #111b27; border: 1px solid #2a3b50; border-radius
 QFrame#CoachCard { background: #10202a; border: 1px solid #2b6671; border-radius: 14px; }
 QFrame#HeroCard { background: #132130; border: 1px solid #30465e; border-radius: 16px; }
 QFrame#MatchSummaryHero { background: #111d2a; border: 1px solid #31526b; border-radius: 16px; }
+QFrame#MatchupBoard { background: #0f1b28; border: 1px solid #2a435b; border-radius: 15px; }
 QFrame#TeamPanel { background: #101a26; border: 1px solid #263a50; border-radius: 14px; }
 QFrame#TeamPanel[side="ally"] { border-top: 3px solid #45c39d; }
 QFrame#TeamPanel[side="enemy"] { border-top: 3px solid #e06b79; }
 QFrame#RosterRow { background: #162332; border: 1px solid #24384c; border-radius: 10px; }
 QFrame#RosterRow[isPlayer="true"] { background: #17343a; border-color: #48c5ae; }
 QFrame#OptimizerHero { background: #112832; border: 1px solid #3b8490; border-radius: 16px; }
+QFrame#DashboardCard { background: #111d2a; border: 1px solid #2b4056; border-radius: 14px; }
+QFrame#OptimizerPreview { background: #0f2b31; border: 1px solid #348579; border-radius: 14px; }
 QFrame#MatchCard { background: #141b25; border: 1px solid #222d3b; border-left: 4px solid #637083; border-radius: 10px; }
 QFrame#MatchCard[result="win"] { border-left-color: #48c78e; }
 QFrame#MatchCard[result="loss"] { border-left-color: #ef6b73; }
@@ -53,6 +56,10 @@ QLabel#RosterName { font-size: 15px; font-weight: 750; color: #f5f8fc; }
 QLabel#RosterStats { color: #b8c7d8; font-size: 12px; }
 QLabel#TeamHeading[side="ally"] { color: #65dbb5; font-size: 17px; font-weight: 800; }
 QLabel#TeamHeading[side="enemy"] { color: #f08c97; font-size: 17px; font-weight: 800; }
+QLabel#TeamChampion { color: #b7c5d6; font-size: 10px; font-weight: 650; }
+QLabel#Versus { color: #8294a9; font-size: 17px; font-weight: 800; letter-spacing: 2px; }
+QLabel#PerformanceScore { color: #69dfc2; font-size: 30px; font-weight: 800; }
+QLabel#OptimizerScore { color: #75e1ca; font-size: 12px; font-weight: 750; }
 QLabel#MetricValue { color: #dfe7f1; font-weight: 600; }
 QLabel#ContextLine { color: #cbd7e5; background: #182838; border-radius: 7px; padding: 6px 9px; }
 QLabel#TechnicalDetails { color: #8f9daf; background: #0d131b; border-radius: 7px; padding: 9px; font-family: Consolas, monospace; font-size: 11px; }
