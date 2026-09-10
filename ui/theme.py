@@ -29,6 +29,7 @@ QFrame#RosterRow[isPlayer="true"] { background: #17343a; border-color: #48c5ae; 
 QFrame#OptimizerHero { background: #112832; border: 1px solid #3b8490; border-radius: 16px; }
 QFrame#DashboardCard { background: #111d2a; border: 1px solid #2b4056; border-radius: 14px; }
 QFrame#OptimizerPreview { background: #0f2b31; border: 1px solid #348579; border-radius: 14px; }
+QFrame#MetricTile { background: #18293a; border: 1px solid #29445a; border-radius: 9px; }
 QFrame#MatchCard { background: #141b25; border: 1px solid #222d3b; border-left: 4px solid #637083; border-radius: 10px; }
 QFrame#MatchCard[result="win"] { border-left-color: #48c78e; }
 QFrame#MatchCard[result="loss"] { border-left-color: #ef6b73; }
@@ -52,6 +53,9 @@ QLabel#SeverityBadge[tone="high"] { color: #ff9298; background: #3a1f26; }
 QLabel#SeverityBadge[tone="medium"] { color: #f1c76d; background: #342b18; }
 QLabel#SeverityBadge[tone="low"] { color: #b8c3d2; background: #26303d; }
 QLabel#EventTitle { font-size: 16px; font-weight: 750; color: #f5f8fc; }
+QLabel#InsightMarker { background: #1a4350; color: #72e0c7; border-radius: 15px; font-size: 16px; font-weight: 800; min-width: 30px; max-width: 30px; min-height: 30px; max-height: 30px; qproperty-alignment: AlignCenter; }
+QLabel#EventMarker { color: #64d7c0; font-size: 20px; }
+QLabel#InsightFact { color: #9fb0c3; background: #1a2b3c; border-radius: 7px; padding: 4px 7px; font-size: 11px; font-weight: 650; }
 QLabel#RosterName { font-size: 15px; font-weight: 750; color: #f5f8fc; }
 QLabel#RosterStats { color: #b8c7d8; font-size: 12px; }
 QLabel#TeamHeading[side="ally"] { color: #65dbb5; font-size: 17px; font-weight: 800; }

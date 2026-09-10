@@ -51,8 +51,9 @@ class MainWindow(QMainWindow):
             self.player.setText("Joueur local indisponible"); self.api.set_status("UNKNOWN"); self.sync_badge.set_status("OFFLINE")
 
     def navigate(self, index):
-        pages = [self.dashboard_page, self.matches_page, self.progress_page, self.settings_page]
-        if index < 4: pages[index].refresh()
+        # Pages own their initial render. Rebuilding them on every navigation
+        # restarts asset workers and makes the desktop UI look as if it reloads.
+        # Explicit data changes still call refresh_all() after sync/settings.
         self.stack.setCurrentIndex(index); names = ["Tableau de bord", "Historique", "Progression", "Réglages et données", "Analyse post-game"]
         self.page_title.setText(names[index]); [button.setChecked(i == index) for i, button in enumerate(self.nav_buttons)]
 

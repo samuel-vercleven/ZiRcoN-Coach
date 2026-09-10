@@ -287,8 +287,10 @@ class MatchDetailPage(QWidget):
                 label.setWordWrap(True); label.setObjectName("Muted"); summary_layout.addWidget(label)
             boundary = QLabel("Les statuts décrivent le support des données ; la sévérité gameplay est affichée séparément."); boundary.setObjectName("MicroLabel"); boundary.setWordWrap(True); summary_layout.addWidget(boundary)
             layout.addWidget(summary_card)
-            for insight in report.insights:
-                layout.addWidget(InsightCard(insight))
+            insight_grid = QGridLayout(); insight_grid.setHorizontalSpacing(12); insight_grid.setVerticalSpacing(12)
+            for index, insight in enumerate(report.insights):
+                insight_grid.addWidget(InsightCard(insight), index // 2, index % 2)
+            layout.addLayout(insight_grid)
         tabs.addTab(self._scroll_panel(overview), "Analyse coach")
         for insight in report.insights:
             def build(layout, current=insight):
