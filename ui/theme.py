@@ -1,3 +1,18 @@
+def apply_zircon_theme(app) -> None:
+    """Apply a maintained dark-teal Qt base, then ZiRcoN product tokens.
+
+    The local stylesheet intentionally remains last: it protects the product's
+    information hierarchy instead of accepting a generic Material screen.
+    """
+    try:
+        from qt_material import apply_stylesheet
+        apply_stylesheet(app, theme='dark_teal.xml', invert_secondary=False,
+                        extra={'density_scale': '0', 'font_family': 'Segoe UI', 'font_size': '14px'})
+    except (ImportError, RuntimeError):
+        pass
+    app.setStyleSheet(app.styleSheet() + '\n' + APP_STYLESHEET)
+
+
 APP_STYLESHEET = r"""
 * { font-family: "Segoe UI"; font-size: 14px; }
 QWidget { background: #0a1018; color: #e8edf5; }

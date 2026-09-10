@@ -47,7 +47,7 @@ class MatchDetailPage(QWidget):
         self.service, self.analysis, self.optimizer, self.assets = service, analysis, optimizer, assets
         self._optimizer_worker = None; self._optimizer_match_id = None; self._optimizer_layout = None; self._optimizer_preview_layout = None; self._optimizer_version = 0
         root = QVBoxLayout(self); root.setContentsMargins(34, 22, 34, 28); root.setSpacing(14)
-        back = QPushButton("← Historique"); back.setObjectName("BackButton"); back.clicked.connect(self.back_requested); root.addWidget(back)
+        back = QPushButton("Historique"); back.setObjectName("BackButton"); back.clicked.connect(self.back_requested); root.addWidget(back)
         self.host = QWidget(); self.content = QVBoxLayout(self.host); self.content.setContentsMargins(0, 0, 0, 0); self.content.setSpacing(10); root.addWidget(self.host, 1)
         self.load_empty()
 

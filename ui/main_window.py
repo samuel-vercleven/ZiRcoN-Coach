@@ -22,7 +22,7 @@ class MainWindow(QMainWindow):
         brand = QLabel("ZiRcoN Coach"); brand.setObjectName("Brand"); side.addWidget(brand)
         accent = QLabel("POST-GAME FIABLE"); accent.setObjectName("BrandAccent"); side.addWidget(accent); side.addSpacing(24)
         self.nav_buttons = []
-        for label, index in (("◈  Tableau de bord", 0), ("▤  Parties", 1), ("⌁  Progression", 2), ("⚙  Réglages", 3)):
+        for label, index in (("Tableau de bord", 0), ("Parties", 1), ("Progression", 2), ("Réglages", 3)):
             button = QPushButton(label); button.setCheckable(True); button.clicked.connect(lambda checked=False, i=index: self.navigate(i)); side.addWidget(button); self.nav_buttons.append(button)
         side.addStretch(); frozen = QLabel("V0.1 ALPHA\nBackend gelé jusqu’à Phase 2I"); frozen.setObjectName("Muted"); side.addWidget(frozen); outer.addWidget(sidebar)
 

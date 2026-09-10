@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QApplication
 
 from app.bootstrap import build_app_context
 from ui.main_window import MainWindow
-from ui.theme import APP_STYLESHEET
+from ui.theme import apply_zircon_theme
 
 
 class ZirconCoachApplication:
@@ -24,7 +24,7 @@ class ZirconCoachApplication:
         self._qt_app = app
         app.setApplicationName("ZiRcoN Coach")
         app.setApplicationVersion(self.VERSION)
-        app.setStyleSheet(APP_STYLESHEET)
+        apply_zircon_theme(app)
 
         context = build_app_context()
         self._window = MainWindow(context)

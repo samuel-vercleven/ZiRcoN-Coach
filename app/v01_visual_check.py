@@ -8,12 +8,12 @@ from PySide6.QtWidgets import QApplication
 from app.bootstrap import build_app_context
 from app.paths import PROJECT_ROOT
 from ui.main_window import MainWindow
-from ui.theme import APP_STYLESHEET
+from ui.theme import apply_zircon_theme
 
 
 def main() -> None:
     app = QApplication.instance() or QApplication([])
-    app.setStyleSheet(APP_STYLESHEET)
+    apply_zircon_theme(app)
     window = MainWindow(build_app_context())
     target = PROJECT_ROOT / ".cache" / "zircon" / "visual-check"
     target.mkdir(parents=True, exist_ok=True)
