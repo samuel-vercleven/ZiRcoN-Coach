@@ -57,8 +57,8 @@ def main() -> None:
         sample_window = MainWindow(build_app_context(sample_path, settings=sample_settings))
         sample_window.open_match("SAMPLE")
         assert sample_window.stack.currentIndex() == MainWindow.PAGE_MATCH_DETAIL
-        # Compact post-game layout: hero + concise coach summary + tab set.
-        assert sample_window.match_detail_page.content.count() >= 3
+        # Post-game layout: hero + tab set; coach summary now lives in its tab.
+        assert sample_window.match_detail_page.content.count() >= 2
         tabs = sample_window.match_detail_page.findChildren(QTabWidget)
         assert tabs and tabs[0].count() == 8
         sample_window.resize(1100, 700)

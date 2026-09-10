@@ -16,9 +16,9 @@ class MainWindow(QMainWindow):
 
     def __init__(self, context: AppContext, parent=None):
         super().__init__(parent); self.context = context; self.sync_worker = None
-        self.setWindowTitle("ZiRcoN Coach — V0.1 Alpha"); self.resize(1400, 850); self.setMinimumSize(1100, 700)
+        self.setWindowTitle("ZiRcoN Coach — V0.1 Alpha"); self.resize(1600, 960); self.setMinimumSize(1180, 760)
         central = QWidget(); outer = QHBoxLayout(central); outer.setContentsMargins(0, 0, 0, 0); outer.setSpacing(0)
-        sidebar = QFrame(); sidebar.setObjectName("Sidebar"); sidebar.setFixedWidth(210); side = QVBoxLayout(sidebar); side.setContentsMargins(20, 25, 20, 18); side.setSpacing(8)
+        sidebar = QFrame(); sidebar.setObjectName("Sidebar"); sidebar.setFixedWidth(238); side = QVBoxLayout(sidebar); side.setContentsMargins(24, 30, 24, 22); side.setSpacing(10)
         brand = QLabel("ZiRcoN Coach"); brand.setObjectName("Brand"); side.addWidget(brand)
         accent = QLabel("POST-GAME FIABLE"); accent.setObjectName("BrandAccent"); side.addWidget(accent); side.addSpacing(24)
         self.nav_buttons = []
@@ -27,7 +27,7 @@ class MainWindow(QMainWindow):
         side.addStretch(); frozen = QLabel("V0.1 ALPHA\nBackend gelé jusqu’à Phase 2I"); frozen.setObjectName("Muted"); side.addWidget(frozen); outer.addWidget(sidebar)
 
         workspace = QWidget(); work = QVBoxLayout(workspace); work.setContentsMargins(0, 0, 0, 0); work.setSpacing(0)
-        topbar = QFrame(); topbar.setObjectName("Topbar"); top = QHBoxLayout(topbar); top.setContentsMargins(25, 12, 24, 12)
+        topbar = QFrame(); topbar.setObjectName("Topbar"); topbar.setMinimumHeight(68); top = QHBoxLayout(topbar); top.setContentsMargins(30, 14, 30, 14)
         self.page_title = QLabel("Tableau de bord"); self.page_title.setObjectName("SectionTitle"); top.addWidget(self.page_title); top.addStretch()
         self.player = QLabel(); self.player.setObjectName("Muted"); top.addWidget(self.player)
         key_label = QLabel("CLÉ"); key_label.setObjectName("MicroLabel"); top.addWidget(key_label); self.api = StatusBadge("UNKNOWN"); top.addWidget(self.api)

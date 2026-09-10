@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QThreadPool, Signal
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QScrollArea, QTabWidget, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QPushButton, QScrollArea, QTabWidget, QVBoxLayout, QWidget
 
 from services.asset_service import AssetService
 from services.local_data import LocalDataService
@@ -43,7 +43,7 @@ class MatchDetailPage(QWidget):
         super().__init__(parent)
         self.service, self.analysis, self.optimizer, self.assets = service, analysis, optimizer, assets
         self._optimizer_worker = None; self._optimizer_match_id = None; self._optimizer_layout = None; self._optimizer_version = 0
-        root = QVBoxLayout(self); root.setContentsMargins(26, 16, 26, 20); root.setSpacing(10)
+        root = QVBoxLayout(self); root.setContentsMargins(34, 22, 34, 28); root.setSpacing(14)
         back = QPushButton("← Historique"); back.setObjectName("BackButton"); back.clicked.connect(self.back_requested); root.addWidget(back)
         self.host = QWidget(); self.content = QVBoxLayout(self.host); self.content.setContentsMargins(0, 0, 0, 0); self.content.setSpacing(10); root.addWidget(self.host, 1)
         self.load_empty()
@@ -90,27 +90,36 @@ class MatchDetailPage(QWidget):
     def _match_summary_tab(self, tabs, match):
         roster = self.service.match_roster(match.match_id)
         def build(layout):
-            title = QLabel("Résumé global de la partie"); title.setObjectName("SectionTitle"); layout.addWidget(title)
-            note = QLabel("Données finales de la partie : elles servent à comprendre le résultat. Le Build Optimizer utilise séparément une frame antérieure et explicitement datée.")
-            note.setObjectName("Muted"); note.setWordWrap(True); layout.addWidget(note)
+            hero = QFrame(); hero.setObjectName("MatchSummaryHero"); hero_box = QVBoxLayout(hero); hero_box.setContentsMargins(20, 16, 20, 16); hero_box.setSpacing(4)
+            title = QLabel("Résumé global de la partie"); title.setObjectName("SectionTitle"); hero_box.addWidget(title)
+            note = QLabel("Lis la composition, l’économie et les performances des deux équipes avant de juger une recommandation d’objet.")
+            note.setObjectName("Muted"); note.setWordWrap(True); hero_box.addWidget(note); layout.addWidget(hero)
             if not roster:
                 layout.addWidget(EmptyState("Composition indisponible", "Les participants de cette partie ne sont pas présents localement.")); return
             allies = [row for row in roster if not row['is_enemy']]
             enemies = [row for row in roster if row['is_enemy']]
-            for heading, team in (("Votre équipe", allies), ("Équipe adverse", enemies)):
-                label = QLabel(heading); label.setObjectName("CardTitle"); layout.addWidget(label)
+            teams = QGridLayout(); teams.setHorizontalSpacing(16); teams.setVerticalSpacing(0)
+            for column, (heading, team, side) in enumerate((("Votre équipe", allies, "ally"), ("Équipe adverse", enemies, "enemy"))):
+                panel = QFrame(); panel.setObjectName("TeamPanel"); panel.setProperty("side", side); box = QVBoxLayout(panel); box.setContentsMargins(14, 13, 14, 14); box.setSpacing(7)
+                label = QLabel(heading); label.setObjectName("TeamHeading"); label.setProperty("side", side); box.addWidget(label)
                 for row in team:
-                    card = QFrame(); card.setObjectName("CoachCard"); box = QHBoxLayout(card); box.setContentsMargins(11, 8, 11, 8); box.setSpacing(9)
-                    icon = AssetIcon(self.assets, 36); icon.load("champion", row['champion'], match.game_version, row['champion']); box.addWidget(icon)
+                    card = QFrame(); card.setObjectName("RosterRow"); card.setProperty("isPlayer", "true" if row['is_player'] else "false"); line = QHBoxLayout(card); line.setContentsMargins(9, 7, 9, 7); line.setSpacing(8)
+                    icon = AssetIcon(self.assets, 34); icon.load("champion", row['champion'], match.game_version, row['champion']); line.addWidget(icon)
                     text = QVBoxLayout(); name = QLabel(("Vous · " if row['is_player'] else "") + row['champion'] + f" · {row['position']}"); name.setObjectName("EventTitle"); text.addWidget(name)
                     def shown(value): return "—" if value is None else f"{value:,}".replace(',', ' ')
-                    stats = QLabel(f"K/D/A {shown(row['kills'])}/{shown(row['deaths'])}/{shown(row['assists'])}  ·  {shown(row['cs'])} CS  ·  {shown(row['gold'])} or  ·  {shown(row['damage'])} dégâts")
-                    stats.setObjectName("ContextLine"); stats.setWordWrap(True); text.addWidget(stats)
-                    box.addLayout(text, 1)
+                    name.setObjectName("RosterName"); text.addWidget(name)
+                    stats = QLabel(f"{shown(row['kills'])}/{shown(row['deaths'])}/{shown(row['assists'])} KDA   •   {shown(row['cs'])} CS   •   {shown(row['gold'])} or   •   {shown(row['damage'])} dégâts")
+                    stats.setObjectName("RosterStats"); stats.setWordWrap(True); text.addWidget(stats)
+                    line.addLayout(text, 1)
                     items = QHBoxLayout(); items.setSpacing(3)
                     for item_id in row['items'][:6]:
-                        asset = AssetIcon(self.assets, 22); asset.load("item", item_id, match.game_version); items.addWidget(asset)
-                    box.addLayout(items); layout.addWidget(card)
+                        asset = AssetIcon(self.assets, 21); asset.load("item", item_id, match.game_version); items.addWidget(asset)
+                    line.addLayout(items); box.addWidget(card)
+                teams.addWidget(panel, 0, column)
+                teams.setColumnStretch(column, 1)
+            layout.addLayout(teams)
+            boundary = QLabel("Les chiffres de ce résumé sont les données finales. L’onglet Build Optimizer indique séparément la frame exacte utilisée pour son conseil.")
+            boundary.setObjectName("MicroLabel"); boundary.setWordWrap(True); layout.addWidget(boundary)
         tabs.addTab(self._scroll_panel(build), "Résumé de partie")
 
     def _show_optimizer_result(self, match_id, version, result, game_version):
@@ -125,7 +134,7 @@ class MatchDetailPage(QWidget):
             message.setObjectName("Muted"); message.setWordWrap(True); box.addWidget(message)
             note = QLabel("Aucune recommandation n’est inventée lorsque les données locales ne permettent pas de reconstruire un contexte fiable.")
             note.setObjectName("MicroLabel"); note.setWordWrap(True); box.addWidget(note); layout.addWidget(card); layout.addStretch(); return
-        card = QFrame(); card.setObjectName("CoachCard"); box = QVBoxLayout(card); box.setContentsMargins(15, 12, 15, 12); box.setSpacing(8)
+        card = QFrame(); card.setObjectName("OptimizerHero"); box = QVBoxLayout(card); box.setContentsMargins(20, 17, 20, 17); box.setSpacing(10)
         header = QHBoxLayout(); title = QLabel("Recommandation Build Optimizer"); title.setObjectName("SectionTitle"); header.addWidget(title); header.addStretch(); header.addWidget(StatusBadge("AVAILABLE")); box.addLayout(header)
         context = QLabel(f"{result['champion']} · {result['profile']} · snapshot post-game à {result['snapshot_label']} · {result['baseline_samples']} partie(s) de référence")
         context.setObjectName("Muted"); context.setWordWrap(True); box.addWidget(context)
@@ -183,21 +192,20 @@ class MatchDetailPage(QWidget):
         items.addStretch(); title_box.addLayout(items); row.addLayout(title_box, 1)
         report = self.analysis.get_match_insights(match_id); row.addWidget(StatusBadge(report.status)); self.content.addWidget(hero)
 
-        summary_card = QFrame(); summary_card.setObjectName("CoachCard"); summary_layout = QVBoxLayout(summary_card); summary_layout.setContentsMargins(15, 11, 15, 11); summary_layout.setSpacing(5)
-        summary_title = QLabel("Synthèse coach"); summary_title.setObjectName("SectionTitle"); summary_layout.addWidget(summary_title)
-        lines = coach_summary_lines(report)
-        if lines:
-            for line in lines:
-                label = QLabel(f"• {line}"); label.setWordWrap(True); label.setObjectName("ContextLine"); summary_layout.addWidget(label)
-        else:
-            label = QLabel(coach_summary_empty_message(report))
-            label.setWordWrap(True); label.setObjectName("Muted"); summary_layout.addWidget(label)
-        boundary = QLabel("Les statuts décrivent le support des données ; la sévérité gameplay est affichée séparément."); boundary.setObjectName("MicroLabel"); summary_layout.addWidget(boundary)
-        self.content.addWidget(summary_card)
-
         tabs = QTabWidget(); self.tabs = tabs
         self._match_summary_tab(tabs, match)
         def overview(layout):
+            summary_card = QFrame(); summary_card.setObjectName("CoachCard"); summary_layout = QVBoxLayout(summary_card); summary_layout.setContentsMargins(17, 14, 17, 14); summary_layout.setSpacing(7)
+            summary_title = QLabel("Synthèse coach"); summary_title.setObjectName("SectionTitle"); summary_layout.addWidget(summary_title)
+            lines = coach_summary_lines(report)
+            if lines:
+                for line in lines:
+                    label = QLabel(f"• {line}"); label.setWordWrap(True); label.setObjectName("ContextLine"); summary_layout.addWidget(label)
+            else:
+                label = QLabel(coach_summary_empty_message(report))
+                label.setWordWrap(True); label.setObjectName("Muted"); summary_layout.addWidget(label)
+            boundary = QLabel("Les statuts décrivent le support des données ; la sévérité gameplay est affichée séparément."); boundary.setObjectName("MicroLabel"); boundary.setWordWrap(True); summary_layout.addWidget(boundary)
+            layout.addWidget(summary_card)
             for insight in report.insights:
                 layout.addWidget(InsightCard(insight))
         tabs.addTab(self._scroll_panel(overview), "Vue d’ensemble")
