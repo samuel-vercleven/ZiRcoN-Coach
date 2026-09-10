@@ -23,9 +23,12 @@ class MatchesPage(QWidget):
             widget = item.widget()
             if widget:
                 widget.hide(); widget.setParent(None); widget.deleteLater()
-        try: matches = self.service.matches(str(self.filter.currentData() or "ALL"))
-        except Exception: matches = []
+        try:
+            matches = self.service.matches(str(self.filter.currentData() or "ALL"))
+            compositions = self.service.match_compositions(match.match_id for match in matches)
+        except Exception:
+            matches, compositions = [], {}
         self.status.setText(f"{len(matches)} partie(s) locale(s) • analyse fondée sur les sorties FROZEN")
         if not matches: self.list.insertWidget(0, EmptyState("Aucune partie SoloQ", "Synchronisez lorsqu’une clé API est disponible, ou continuez hors ligne."))
         for index, match in enumerate(matches):
-            card = MatchCard(match, self.assets); card.opened.connect(self.open_match); self.list.insertWidget(index, card)
+            card = MatchCard(match, self.assets, compositions.get(match.match_id)); card.opened.connect(self.open_match); self.list.insertWidget(index, card)

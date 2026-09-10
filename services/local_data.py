@@ -202,6 +202,39 @@ class LocalDataService:
                            'trinket': int(row['item6']) if row['item6'] else None, 'win': row['win']})
         return tuple(result)
 
+    def match_compositions(self, match_ids: Iterable[str]) -> dict[str, dict[str, tuple[str, ...]]]:
+        """Batch projection for the match-history matchup preview."""
+        ids = tuple(dict.fromkeys(match_ids))
+        if not ids or not self.is_available():
+            return {}
+        player = self._primary_player()
+        if player is None:
+            return {}
+        placeholders = ','.join('?' for _ in ids)
+        with closing(self._connection()) as connection:
+            rows = connection.execute(
+                f'''SELECT match_id, puuid, team_id, position, champion_name, id
+                    FROM participants WHERE match_id IN ({placeholders})
+                    ORDER BY match_id, team_id, id''', ids,
+            ).fetchall()
+        own_teams = {row['match_id']: row['team_id'] for row in rows if row['puuid'] == player['puuid']}
+        role_order = {'TOP': 0, 'JUNGLE': 1, 'MIDDLE': 2, 'MID': 2, 'BOTTOM': 3, 'ADC': 3, 'UTILITY': 4, 'SUPPORT': 4}
+        result = {match_id: {'allies': [], 'enemies': []} for match_id in ids}
+        grouped: dict[str, list] = {match_id: [] for match_id in ids}
+        for row in rows:
+            grouped.setdefault(row['match_id'], []).append(row)
+        for match_id, participants in grouped.items():
+            own_team = own_teams.get(match_id)
+            if own_team is None:
+                continue
+            for row in sorted(participants, key=lambda value: (value['team_id'] != own_team, role_order.get(str(value['position']).upper(), 9), value['id'])):
+                side = 'allies' if row['team_id'] == own_team else 'enemies'
+                role = str(row['position'] or '').upper()
+                champion = str(row['champion_name'] or 'Inconnu')
+                result[match_id][side].append((role + ' ' if role and role != 'UNKNOWN' else '') + champion)
+        return {match_id: {side: tuple(values) for side, values in composition.items()}
+                for match_id, composition in result.items()}
+
     def progress(self, window: int | None = None) -> ProgressViewModel:
         all_matches = self.matches()
         matches = all_matches[:window] if window else all_matches

@@ -29,6 +29,10 @@ QFrame#OptimizerHero { background: #112832; border: 1px solid #3b8490; border-ra
 QFrame#MatchCard { background: #141b25; border: 1px solid #222d3b; border-left: 4px solid #637083; border-radius: 10px; }
 QFrame#MatchCard[result="win"] { border-left-color: #48c78e; }
 QFrame#MatchCard[result="loss"] { border-left-color: #ef6b73; }
+QFrame#MatchupStrip { background: #101b28; border: 1px solid #24384d; border-radius: 9px; }
+QLabel#MatchupLine { font-size: 12px; font-weight: 600; }
+QLabel#MatchupLine[side="ally"] { color: #77d8b8; }
+QLabel#MatchupLine[side="enemy"] { color: #ef9aa2; }
 QLabel[result="win"] { color: #48c78e; font-weight: 700; }
 QLabel[result="loss"] { color: #ef6b73; font-weight: 700; }
 QLabel#CardTitle { color: #94a5b9; font-size: 11px; font-weight: 700; letter-spacing: 1px; }
