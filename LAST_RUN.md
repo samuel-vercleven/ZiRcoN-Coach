@@ -1,8 +1,41 @@
 # LAST RUN
 
+## Match reference follow-up — 2026-09-23
+
+- Added a mirrored ten-player scoreboard inspired by the supplied reference:
+  slate surface, team totals, saved Riot names, champion portraits, colored KDA,
+  CS/gold, kill participation, vision and two-row item builds with trinkets.
+- History compositions now occupy two compact rows of five portraits.
+- Missing ranks, bans, spells and runes are not fabricated.
+- UI smoke and 30 visual captures: PASS. `main.py`: PASS.
+- Full stabilization run: 42/43 passed initially. The remaining regression was
+  the changed minimum window width; restoring 1100x700 and the sync-label bound
+  fixed it. Its 22 tests passed on rerun. 89 frozen paths unchanged.
+- Human visual review remains required; no freeze or main merge.
+- Final complete rerun after the fix: PASS, 43/43 suites, 89 frozen paths
+  unchanged, secret scan and git diff check passed.
+
 ## Status
 
 PASS / REVIEW_REQUIRED FOR BUILD OPTIMIZER V1 FREEZE. No freeze or merge.
+
+## Native PySide6 UI/UX pass
+
+- Removed `qt-material`; the app now uses only PySide6 plus the local ZiRcoN QSS
+  design system.
+- Corrected startup repaint/reload behavior with one-page startup, one-time lazy
+  page creation, explicit refresh-after-data-change, cache-first shared asset
+  workers and a single-instance process lock.
+- Instrumented startup builds 1 page and 6 match cards in about 0.88 seconds.
+  History creates 24 rows on first access, with explicit incremental loading.
+- Dashboard, sidebar, top bar and History were rebuilt around compact surfaces,
+  stable spacing and a fixed 98 px match grid.
+- Match rows now use champion/item portraits and 5v5 image-driven compositions
+  with tooltips; status metadata is visually secondary.
+- Visual check: PASS, 30 captures at 1600x900 and 1180x720, including all
+  post-game tabs and the populated Build Optimizer view.
+- Frozen backend files modified: 0. Build Optimizer and analyzer behavior remain
+  unchanged. Human visual review is still required; see `UI_UX_REDESIGN_REPORT.md`.
 
 ## Viego contextual pass
 

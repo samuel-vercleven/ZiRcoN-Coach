@@ -35,17 +35,18 @@ def main() -> None:
         context = build_app_context(empty_db_path)
         window = MainWindow(context)
 
-        assert window.stack.count() == 5
-        assert window.stack.currentIndex() == MainWindow.PAGE_DASHBOARD
+        assert window.stack.count() == 1 and window.initialized_page_count == 1
+        assert window.stack.currentWidget() is window.dashboard_page
 
         window.navigate(MainWindow.PAGE_MATCHES)
-        assert window.stack.currentIndex() == MainWindow.PAGE_MATCHES
+        assert window.stack.currentWidget() is window.matches_page
 
         window.navigate(MainWindow.PAGE_PROGRESS)
-        assert window.stack.currentIndex() == MainWindow.PAGE_PROGRESS
+        assert window.stack.currentWidget() is window.progress_page
 
         window.navigate(MainWindow.PAGE_SETTINGS)
-        assert window.stack.currentIndex() == MainWindow.PAGE_SETTINGS
+        assert window.stack.currentWidget() is window.settings_page
+        assert window.stack.count() == 4 and window.initialized_page_count == 4
         assert window.settings_page.key.echoMode() == QLineEdit.EchoMode.Password
 
         window.close()
@@ -56,7 +57,7 @@ def main() -> None:
         sample_settings.save_identity("Sample#EUW", 20)
         sample_window = MainWindow(build_app_context(sample_path, settings=sample_settings))
         sample_window.open_match("SAMPLE")
-        assert sample_window.stack.currentIndex() == MainWindow.PAGE_MATCH_DETAIL
+        assert sample_window.stack.currentWidget() is sample_window.match_detail_page
         # Post-game layout: hero + tab set; coach summary now lives in its tab.
         assert sample_window.match_detail_page.content.count() >= 2
         tabs = sample_window.match_detail_page.findChildren(QTabWidget)

@@ -1,5 +1,27 @@
 # ZiRcoN Coach - Project State
 
+- Match UI reference follow-up (2026-09-23): final-match overview now contains a
+  mirrored scoreboard for both teams with saved names, champion portraits, KDA,
+  farm, gold, participation, vision and builds. History uses two portrait rows.
+  The presentation adds no analytical inference or optimizer inputs.
+
+## Native desktop UI — technical PASS / human visual review required
+
+- Toolkit/theme: pure PySide6 with a custom local ZiRcoN QSS design system;
+  `qt-material` and all third-party theme engines are absent.
+- Startup creates only Dashboard. History, Progress, Settings and Match Detail
+  are created once on first access; normal navigation never refreshes or rebuilds
+  them. A single-instance lock rejects duplicate launches.
+- Asset icons are cache-first, placeholder-first, deduplicated while in flight
+  and limited by a six-worker global pool.
+- Dashboard uses a compact player hero, KPI row and factual coaching action.
+  Sidebar/topbar are quieter and use consistent spacing and action hierarchy.
+- Dashboard and History share one fixed-height match component with champion and
+  item portraits, stable metric columns and 5v5 image compositions. History loads
+  24 rows at a time rather than constructing the complete local corpus.
+- Thirty visual captures pass at 1600x900 and 1180x720. Frozen backend paths and
+  all analytical outputs remain unchanged. See `UI_UX_REDESIGN_REPORT.md`.
+
 ## Build Optimizer v1 — Viego contextual technical PASS; REVIEW_REQUIRED FOR FREEZE
 
 - Model: `DETERMINISTIC_CONTEXTUAL_HEURISTIC_V1`, explicitly not an optimal-build

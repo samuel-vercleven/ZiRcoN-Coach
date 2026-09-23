@@ -18,8 +18,8 @@ def rolling_win_rate(matches, size: int = 5) -> list[float]:
 class ProgressPage(QWidget):
     def __init__(self, service: LocalDataService, assets: AssetService, parent=None):
         super().__init__(parent); self.service, self.assets = service, assets
-        root = QVBoxLayout(self); root.setContentsMargins(26, 20, 26, 22); root.setSpacing(14)
-        head = QHBoxLayout(); title = QLabel("Progression"); title.setObjectName("PageTitle"); head.addWidget(title); head.addStretch(); self.window = QComboBox()
+        root = QVBoxLayout(self); root.setContentsMargins(30, 24, 30, 24); root.setSpacing(14)
+        head = QHBoxLayout(); head.addStretch(); self.window = QComboBox()
         for text, data in (("10 dernières", 10), ("20 dernières", 20), ("50 dernières", 50), ("Tout l’historique", None)): self.window.addItem(text, data)
         self.window.setCurrentIndex(1); self.window.currentIndexChanged.connect(self.refresh); head.addWidget(self.window); root.addLayout(head)
         scroll = QScrollArea(); scroll.setWidgetResizable(True); host = QWidget(); self.layout = QVBoxLayout(host); self.layout.setContentsMargins(0, 0, 8, 0); self.layout.setSpacing(14)

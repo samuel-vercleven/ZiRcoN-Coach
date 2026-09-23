@@ -46,8 +46,8 @@ class MatchDetailPage(QWidget):
         super().__init__(parent)
         self.service, self.analysis, self.optimizer, self.assets = service, analysis, optimizer, assets
         self._optimizer_worker = None; self._optimizer_match_id = None; self._optimizer_layout = None; self._optimizer_preview_layout = None; self._optimizer_version = 0
-        root = QVBoxLayout(self); root.setContentsMargins(34, 22, 34, 28); root.setSpacing(14)
-        back = QPushButton("Historique"); back.setObjectName("BackButton"); back.clicked.connect(self.back_requested); root.addWidget(back)
+        root = QVBoxLayout(self); root.setContentsMargins(30, 24, 30, 24); root.setSpacing(14)
+        back = QPushButton("‹  Retour à l’historique"); back.setObjectName("BackButton"); back.clicked.connect(self.back_requested); root.addWidget(back, 0, Qt.AlignmentFlag.AlignLeft)
         self.host = QWidget(); self.content = QVBoxLayout(self.host); self.content.setContentsMargins(0, 0, 0, 0); self.content.setSpacing(10); root.addWidget(self.host, 1)
         self.load_empty()
 
@@ -93,28 +93,10 @@ class MatchDetailPage(QWidget):
     def _match_summary_tab(self, tabs, match):
         roster = self.service.match_roster(match.match_id)
         def build(layout):
-            hero = QFrame(); hero.setObjectName("MatchSummaryHero"); hero_box = QHBoxLayout(hero); hero_box.setContentsMargins(20, 15, 20, 15); hero_box.setSpacing(12)
-            intro = QVBoxLayout(); title = QLabel("Vue d’ensemble de la partie"); title.setObjectName("SectionTitle"); intro.addWidget(title)
-            note = QLabel("Performance, composition et build dans une seule vue. Les détails restent accessibles dans les onglets.")
-            note.setObjectName("Muted"); note.setWordWrap(True); intro.addWidget(note); hero_box.addLayout(intro, 1); hero_box.addWidget(StatusBadge(match.analysis_status)); layout.addWidget(hero)
             if not roster:
                 layout.addWidget(EmptyState("Composition indisponible", "Les participants de cette partie ne sont pas présents localement.")); return
-            allies = [row for row in roster if not row['is_enemy']]
-            enemies = [row for row in roster if row['is_enemy']]
-            matchup = QFrame(); matchup.setObjectName('MatchupBoard'); matchup_box = QGridLayout(matchup); matchup_box.setContentsMargins(16, 13, 16, 13); matchup_box.setHorizontalSpacing(16)
-            for column, (heading, team, side) in ((0, ("Votre équipe", allies, "ally")), (2, ("Équipe adverse", enemies, "enemy"))):
-                panel = QFrame(); panel.setObjectName("TeamPanel"); panel.setProperty("side", side); box = QVBoxLayout(panel); box.setContentsMargins(12, 10, 12, 10); box.setSpacing(7)
-                label = QLabel(heading); label.setObjectName("TeamHeading"); label.setProperty("side", side); box.addWidget(label)
-                portraits = QHBoxLayout(); portraits.setSpacing(7)
-                for row in team:
-                    champion = QWidget(); champion_box = QVBoxLayout(champion); champion_box.setContentsMargins(0, 0, 0, 0); champion_box.setSpacing(3)
-                    icon = AssetIcon(self.assets, 38); icon.load("champion", row['champion'], match.game_version, row['champion']); icon.setToolTip(f"{row['position']} · {row['champion']} · {row['kills']}/{row['deaths']}/{row['assists']}"); champion_box.addWidget(icon, 0)
-                    name = QLabel(row['champion']); name.setObjectName('TeamChampion'); name.setAlignment(Qt.AlignmentFlag.AlignCenter); champion_box.addWidget(name)
-                    portraits.addWidget(champion)
-                portraits.addStretch(); box.addLayout(portraits); matchup_box.addWidget(panel, 0, column)
-                matchup_box.setColumnStretch(column, 1)
-            versus = QLabel('VS'); versus.setObjectName('Versus'); versus.setAlignment(Qt.AlignmentFlag.AlignCenter); matchup_box.addWidget(versus, 0, 1)
-            layout.addWidget(matchup)
+            from ui.components.scoreboard import Scoreboard
+            layout.addWidget(Scoreboard(roster, self.assets, match))
             player_row = next((row for row in roster if row['is_player']), None)
             opponent = next((row for row in roster if row['is_enemy'] and player_row and row['position'] == player_row['position']), None)
             dashboard = QGridLayout(); dashboard.setHorizontalSpacing(12); dashboard.setVerticalSpacing(12)

@@ -7,10 +7,11 @@ class StatCard(QFrame):
     def __init__(self, title: str, value: str = "—", parent=None) -> None:
         super().__init__(parent)
         self.setObjectName("Card")
+        self.setFixedHeight(82)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(14, 12, 14, 12)
-        layout.setSpacing(5)
+        layout.setContentsMargins(15, 10, 15, 10)
+        layout.setSpacing(3)
 
         title_label = QLabel(title)
         title_label.setObjectName("CardTitle")

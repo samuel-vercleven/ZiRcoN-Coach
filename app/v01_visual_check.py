@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+from PySide6.QtCore import QThreadPool
 from PySide6.QtWidgets import QApplication
 
 from app.bootstrap import build_app_context
@@ -17,7 +18,7 @@ def main() -> None:
     window = MainWindow(build_app_context())
     target = PROJECT_ROOT / ".cache" / "zircon" / "visual-check"
     target.mkdir(parents=True, exist_ok=True)
-    sizes = ((1400, 850, "normal"), (1100, 700, "minimum"))
+    sizes = ((1600, 900, "desktop"), (1180, 720, "minimum"))
     pages = ((0, "dashboard"), (1, "matches"), (2, "progress"), (3, "settings"))
     for width, height, size_name in sizes:
         window.resize(width, height)
@@ -30,6 +31,8 @@ def main() -> None:
     post_game_captures = 0
     if matches:
         window.open_match(matches[0].match_id)
+        QThreadPool.globalInstance().waitForDone(5000)
+        app.processEvents()
         for width, height, size_name in sizes:
             window.resize(width, height)
             for tab_index in range(window.match_detail_page.tabs.count()):

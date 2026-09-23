@@ -17,17 +17,17 @@ class TrendChart(QWidget):
     def paintEvent(self, _event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.fillRect(self.rect(), QColor("#151b25"))
+        painter.fillRect(self.rect(), QColor("#111D2B"))
         available = [float(value) for value in self.values if value is not None]
         if len(available) < 2:
-            painter.setPen(QColor("#7f8b9e"))
+            painter.setPen(QColor("#91A5BB"))
             painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "Données insuffisantes")
             return
         margin = 12
         low, high = min(available), max(available)
         span = max(0.001, high - low)
         width, height = self.width() - margin * 2, self.height() - margin * 2
-        painter.setPen(QPen(QColor("#263142"), 1))
+        painter.setPen(QPen(QColor("#23374B"), 1))
         painter.drawLine(margin, margin + height // 2, margin + width, margin + height // 2)
         points = [None if value is None else QPointF(
             margin + index * width / max(1, len(self.values) - 1),
@@ -37,6 +37,6 @@ class TrendChart(QWidget):
         for first, second in zip(points, points[1:]):
             if first is not None and second is not None:
                 painter.drawLine(first, second)
-        painter.setPen(QColor("#7f8b9e"))
+        painter.setPen(QColor("#91A5BB"))
         painter.drawText(margin, margin + 9, f"{high:.1f}")
         painter.drawText(margin, margin + height, f"{low:.1f}")

@@ -182,7 +182,7 @@ class LocalDataService:
             return ()
         with closing(self._connection()) as connection:
             rows = connection.execute(
-                '''SELECT puuid, team_id, position, champion_name, kills, deaths, assists,
+                '''SELECT puuid, riot_name, riot_tag, team_id, position, champion_name, kills, deaths, assists,
                           cs, gold, damage_to_champions, vision_score,
                           item0, item1, item2, item3, item4, item5, item6, win
                    FROM participants WHERE match_id=? ORDER BY team_id, id''',
@@ -195,6 +195,7 @@ class LocalDataService:
         for row in rows:
             inventory = tuple(int(row[f'item{index}']) for index in range(6) if row[f'item{index}'])
             result.append({'team_id': row['team_id'], 'is_player': row['puuid'] == player['puuid'],
+                           'display_name': (str(row['riot_name']) + (f"#{row['riot_tag']}" if row['riot_tag'] else '')) if row['riot_name'] else row['champion_name'],
                            'is_enemy': own_team is not None and row['team_id'] != own_team,
                            'position': row['position'] or '—', 'champion': row['champion_name'] or 'Inconnu',
                            'kills': row['kills'], 'deaths': row['deaths'], 'assists': row['assists'],

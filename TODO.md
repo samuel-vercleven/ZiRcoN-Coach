@@ -1,5 +1,23 @@
 BUILD OPTIMIZER v1 — CONTEXTUAL RECOMMENDATION PASS
 
+[x] User reference follow-up: mirrored match scoreboard and compact history compositions
+
+NATIVE UI/UX PASS — 2026-09-11
+
+[x] Remove qt-material and external theme engines
+[x] Centralize native ZiRcoN QSS tokens
+[x] Lazy-create heavy pages once at first access
+[x] Prevent navigation refresh/rebuild loops
+[x] Cache-first, deduplicated and bounded asset loading
+[x] Single-instance startup protection
+[x] Compact dashboard, sidebar and topbar
+[x] Fixed-height match grid shared by Dashboard and History
+[x] Champion/item-driven rows and 5v5 portrait compositions
+[x] History pagination in groups of 24
+[x] 30 visual checks at desktop and minimum sizes
+[x] Backend/FROZEN behavior unchanged
+[ ] Human visual review on the user's display
+
 Status 2026-09-10: TECHNICAL PASS / REVIEW_REQUIRED FOR BUILD OPTIMIZER V1
 FREEZE. The engine is `DETERMINISTIC_CONTEXTUAL_HEURISTIC_V1`, never an
 optimal-build or combat simulator. `buy_now` means `IF_SHOPPING_NOW`.
