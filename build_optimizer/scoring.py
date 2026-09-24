@@ -67,12 +67,17 @@ def score_contextual(profile, plan, legality, signals, context, catalog=None):
     """A bounded, directional product heuristic; never combat simulation."""
     traits, values = profile.traits, []
     from build_optimizer.profiles import champion_profile, item_profile
-    champion = champion_profile(context.champion, context.patch)
+    profile_tags = (context.game_state.get('champion_tags', ())
+                    if context.game_state.get('champion_tags_owner') == context.champion else ())
+    champion = champion_profile(context.champion, context.patch, profile_tags)
     if champion is None:
         raise ValueError('UNSUPPORTED_CHAMPION_PROFILE')
     fit = sum(weight for trait, weight in champion.central_trait_weights.items() if trait in traits)
+    profile_label = (f"l’archétype {champion.archetype}"
+                     if champion.version == 'generic_class_build_profile_v1'
+                     else f"le profil {champion.version}")
     values.append(_contribution('ChampionFit', fit,
-        tuple(f'Trait central {trait} compatible avec le profil {champion.version}.'
+        tuple(f'Direction {trait} compatible avec {profile_label}.'
               for trait in champion.central_trait_weights if trait in traits),
         {'profile': champion.version, 'traits': sorted(traits),
          'central_trait_weights': champion.central_trait_weights}))
@@ -80,16 +85,15 @@ def score_contextual(profile, plan, legality, signals, context, catalog=None):
     response, reasons = 0, []
     if s.get('frontline_pressure') in ('HIGH', 'VERY_HIGH') and {'ANTI_HP', 'SUSTAINED_DAMAGE'} & traits:
         response += 10; reasons.append('La pression HP ennemie est élevée dans la référence historique.')
-    if champion.champion == 'Shyvana':
-        if s.get('magic_resist_pressure') in ('HIGH', 'VERY_HIGH') and 'PERCENT_MAGIC_PEN' in traits:
-            response += 12; reasons.append('La résistance magique ennemie est élevée dans la référence historique.')
-        if s.get('frontline_pressure') == 'LOW' and s.get('magic_resist_pressure') in ('LOW', 'NORMAL') and {'BURST', 'FLAT_MAGIC_PEN'} & traits:
-            response += 9; reasons.append('Le profil ennemi relatif favorise une direction burst/pénétration plate.')
-    if champion.champion == 'Viego':
-        if s.get('armor_pressure') in ('HIGH', 'VERY_HIGH') and 'PERCENT_ARMOR_PEN' in traits:
-            response += 12; reasons.append('L’armure ennemie est élevée dans la référence historique.')
-        if s.get('frontline_pressure') == 'LOW' and {'CRIT', 'BURST', 'FLAT_ARMOR_PEN'} & traits:
-            response += 9; reasons.append('Le profil ennemi relatif favorise une direction crit/burst.')
+    if s.get('magic_resist_pressure') in ('HIGH', 'VERY_HIGH') and 'PERCENT_MAGIC_PEN' in traits:
+        response += 12; reasons.append('La résistance magique ennemie est élevée dans la référence historique.')
+    if s.get('armor_pressure') in ('HIGH', 'VERY_HIGH') and 'PERCENT_ARMOR_PEN' in traits:
+        response += 12; reasons.append('L’armure ennemie est élevée dans la référence historique.')
+    if s.get('frontline_pressure') == 'LOW':
+        if s.get('magic_resist_pressure') in ('LOW', 'NORMAL') and {'BURST', 'FLAT_MAGIC_PEN'} & traits:
+            response += 9; reasons.append('La composition observée peut favoriser burst / pénétration magique plate.')
+        if s.get('armor_pressure') in ('LOW', 'NORMAL') and {'CRIT', 'BURST', 'FLAT_ARMOR_PEN'} & traits:
+            response += 9; reasons.append('La composition observée peut favoriser crit / burst / pénétration physique plate.')
     if s.get('physical_threat') == 'VERY_HIGH' and {'DEFENSE_ARMOR', 'STASIS'} & traits:
         response += 15; reasons.append('La menace physique relative est très élevée.')
     if s.get('magic_threat') == 'VERY_HIGH' and {'DEFENSE_MR', 'SPELL_SHIELD'} & traits:

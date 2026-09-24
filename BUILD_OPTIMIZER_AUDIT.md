@@ -2,7 +2,9 @@
 
 ## Scope and frozen boundary
 
-This pass extends only `build_optimizer/`. Death v11, Tempo v17, Objectives
+The original Viego contextual pass extended only `build_optimizer/`. The later
+all-champion coverage extension also updates its local presentation/replay
+bridge, but does not modify frozen analyzer foundations. Death v11, Tempo v17, Objectives
 v20, Reset v21, Itemization v22 and knowledge foundations 2A–2I remain
 FROZEN. The existing prefix projection, frozen Item Knowledge and v22 recipe
 consumption are reused; no UI, network access, ML, damage simulator or hidden
@@ -12,6 +14,25 @@ The product contract remains `DETERMINISTIC_CONTEXTUAL_HEURISTIC_V1`:
 deterministic, bounded and explainable, but neither a combat calculation nor a
 proof of an optimal build. A recommendation is conditional on
 `IF_SHOPPING_NOW`; shop access itself remains unmodeled.
+
+## Champion coverage extension — REVIEW_REQUIRED
+
+The frozen v22 match itemization reconstruction is champion-agnostic. The
+contextual recommender now retains its reviewed Shyvana and Viego profiles and
+adds a generic fallback for any champion with exact-patch Data Dragon class
+tags (`Fighter`, `Mage`, `Assassin`, `Tank`, `Marksman`, `Support`). Generic
+champion fit is deliberately class-level, not a champion-specific build or kit
+model. It uses the existing exact-patch reviewed item declarations as a broad
+candidate whitelist and generalizes enemy armor/MR/frontline response by item
+traits. Unknown class metadata and unsupported patches still abstain.
+
+The fallback does not make every item relevant to every champion, nor does it
+validate build quality. Candidate/semantic coverage is reported separately.
+The audited local catalogs now include exact patches 16.8, 16.9, 16.11, 16.12,
+16.14, 16.15, 16.16, 16.17 and 16.18. All existing Shyvana fingerprints match
+these catalogs; Viego has 11/12 matching item fingerprints on 16.8–16.15 (item
+6610 fails closed) and 12/12 on 16.16–16.18. The all-champion replay and human
+gameplay review remain required before acceptance or freeze.
 
 ## Viego possession audit
 

@@ -4,7 +4,10 @@ from dataclasses import dataclass
 MODEL_KIND = 'DETERMINISTIC_CONTEXTUAL_HEURISTIC_V1'
 SHYVANA_AP_PROFILE_VERSION = 'shyvana_ap_build_profile_v1'
 VIEGO_PROFILE_VERSION = 'viego_build_profile_v1'
-SUPPORTED_PATCHES = frozenset({'16.9', '16.16', '16.17', '16.18'})
+GENERIC_CLASS_PROFILE_VERSION = 'generic_class_build_profile_v1'
+SUPPORTED_PATCHES = frozenset({
+    '16.8', '16.9', '16.11', '16.12', '16.14', '16.15', '16.16', '16.17', '16.18',
+})
 
 
 @dataclass(frozen=True)
@@ -52,11 +55,12 @@ _VIEGO_ITEMS = {
 }
 
 _ITEMS_BY_CHAMPION = {'Shyvana': _SHYVANA_ITEMS, 'Viego': _VIEGO_ITEMS}
+_GENERIC_ITEMS = {**_SHYVANA_ITEMS, **_VIEGO_ITEMS}
 
 
 def item_profile(item, patch, champion=None):
     """Return a profile only when its exact patch facts still match review."""
-    contracts = _ITEMS_BY_CHAMPION.get(champion) if champion else _SHYVANA_ITEMS
+    contracts = _ITEMS_BY_CHAMPION.get(champion, _GENERIC_ITEMS) if champion else _GENERIC_ITEMS
     if patch not in SUPPORTED_PATCHES or not contracts or item.item_id not in contracts:
         return None
     traits, total, components = contracts[item.item_id]
@@ -99,7 +103,41 @@ VIEGO = ChampionBuildProfile(
 )
 
 
-def champion_profile(champion, patch):
+_CLASS_TRAIT_WEIGHTS = {
+    'Mage': {'AP': 10, 'ABILITY_HASTE': 5, 'RAW_DAMAGE': 5, 'BURST': 3, 'PERCENT_MAGIC_PEN': 3},
+    'Assassin': {'BURST': 8, 'RAW_DAMAGE': 5, 'AD': 4, 'AP': 4,
+                 'FLAT_ARMOR_PEN': 2, 'FLAT_MAGIC_PEN': 2},
+    'Fighter': {'AD': 8, 'ATTACK_SPEED': 4, 'SUSTAINED_DAMAGE': 5, 'HEALTH': 4, 'ON_HIT': 3},
+    'Tank': {'HEALTH': 8, 'ARMOR': 5, 'MR': 5, 'SURVIVABILITY': 5,
+             'DEFENSE_ARMOR': 3, 'DEFENSE_MR': 3},
+    'Marksman': {'AD': 8, 'ATTACK_SPEED': 7, 'CRIT': 6, 'SUSTAINED_DAMAGE': 5, 'ON_HIT': 3},
+    'Support': {'ABILITY_HASTE': 7, 'UTILITY': 7, 'SURVIVABILITY': 6, 'HEALTH': 4, 'AP': 4},
+}
+
+
+def champion_profile(champion, patch, champion_tags=()):
+    """Use a reviewed champion contract or a deliberately broad class fallback.
+
+    The generic fallback consumes only exact-patch Data Dragon class tags. It
+    does not claim a champion-specific build, role or ability damage model.
+    """
     if patch not in SUPPORTED_PATCHES:
         return None
-    return {'Shyvana': SHYVANA_AP, 'Viego': VIEGO}.get(champion)
+    reviewed = {'Shyvana': SHYVANA_AP, 'Viego': VIEGO}.get(champion)
+    if reviewed is not None:
+        return reviewed
+    classes = sorted(set(champion_tags or ()) & _CLASS_TRAIT_WEIGHTS.keys())
+    if not classes:
+        return None
+    weights = {}
+    for class_name in classes:
+        for trait, weight in _CLASS_TRAIT_WEIGHTS[class_name].items():
+            weights[trait] = max(weights.get(trait, 0), weight)
+    defensive = frozenset(trait for trait in weights if trait in {
+        'HEALTH', 'ARMOR', 'MR', 'SURVIVABILITY', 'DEFENSE_ARMOR', 'DEFENSE_MR',
+        'STASIS', 'SPELL_SHIELD',
+    })
+    return ChampionBuildProfile(
+        champion, '+'.join(classes), GENERIC_CLASS_PROFILE_VERSION,
+        frozenset(weights), defensive, weights,
+    )

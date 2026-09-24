@@ -4,6 +4,38 @@
 
 **TECHNICAL PASS / REVIEW_REQUIRED / NO FREEZE.**
 
+## All-champion extension — technical PASS, gameplay REVIEW_REQUIRED
+
+The full gate passed after expanding exact-patch support to all nine locally
+cached catalogs: 16.8, 16.9, 16.11, 16.12, 16.14, 16.15, 16.16, 16.17 and
+16.18. Every champion record in those catalogs has a reviewed Shyvana/Viego or
+generic Data Dragon class profile (172–233 champion records per patch).
+
+| Measure | Result |
+|---|---:|
+| Local SoloQ games | 143 |
+| Games with an admitted champion profile | 143 |
+| Generic class-profile games | 39 |
+| Snapshots replayed | 572 |
+| Nonempty recommendations | 92 |
+| Games with at least one recommendation | 41 |
+| Champions with at least one recommendation | 7 of 11 |
+| Invalid emitted purchases / temporal leaks | 0 / 0 |
+| Score recomposition errors / untraceable explanations | 0 / 0 |
+| Unsupported-patch games after expansion | 0 |
+
+The 480 snapshot abstentions are intentional gates, not missing champion
+profiles. `INVENTORY_UNRELIABLE` appeared on 469 abstentions and
+`HISTORICAL_BASELINE_UNAVAILABLE` on 112 (reasons overlap). A read-only
+shop-only experiment changed 379/572 reconstructed inventory states and caused
+374 over-capacity warnings, so the ambiguous event stream was not discarded to
+inflate recommendation coverage. The UI now states abstention reasons in player
+language. The 92 outputs satisfy technical invariants, not gameplay quality.
+
+The earlier Viego-only replay results below are historical evidence for that
+prior implementation and are not a separate validation of all class-specific
+gameplay advice. Status remains **TECHNICAL PASS / REVIEW_REQUIRED / NO FREEZE**.
+
 The contextual engine emits real, nonempty Viego recommendations under the
 explicit heuristic contract. This is not a validation that those recommendations
 are gameplay-optimal; human gameplay review remains required.

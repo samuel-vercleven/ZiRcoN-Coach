@@ -21,31 +21,46 @@ from build_optimizer.signals import build_baseline
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def sources(champions=('Shyvana', 'Viego')):
+def sources(champions=None):
     local = LocalDataService(DEFAULT_DB_PATH, settings=RuntimeSettingsService())
     player = local.player()
     assert player.puuid, 'LOCAL_PLAYER_UNAVAILABLE'
     with sqlite3.connect(DEFAULT_DB_PATH) as connection:
-        placeholders = ','.join('?' for _ in champions)
-        rows = connection.execute(
-            f'''SELECT m.match_id, m.game_creation FROM matches m JOIN participants p ON p.match_id=m.match_id
-                WHERE p.puuid=? AND p.champion_name IN ({placeholders}) AND m.queue_id=420
-                ORDER BY m.game_creation, m.match_id''', (player.puuid, *champions)).fetchall()
+        query = '''SELECT m.match_id, m.game_creation FROM matches m JOIN participants p ON p.match_id=m.match_id
+                   WHERE p.puuid=? AND m.queue_id=420'''
+        params = [player.puuid]
+        if champions:
+            placeholders = ','.join('?' for _ in champions)
+            query += f' AND p.champion_name IN ({placeholders})'
+            params.extend(champions)
+        query += ' ORDER BY m.game_creation, m.match_id'
+        rows = connection.execute(query, params).fetchall()
     for match_id, creation in rows:
         yield creation, load_game_context(DEFAULT_DB_PATH, match_id, player.puuid)
 
 
-def run(champions=('Shyvana', 'Viego')):
-    catalogs, history, counts, rows = {}, defaultdict(list), Counter(), []
+def run(champions=None):
+    catalogs, history, counts, abstention_warnings, rows = {}, defaultdict(list), Counter(), Counter(), []
     for creation, game in sources(champions):
         patch = patch_of(game.game_state.get('patch'))
         champion = game.player.get('championName')
         counts['games_seen'] += 1
         counts[f'{str(champion).lower()}_games_seen'] += 1
-        if patch not in SUPPORTED_PATCHES or champion_profile(champion, patch) is None:
+        if patch not in SUPPORTED_PATCHES:
             counts['unsupported_patch_games'] += 1
             continue
-        catalog, champions = catalogs.setdefault(patch, exact_catalogs(patch))
+        if patch not in catalogs:
+            catalogs[patch] = exact_catalogs(patch)
+        catalog, champion_records = catalogs[patch]
+        champion_record = champion_records.get(champion) or {}
+        profile = champion_profile(champion, patch, champion_record.get('tags', ()))
+        if profile is None:
+            counts['unsupported_champion_profile_games'] += 1
+            continue
+        counts[f'{str(champion).lower()}_profile_games'] += 1
+        if profile.version == 'generic_class_build_profile_v1':
+            counts['generic_profile_games'] += 1
+            counts[f'{str(champion).lower()}_generic_profile_games'] += 1
         optimizer = BuildOptimizer(catalog)
         game_contexts = []
         for nominal in TIMESTAMPS:
@@ -53,10 +68,10 @@ def run(champions=('Shyvana', 'Viego')):
             if not frames:
                 continue
             timestamp = max(frames)
-            context = build_context(game, timestamp, catalog, champions)
+            context = build_context(game, timestamp, catalog, champion_records)
             counts['candidate_snapshots'] += 1
             # Future poison must not alter the exact as-of recommendation.
-            poisoned = build_context(mutate_future(game, timestamp), timestamp, catalog, champions)
+            poisoned = build_context(mutate_future(game, timestamp), timestamp, catalog, champion_records)
             assert context == poisoned, 'CONTEXTUAL_FUTURE_CONTEXT_LEAKAGE'
             baseline = build_baseline(history[patch], context)
             recommendation = optimizer.recommend(context, baseline)
@@ -67,6 +82,7 @@ def run(champions=('Shyvana', 'Viego')):
             if recommendation.target_item is None:
                 counts['abstentions'] += 1
                 counts[f'{str(champion).lower()}_abstentions'] += 1
+                abstention_warnings.update(recommendation.warnings)
                 continue
             plan = optimizer.planner.plan(recommendation.target_item, context.inventory, context.gold)
             try:
@@ -83,7 +99,10 @@ def run(champions=('Shyvana', 'Viego')):
             counts['nonempty_recommendations'] += 1
             counts[f'{str(champion).lower()}_nonempty_recommendations'] += 1
             rows.append({'match_id': context.match_id, 'game_creation': creation, 'timestamp': timestamp,
-                         'champion': champion, 'profile': champion_profile(champion, patch).version,
+                         'champion': champion, 'profile': profile.version,
+                         'profile_archetype': profile.archetype,
+                         'profile_scope': ('GENERIC_CLASS_ARCHETYPE' if profile.version == 'generic_class_build_profile_v1'
+                                           else 'CHAMPION_SPECIFIC_REVIEWED'),
                          'patch': patch, 'inventory': context.inventory, 'gold': context.gold,
                          'baseline_samples': baseline.sample_count, 'target_item': recommendation.target_item,
                          'buy_now': [asdict(step) for step in recommendation.buy_now],
@@ -96,6 +115,7 @@ def run(champions=('Shyvana', 'Viego')):
     result = {'status': 'PASS' if counts['nonempty_recommendations'] else 'REVIEW_REQUIRED',
               'counts': dict(counts), 'invalid_purchases': 0, 'future_leakage': 0,
               'score_recomputation_errors': 0, 'untraceable_explanations': 0,
+              'abstention_warning_counts': dict(sorted(abstention_warnings.items())),
               'rows': rows, 'model_kind': 'DETERMINISTIC_CONTEXTUAL_HEURISTIC_V1'}
     folder = ROOT / 'logs/build_optimizer'
     folder.mkdir(parents=True, exist_ok=True)
@@ -106,6 +126,6 @@ def run(champions=('Shyvana', 'Viego')):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--champion', action='append', choices=('Shyvana', 'Viego'))
+    parser.add_argument('--champion', action='append', help='Limiter le replay à un ou plusieurs champions (par défaut : tous).')
     args = parser.parse_args()
-    run(tuple(args.champion) if args.champion else ('Shyvana', 'Viego'))
+    run(tuple(args.champion) if args.champion else None)

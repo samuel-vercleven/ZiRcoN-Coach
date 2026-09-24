@@ -1,6 +1,24 @@
 # ZiRcoN native UI/UX redesign
 
-Final complete validation rerun: 43/43 suites PASS; 89 frozen paths unchanged.
+Player coaching v1 adds player-facing review cards to Match Overview and Coach.
+Each card separates the observed signal, why it is worth revisiting, a replay or
+next-game experiment, and event/phase evidence. Wording is tailored to death,
+tempo/pathing, and post-shop production signals while clearly stating what those
+signals cannot prove. Only findings explicitly marked supported are included;
+missing/partial evidence produces an abstention message. This is deterministic
+presentation logic, not an ML model. Human review remains necessary before any
+coaching freeze.
+
+The Build Optimizer match panel now distinguishes reviewed champion-specific
+profiles from the broader Data Dragon class fallback and only shows Viego's
+possession limitation for Viego. The nine-patch all-champion replay and technical
+gates pass; generic gameplay quality still requires human review. Exact-patch
+support remains limited to the catalogs listed in `PROJECT_STATE.md`.
+
+Historical note: the validation figures below apply to the earlier UI redesign,
+not to the original coaching implementation. The current all-champion gate also
+reran the 43-suite Stable Base and UI smoke/semantics checks. Coach wording and
+gameplay usefulness still need human review.
 
 Reference follow-up, 2026-09-23: the match overview now uses a slate mirrored
 scoreboard with saved participant names, colored KDA, CS/gold, kill participation,

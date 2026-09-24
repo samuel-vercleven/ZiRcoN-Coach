@@ -6,6 +6,18 @@ Freeze when measurement semantics are coherent, real-game audit is plausible, no
 
 ## Build Optimizer contextual heuristic v1 — REVIEW_REQUIRED, not FROZEN
 
+### All-champion class fallback — proposed, REVIEW_REQUIRED
+
+- Keep manually reviewed Shyvana and Viego profiles as-is. Other champions may
+  use a fallback derived only from exact-patch Data Dragon class tags, with a
+  broad shared whitelist of already reviewed item semantic profiles.
+- This is a coverage mechanism, not a champion-specific build model. The score
+  must expose the generic profile scope and limitations; unsupported patch or
+  missing class metadata still abstains.
+- No gameplay-quality claim or freeze is made until all-champion replay gates
+  and human review of representative classes (including Support and hybrids)
+  have passed.
+
 - The product contract is `DETERMINISTIC_CONTEXTUAL_HEURISTIC_V1`, not a combat
   simulator, causal claim, probability or optimal-build proof.
 - `shyvana_ap_build_profile_v1` remains experimental and

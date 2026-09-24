@@ -1,5 +1,40 @@
 # ZiRcoN Coach - Project State
 
+## Build Optimizer champion coverage extension — REVIEW_REQUIRED / NO FREEZE
+
+- Build / Itemization Analyzer v22 remains champion-agnostic and unchanged. The
+  contextual optimizer now keeps reviewed Shyvana/Viego profiles and can use a
+  broad class-based fallback for champions with exact-patch Data Dragon tags.
+- Generic scoring uses the existing exact-patch item-profile whitelist and
+  class-level champion fit; it is explicitly less personalized than a reviewed
+  champion profile. Exact catalogs are available for 16.8, 16.9, 16.11, 16.12,
+  16.14, 16.15, 16.16, 16.17 and 16.18. Viego item 6610 fails its exact
+  fingerprint on 16.8–16.15 and is excluded there.
+- The first generalized replay passed its invariants on the original four
+  patches; the final nine-patch replay and complete build gates now pass:
+  143/143 games profiled, 572 snapshots, 92 valid/traceable recommendations
+  across 41 games and 7/11 played champions, 0 invalid buys/leaks/score errors.
+- 480 snapshots abstained, mostly because inventory reconstruction is ambiguous;
+  an experiment that omitted destruction events changed 379/572 inventory
+  states and inflated slot-capacity warnings, so the strict gate remains.
+  Human gameplay review is still required; no freeze.
+
+## Player coaching v1 — REVIEW_REQUIRED
+
+- Match overview and Coach tab turn explicitly `supported=True` findings into
+  player-facing review cards: observation, why it is useful to revisit, an
+  event/phase evidence cue, and a concrete next-game experiment.
+- Death, pathing/tempo, and post-shop production signals get tailored wording
+  that explains their scope and limits. Advice is framed as a replay question
+  or experiment, never as a proven cause or guaranteed fix.
+- The presentation links findings to the corresponding local event/phase when
+  possible and retains analyzer/version traceability. Missing or partial data
+  produces an abstention message rather than fabricated advice.
+- This remains a deterministic layer over cached analyzer outputs, not an ML
+  coach. Frozen analyzer and optimizer scoring files were not changed. No tests
+  or runtime validation were run for this update; human product review is still
+  needed before any freeze.
+
 - Match UI reference follow-up (2026-09-23): final-match overview now contains a
   mirrored scoreboard for both teams with saved names, champion portraits, KDA,
   farm, gold, participation, vision and builds. History uses two portrait rows.
@@ -131,10 +166,10 @@ Frozen means: no retuning/refactor without a demonstrated correctness or integra
 - Real five-match adapter audit cross-checked 20 Tempo phases, 38 objective events, 50 reset events and five builds: required non-null field occurrences mapped 313/313, 1,099/1,099 and 1,574/1,574 respectively.
 - Validation: focused adapter/account/UI regressions, API/sync mocks, malformed Retry-After, Windows SQLite lifecycle, offscreen smoke, 22 native visual captures across all post-game tabs at 1400x850 and 1100x700, real analyzer audits, `run_app.py`, `main.py`, FROZEN guard and secret scan all pass.
 - Status: `PASS / REVIEW_REQUIRED FOR ALPHA FREEZE`; V0.1 is not frozen and no V0.2/backend phase was started.
-- Match detail now includes a local-only `Build Optimizer` tab. For supported
-  Shyvana/Viego exact-patch replays it displays the latest admissible post-game
-  snapshot recommendation, score, recipe steps, alternatives and explicit
-  heuristic/possession limitations. Missing local exact catalogs, data or
+- Match detail includes a local-only `Build Optimizer` tab. For exact supported
+  patches it displays a latest admissible recommendation using a reviewed
+  Shyvana/Viego profile or, for other tagged champions, a less-personalized
+  Data Dragon class profile. Missing local catalogs, data or historical
   baseline render a reasoned abstention; the UI never downloads a catalog.
 
 ## Stat Owner Semantics Foundation Phase 2I v1

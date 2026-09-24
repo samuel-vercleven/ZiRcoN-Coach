@@ -163,6 +163,11 @@ def build_context(game: GameContext, timestamp: int, catalog: CatalogView, champ
         states[pid] = UnitState(pid, champion, subject['teamId'], level, total_gold, inventory, reliability,
                                 tuple(sorted(set(notes))), stats)
     own = states[game.player['participantId']]
+    champion_record = champions.get(own.champion) or {}
+    champion_tags = tuple(tag for tag in champion_record.get('tags', ()) if isinstance(tag, str))
+    if (patch_of(champion_record.get('ddragon_version')) != catalog.patch
+            or champion_record.get('version_fallback_used') is not False):
+        champion_tags = ()
     warnings.extend(own.warnings)
     own_frame = (sample.get('participantFrames') or {}).get(str(own.participant_id)) or {}
     gold = own_frame.get('currentGold')
@@ -180,6 +185,8 @@ def build_context(game: GameContext, timestamp: int, catalog: CatalogView, champ
     own_total = sum(u.total_gold for u in states.values() if u.team_id == own.team_id and u.total_gold is not None)
     enemy_total = sum(u.total_gold for u in states.values() if u.team_id != own.team_id and u.total_gold is not None)
     state = {'queue_id': game.game_state.get('queue_id'), 'source': 'RIOT_RAW_LOCAL_PREFIX',
+             'champion_tags': champion_tags,
+             'champion_tags_owner': own.champion,
              'time_precision': 'FRAME_SAMPLED', 'role_status': 'POSTGAME_ROLE_NOT_ADMITTED',
              'shop_access': 'UNMODELED', 'inventory_completeness': 'UNMODELED',
              'enemy_visibility': 'UNMODELED',

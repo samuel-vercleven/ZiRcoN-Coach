@@ -47,7 +47,9 @@ class BuildOptimizer:
             warnings.add('INVENTORY_UNRELIABLE')
         if context.gold is None:
             warnings.add('CURRENT_GOLD_UNRESOLVED')
-        profile = champion_profile(context.champion, context.patch)
+        profile_tags = (context.game_state.get('champion_tags', ())
+                        if context.game_state.get('champion_tags_owner') == context.champion else ())
+        profile = champion_profile(context.champion, context.patch, profile_tags)
         signals = game_signals(context, baseline)
         essential = {'CURRENT_GOLD_UNRESOLVED', 'INVENTORY_UNRELIABLE', 'CONTEXT_CATALOG_PATCH_MISMATCH', 'UNSUPPORTED_QUEUE'}
         diagnostic_context = not warnings & essential
@@ -73,12 +75,22 @@ class BuildOptimizer:
                 offensive = next((x[0] for x in candidates[1:] if {'BURST', 'RAW_DAMAGE', 'SUSTAINED_DAMAGE'} & x[3].traits), None)
                 defensive = next((x[0] for x in candidates[1:] if {'SURVIVABILITY', 'STASIS', 'SPELL_SHIELD'} & x[3].traits), None)
                 alternatives = tuple(x for x in (offensive, defensive) if x is not None)
-                coverage = 1.0
+                eligible_count = sum(1 for item in self.catalog.items.values()
+                                     if not item.structural_blockers and item.total_cost is not None)
+                profiled_count = sum(1 for item in self.catalog.items.values()
+                                     if not item.structural_blockers
+                                     and item_profile(item, context.patch, context.champion) is not None)
+                coverage = profiled_count / max(1, eligible_count)
+                result_warnings = set(context.warnings) | set(best['warnings'])
+                if profile.version == 'generic_class_build_profile_v1':
+                    result_warnings.add('GENERIC_DDRAGON_CLASS_PROFILE')
                 return BuildRecommendation('SUPPORTED_HEURISTIC', best['target_item'], tuple(plan.steps), best['score'],
                     tuple(best['score_breakdown']), alternatives, tuple(best['positive_reasons']),
-                    tuple(sorted(set(context.warnings) | set(best['warnings']))), context.timestamp,
+                    tuple(sorted(result_warnings)), context.timestamp,
                     tuple(), 'IF_SHOPPING_NOW', 'UNMODELED', MODEL_KIND, coverage,
-                    'MEDIUM', ('Heuristic product contract; not a combat simulation or optimality proof.',))
+                    'MEDIUM', ('Heuristic product contract; not a combat simulation or optimality proof.',
+                    *(('Champion fit uses broad Data Dragon class tags, not a champion-specific build profile.',)
+                      if profile.version == 'generic_class_build_profile_v1' else ())))
         if diagnostic_context:
             plans = self.planner.candidates(context.inventory, context.gold)
             for plan in plans:

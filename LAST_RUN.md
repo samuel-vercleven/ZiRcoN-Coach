@@ -1,5 +1,55 @@
 # LAST RUN
 
+## All-champion Build Optimizer coverage — 2026-09-24
+
+- Added a generic champion-class profile fallback using exact-patch Data Dragon
+  tags while retaining reviewed Shyvana and Viego profiles.
+- Generalized the item-semantic candidate pool from the existing reviewed
+  whitelists and made armor/MR/frontline contextual responses champion-neutral.
+- The contextual replay now defaults to every local SoloQ champion and accepts
+  any champion filter. Unsupported patches and missing class metadata still
+  abstain; Build / Itemization Analyzer v22 itself was not changed.
+- Updated the match Build Optimizer panel to identify generic class profiles
+  and show their lower personalization; Viego-only limitations are no longer
+  shown on other champions.
+- Focused checks passed (7 contextual, 23 optimizer); the first all-champion
+  replay covered 96/143 games on the original four patches. It was superseded
+  by the nine-patch run below.
+- Read-only audit: all champion catalog records receive a profile on each of
+  nine exact cached patches (172–233/patch). Existing Shyvana fingerprints
+  match all; Viego has 11/12 matches on 16.8–16.15 and 12/12 on 16.16–16.18.
+  Viego item 6610 fails price/recipe fingerprint on the older patches and is
+  excluded. Unsupported patch games fell from 47 to 0.
+- Final replay: 143 games, 572 snapshots, all 143 games got a champion profile;
+  39 games used generic class profiles. It emitted 92 recommendations across
+  41 games and 7 champions; zero invalid purchases, future leaks, score errors
+  or untraceable explanations. 480 snapshots abstained, chiefly due to
+  unreliable reconstructed inventory (469; counters overlap).
+- A read-only shop-only inventory experiment changed 379/572 reconstructed
+  states and produced 374 over-capacity warnings (versus 58 with the full
+  event stream), so ambiguous destruction events were not dropped to force more
+  recommendations. The UI now explains abstentions in player-facing language.
+- Full gate: 43/43 suites, Stable Base, recipe/golden/historical/contextual
+  replay, 89 frozen paths unchanged, 204 files scanned, `git diff --check` all
+  PASS. Final state remains **REVIEW_REQUIRED / NO FREEZE** for human gameplay
+  review of the generalized recommendations.
+
+## Player coaching v1 — 2026-09-24
+
+- Upgraded the match Coach tab from short analyzer findings to a player-facing
+  review: what was observed, why it is worth revisiting, evidence tied to the
+  matching event/phase, and one next-game experiment.
+- Added dedicated cautious wording for death-cost signals, tempo/pathing phases,
+  and post-shop production signals. Cards state the limits of each signal and
+  retain analyzer/version traceability; unsupported findings remain excluded.
+- The match overview shows the leading review prompt. Empty/partial data explains
+  why ZiRcoN is abstaining rather than inventing advice.
+- This remains deterministic coaching over existing cached findings, not an
+  ML model or a causal diagnosis. Analyzer outputs, optimizer scoring and FROZEN
+  files were not changed.
+- No tests or runtime validation were run in this turn. Human product review is
+  still required before any coaching freeze.
+
 ## Match reference follow-up — 2026-09-23
 
 - Added a mirrored ten-player scoreboard inspired by the supplied reference:

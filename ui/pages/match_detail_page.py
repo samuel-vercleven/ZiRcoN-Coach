@@ -10,12 +10,14 @@ from services.build_optimizer_presentation import BuildOptimizerPresentationServ
 from ui.components.asset_icon import AssetIcon
 from ui.components.empty_state import EmptyState
 from ui.components.insight_card import AnalyzerEventCard, InsightCard
+from ui.components.coaching_card import CoachingCard
 from ui.components.gold_timeline import GoldTimeline
 from ui.components.moments_timeline import MomentsTimeline
 from ui.components.performance_gauge import PerformanceGauge
 from ui.components.status_badge import SeverityBadge, StatusBadge
 from ui.workers import FunctionWorker
 from viewmodels import CoachingReport
+from ui.player_coach import coaching_empty_message, coaching_focuses
 
 
 def coach_summary_lines(report: CoachingReport) -> tuple[str, ...]:
@@ -90,13 +92,18 @@ class MatchDetailPage(QWidget):
         worker.signals.finished.connect(lambda current=worker: setattr(self, '_optimizer_worker', None) if self._optimizer_worker is current else None)
         self._optimizer_worker = worker; QThreadPool.globalInstance().start(worker)
 
-    def _match_summary_tab(self, tabs, match):
+    def _match_summary_tab(self, tabs, match, report):
         roster = self.service.match_roster(match.match_id)
         def build(layout):
             if not roster:
                 layout.addWidget(EmptyState("Composition indisponible", "Les participants de cette partie ne sont pas présents localement.")); return
             from ui.components.scoreboard import Scoreboard
             layout.addWidget(Scoreboard(roster, self.assets, match))
+            focuses = coaching_focuses(report, limit=1)
+            if focuses:
+                layout.addWidget(CoachingCard(focuses[0], compact=True))
+            else:
+                prompt = QLabel(coaching_empty_message(report)); prompt.setObjectName('Muted'); prompt.setWordWrap(True); layout.addWidget(prompt)
             player_row = next((row for row in roster if row['is_player']), None)
             opponent = next((row for row in roster if row['is_enemy'] and player_row and row['position'] == player_row['position']), None)
             dashboard = QGridLayout(); dashboard.setHorizontalSpacing(12); dashboard.setVerticalSpacing(12)
@@ -212,7 +219,9 @@ class MatchDetailPage(QWidget):
             note.setObjectName("MicroLabel"); note.setWordWrap(True); box.addWidget(note); layout.addWidget(card); layout.addStretch(); return
         card = QFrame(); card.setObjectName("OptimizerHero"); box = QVBoxLayout(card); box.setContentsMargins(20, 17, 20, 17); box.setSpacing(10)
         header = QHBoxLayout(); title = QLabel("Recommandation Build Optimizer"); title.setObjectName("SectionTitle"); header.addWidget(title); header.addStretch(); header.addWidget(StatusBadge("AVAILABLE")); box.addLayout(header)
-        context = QLabel(f"{result['champion']} · {result['profile']} · snapshot post-game à {result['snapshot_label']} · {result['baseline_samples']} partie(s) de référence")
+        profile_label = (f"profil de classe {result.get('profile_archetype')}" if result.get('profile_scope') == 'GENERIC_CLASS_ARCHETYPE'
+                         else f"profil spécifique {result.get('profile_archetype') or result['profile']}")
+        context = QLabel(f"{result['champion']} · {profile_label} · snapshot post-game à {result['snapshot_label']} · {result['baseline_samples']} partie(s) de référence")
         context.setObjectName("Muted"); context.setWordWrap(True); box.addWidget(context)
         choice = QHBoxLayout(); icon = AssetIcon(self.assets, 46); icon.load("item", result.get('target_item'), game_version, result.get('target_name') or '?'); choice.addWidget(icon)
         choice_text = QVBoxLayout(); item_name = QLabel(result.get('target_name') or 'Objet inconnu'); item_name.setObjectName("EventTitle"); choice_text.addWidget(item_name)
@@ -240,7 +249,12 @@ class MatchDetailPage(QWidget):
                 readable.append(enemy.get('champion', 'Inconnu') + (f" ({', '.join(stats)})" if stats else ""))
             matchup = QLabel("Composition adverse à cette frame : " + " · ".join(readable))
             matchup.setObjectName("ContextLine"); matchup.setWordWrap(True); box.addWidget(matchup)
-        limitation = QLabel("Heuristique déterministe, pas un simulateur de combat ni une preuve d’item optimal. Les possessions Viego et ses stats personnelles restent explicitement hors modèle.")
+        limitations = ["Heuristique déterministe, pas un simulateur de combat ni une preuve d’item optimal."]
+        if result.get('profile_scope') == 'GENERIC_CLASS_ARCHETYPE':
+            limitations.append("Profil générique fondé sur les classes Data Dragon : moins personnalisé qu’un profil champion revu manuellement.")
+        if result.get('champion') == 'Viego':
+            limitations.append("L’inventaire possédé et les stats personnelles affectées par sa possession restent hors modèle.")
+        limitation = QLabel(" ".join(limitations))
         limitation.setObjectName("MicroLabel"); limitation.setWordWrap(True); box.addWidget(limitation)
         layout.addWidget(card); layout.addStretch()
 
@@ -269,19 +283,19 @@ class MatchDetailPage(QWidget):
         report = self.analysis.get_match_insights(match_id); row.addWidget(StatusBadge(report.status)); self.content.addWidget(hero)
 
         tabs = QTabWidget(); self.tabs = tabs
-        self._match_summary_tab(tabs, match)
+        self._match_summary_tab(tabs, match, report)
         self._story_tab(tabs, match)
         def overview(layout):
             summary_card = QFrame(); summary_card.setObjectName("CoachCard"); summary_layout = QVBoxLayout(summary_card); summary_layout.setContentsMargins(17, 14, 17, 14); summary_layout.setSpacing(7)
             summary_title = QLabel("Synthèse coach"); summary_title.setObjectName("SectionTitle"); summary_layout.addWidget(summary_title)
-            lines = coach_summary_lines(report)
-            if lines:
-                for line in lines:
-                    label = QLabel(f"• {line}"); label.setWordWrap(True); label.setObjectName("ContextLine"); summary_layout.addWidget(label)
+            focuses = coaching_focuses(report)
+            if focuses:
+                for focus in focuses:
+                    summary_layout.addWidget(CoachingCard(focus))
             else:
-                label = QLabel(coach_summary_empty_message(report))
+                label = QLabel(coaching_empty_message(report))
                 label.setWordWrap(True); label.setObjectName("Muted"); summary_layout.addWidget(label)
-            boundary = QLabel("Les statuts décrivent le support des données ; la sévérité gameplay est affichée séparément."); boundary.setObjectName("MicroLabel"); boundary.setWordWrap(True); summary_layout.addWidget(boundary)
+            boundary = QLabel("Ces pistes aident à revoir la partie et à tester une habitude. Elles n’attribuent pas une cause certaine au résultat."); boundary.setObjectName("MicroLabel"); boundary.setWordWrap(True); summary_layout.addWidget(boundary)
             layout.addWidget(summary_card)
             insight_grid = QGridLayout(); insight_grid.setHorizontalSpacing(12); insight_grid.setVerticalSpacing(12)
             for index, insight in enumerate(report.insights):

@@ -2,6 +2,13 @@ BUILD OPTIMIZER v1 — CONTEXTUAL RECOMMENDATION PASS
 
 [x] User reference follow-up: mirrored match scoreboard and compact history compositions
 
+PLAYER COACHING V1 — 2026-09-24
+
+[x] Compose match-specific review priorities from explicitly supported findings
+[x] Explain the observation, why to review it, event evidence, and a practical next-game experiment
+[x] Keep causal claims and unsupported praise out of the coaching layer
+[ ] Human review of recommendation wording and gameplay usefulness
+
 NATIVE UI/UX PASS — 2026-09-11
 
 [x] Remove qt-material and external theme engines
@@ -41,3 +48,12 @@ optimal-build or combat simulator. `buy_now` means `IF_SHOPPING_NOW`.
 [ ] Human gameplay review of emitted Viego recommendations
 [x] Commit and push `feature/build-optimizer` after all final gates pass
 [x] REVIEW_REQUIRED — never freeze automatically
+
+BUILD OPTIMIZER — ALL-CHAMPION COVERAGE EXTENSION — 2026-09-24
+
+[x] Add exact-patch Data Dragon class-profile fallback while retaining reviewed champion profiles
+[x] Generalize contextual item traits and enemy response across champion classes
+[x] Generalize local chronological replay to all SoloQ champions by default
+[x] Expand exact-patch allowlist to all nine audited local catalogs; stale item fingerprints fail closed
+[x] Run all-champion replay, legality/recipe/temporal gates, and inspect per-champion coverage
+[ ] Human review generic class-based recommendations; do not freeze automatically
