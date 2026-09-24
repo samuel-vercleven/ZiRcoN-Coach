@@ -13,7 +13,7 @@ ANALYZER_CACHE_VERSIONS = {
     "death": "death_analyzer_v11__v01_adapter_v4",
     "tempo": "jungle_tempo_pathing_v17__v01_adapter_v4",
     "objectives": "objective_analyzer_v20__v01_adapter_v4",
-    "resets": "recall_reset_v21__v01_adapter_v3",
+    "resets": "recall_reset_v21__v01_adapter_v4",
     "build": "itemization_v22_phase1__v01_adapter_v4",
 }
 

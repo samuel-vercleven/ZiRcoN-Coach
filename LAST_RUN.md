@@ -1,5 +1,46 @@
 # LAST RUN
 
+## Coaching après-match — contexte objectif / mort autour d’un reset — 2026-09-24
+
+- Audit des rapports pré-existants : 421/421 findings supportés sur 45 parties
+  avaient un événement source associé, mais les cartes omettaient des repères
+  de contexte déjà observés par l’adaptateur.
+- Le coach exploite désormais la fenêtre d’objectif, un retour boutique après
+  mort, ou une mort observée dans les 120 s suivant un proxy de reset pour
+  formuler une question de replay et une expérience adaptées. Ces séquences ne
+  sont jamais présentées comme une causalité ou un jugement du reset.
+- Libellés de séquence/fenêtre traduits en français ; Reset adapter cache v4.
+  Régénération hors ligne des rapports locaux pour 143 parties / 715 rapports,
+  sans appel Riot. Les 143 parties disposent maintenant d’un rapport courant.
+- Audit courant : 1 174/1 174 findings supportés liés à un événement, 134/143
+  parties avec une piste coach, réparties entre 579 findings reset, 576 morts,
+  19 tempo. Une seule carte par famille est gardée dans la synthèse.
+- Tests sémantiques et adapteurs, app smoke et rendu visuel 30 captures : PASS.
+  Audit adaptateur réel : 5 parties, 18 événements tempo, 34 objectifs et 49
+  resets recoupés aux données sources — PASS. Review humaine sur l’écran et de
+  la qualité gameplay toujours nécessaire.
+
+## Coaching après-match — contextualisation des retours boutique — 2026-09-24
+
+- Audit avant correction : sur 45 parties ayant des rapports courants, les
+  421 constats coach supportés pointaient chacun vers un événement local, mais
+  les cartes n’exposaient pas le timing d’objectif et certains suivis de mort.
+- Le rendu post-boutique utilise maintenant le contexte exact de l’événement :
+  fenêtre avant/après objectif, boutique après mort ou mort observée dans les
+  120 s qui suivent un proxy de reset. L’expérience proposée devient spécifique
+  au cas et reste une question de replay, jamais une attribution causale.
+- Les libellés de ces fenêtres sont traduits en français. Le cache de présentation
+  Reset passe en v4. Les analyses locales ont été régénérées hors ligne pour
+  143 parties (715 rapports), sans appel Riot ; couverture courante : 143/143.
+- Audit du cache courant : 1 174/1 174 findings supportés ont un événement source,
+  134 parties font ressortir au moins une priorité coach. Répartition des
+  findings : resets 579, morts 576, tempo 19. Une priorité par famille demeure
+  dans la synthèse ; le détail complet reste dans les onglets d’analyse.
+- Vérification adaptateur réelle (5 parties) : 18 événements tempo, 34 objectifs,
+  49 resets comparés aux sorties brutes — PASS. Tests sémantiques, adaptateurs,
+  smoke UI et rendu visuel 30 captures : PASS. Revue humaine du gameplay et de
+  l’affichage sur le PC de l’utilisateur toujours requise.
+
 ## Coaching après-match — navigation et diversité — 2026-09-24
 
 - La synthèse coach n’affiche maintenant qu’une priorité par famille d’analyse,

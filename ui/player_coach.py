@@ -108,10 +108,33 @@ def _focus_for(insight: InsightViewModel, finding: dict) -> CoachingFocus:
     elif "reset" in source or "reset" in title.casefold() or "shop" in title.casefold():
         score = metrics.get("Production après reset vs historique", "")
         observation = f"Après le retour boutique vers {time}, la production observée est sous la référence historique{f' ({score})' if score else ''}." if time else detail
-        why = "C’est utile pour examiner comment la reprise s’est enchaînée après la boutique ; ce constat ne dit pas que le retour boutique était mauvais."
-        action = "À ton prochain retour, annonce-toi une destination de reprise (camp, lane ou préparation d’objectif) avant de quitter la base ; revois ensuite si ton premier trajet t’en a rapproché."
+        origin = metrics.get("Origine", "").casefold()
+        objective_timing = metrics.get("Timing objectif", "").casefold()
+        event_context = tuple(str(value).casefold() for value in (event.get("context", ()) if event else ()))
+        is_post_death = "mort" in origin
+        death_followed_reset = any("mort observée dans les 120 s" in value for value in event_context)
+        is_objective_window = any(token in objective_timing for token in ("objectif", "dragon", "héraut", "baron"))
+        if is_post_death:
+            why = "Après une mort, ce repère porte sur la production observée à la reprise ; il ne juge ni la mort ni la qualité du retour pris isolément."
+            action = "Sur le replay, distingue le temps d’absence, le retour sur la carte et ton premier déplacement. À la prochaine reprise comparable, choisis une destination puis vérifie si tu pouvais réellement l’atteindre à temps."
+        elif death_followed_reset:
+            why = "Une mort est observée dans les 120 secondes après ce proxy de reset. La séquence mérite un replay, mais les données ne prouvent pas que le retour ou le trajet l’a provoquée."
+            action = "Revois le trajet après la boutique et le contexte juste avant cette mort. À une situation comparable, choisis ton premier déplacement en tenant compte des menaces et des alliés visibles, puis vérifie si tu as pu rejoindre ta priorité."
+        elif is_objective_window:
+            why = "Le timing du retour par rapport aux objectifs aide à revoir si ta reprise te laissait le temps de rejoindre ta prochaine priorité. Le score de production ne suffit pas à juger le reset."
+            action = "Dans le replay, compare le temps restant avant l’objectif au moment où tu retrouves la carte. À un cas similaire, annonce ta destination avant de quitter la base et vérifie si tu arrives à temps pour la priorité choisie."
+        else:
+            why = "C’est utile pour examiner comment la reprise s’est enchaînée après la boutique ; ce constat ne dit pas que le retour boutique était mauvais."
+            action = "À ton prochain retour, annonce-toi une destination de reprise (camp, voie ou préparation d’objectif) avant de quitter la base ; revois ensuite si ton premier trajet t’en a rapproché."
         if score:
             evidence.append(f"Production après reset vs historique : {score}")
+        for context_line in (event.get("context", ()) if event else ()):
+            context_line = str(context_line)
+            lowered_context = context_line.casefold()
+            if "timing objectif" in lowered_context or "mort observée" in lowered_context:
+                evidence.append(f"Contexte observé : {context_line}")
+            elif "gold non dépensé" in lowered_context:
+                evidence.append(f"Contexte exploratoire : {context_line}")
         limitation = "Le retour est reconstruit à partir d’un proxy boutique, et la production postérieure est comparée à l’historique ; aucune causalité du reset n’est établie."
         coach_title = "Mieux relier boutique et reprise"
     else:

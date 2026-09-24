@@ -59,6 +59,9 @@ def main() -> None:
     rendered = str(reset)
     assert "Production après reset vs historique" in rendered
     assert "objective_timing" in _metric_keys(reset)
+    reset_metrics = {metric["label"]: metric["value"] for event in reset["events"] for metric in event["metrics"]}
+    assert reset_metrics["Timing objectif"] == "avant un objectif"
+    assert reset_metrics["Séquence"] == "reset volontaire — contexte neutre"
     assert "post_player_xp_per_min/post_player_jungle_cs_per_min" in _metric_keys(reset)
     assert "mauvais reset" not in rendered.lower() and "excellent recall" not in rendered.lower()
     assert reset["findings"] and "ne qualifie pas causalement" in reset["findings"][0]["detail"]

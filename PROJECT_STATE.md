@@ -43,6 +43,18 @@
   captures pass. Human review on the user's display and gameplay usefulness
   remain REVIEW_REQUIRED.
 
+- Reset-coaching context follow-up (2026-09-24): real-report audit found
+  421/421 supported findings link to a source event, but the player-facing card
+  omitted useful objective timing and reset-origin context. The presentation
+  now localizes objective-window/reset-sequence labels and turns observed
+  pre-objective or post-death context into a tailored, explicitly non-causal
+  replay question, including deaths observed within 120 seconds after a reset
+  proxy without implying that the reset caused the death. Reset adapter cache
+  version is v4; local reports were regenerated offline (143 matches, 715
+  reports). Current local audit: 1,174/1,174 supported findings link to an
+  event, 134 matches expose at least one coach priority, and a 5-match real
+  adapter audit passes (49 reset events). Human review remains required.
+
 - Match UI reference follow-up (2026-09-23): final-match overview now contains a
   mirrored scoreboard for both teams with saved names, champion portraits, KDA,
   farm, gold, participation, vision and builds. History uses two portrait rows.
@@ -113,7 +125,7 @@
 - Branch `stabilization/stable-base-v1`, source restoration tag `pre-stabilization-v1`.
 - Baseline 41/41 suites; final 43/43 suites plus 22 focused unittest regressions pass; 159 modules compile; 89 frozen files unchanged.
 - Account-bound analysis cache is additive; unscoped legacy rows remain stored but
-  are not treated as current-player evidence. Death/Tempo/Objectives/Build use presentation v4; Reset v3.
+  are not treated as current-player evidence. Death/Tempo/Objectives/Build use presentation v4; Reset v4.
 - A minimal `GameContext` validates local raw inputs before admitting reports;
   missing timelines, role ambiguity and missing resources fail explicitly.
 - Missing KDA/CS/duration/result stay missing through DTOs, charts and aggregates.

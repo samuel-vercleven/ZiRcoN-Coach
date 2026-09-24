@@ -89,6 +89,35 @@ def main() -> None:
     varied = coaching_focuses(varied_report)
     assert len(varied) == 2 and [item.source_tab_title for item in varied] == ["Recalls / Resets", "Objectifs"]
 
+    reset_report = CoachingReport("m", (
+        InsightViewModel("RESETS", "Recalls / Resets", "x", status="AVAILABLE", source_module="resets",
+                         findings=({"title": "Production après reset à 04:59",
+                                    "detail": "Production observée sous la référence historique v21 (38.8/100, N=26).",
+                                    "severity": "MEDIUM", "supported": True},),
+                         events=({"title": "Reset / shop à 04:59", "metrics": [
+                             {"label": "Origine", "value": "proxy de reset volontaire"},
+                             {"label": "Timing objectif", "value": "avant un objectif"},
+                             {"label": "Production après reset vs historique", "value": "38.8/100 · sous la référence"},
+                         ], "context": ["timing objectif : avant un objectif · suivant DRAGON (111 s)"]},)),
+    ), "AVAILABLE")
+    reset_focus, = coaching_focuses(reset_report)
+    assert "temps" in reset_focus.why_review and "objectif" in reset_focus.next_game_experiment
+    assert any("DRAGON (111 s)" in value for value in reset_focus.evidence)
+    assert "ne suffit pas à juger le reset" in reset_focus.why_review
+
+    death_after_reset_report = CoachingReport("m", (
+        InsightViewModel("RESETS", "Recalls / Resets", "x", status="AVAILABLE", source_module="resets",
+                         findings=({"title": "Production après reset à 03:35", "detail": "Sous la référence historique.", "severity": "MEDIUM", "supported": True},),
+                         events=({"title": "Reset / shop à 03:35", "metrics": [
+                             {"label": "Origine", "value": "proxy de reset volontaire"},
+                             {"label": "Production après reset vs historique", "value": "5.2/100 · faible"},
+                         ], "context": ["mort observée dans les 120 s après le proxy de reset"]},)),
+    ), "AVAILABLE")
+    death_after_reset, = coaching_focuses(death_after_reset_report)
+    assert "Une mort est observée" in death_after_reset.why_review
+    assert "ne prouvent pas" in death_after_reset.why_review
+    assert "menaces" in death_after_reset.next_game_experiment
+
     tabs = QTabWidget(); overview_tab = QWidget(); coach_tab = QWidget(); death_tab = QWidget()
     tabs.addTab(overview_tab, "Vue d’ensemble"); tabs.addTab(coach_tab, "Analyse coach")
     tabs.addTab(death_tab, focus.source_tab_title)

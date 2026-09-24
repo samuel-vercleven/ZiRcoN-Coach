@@ -22,6 +22,13 @@ _FR_ENUMS = {
     "SECURED": "sécurisé", "LOST": "perdu", "LOST_WITH_COMPENSATION": "perdu avec compensation",
     "VOLUNTARY_RESET_PROXY": "proxy de reset volontaire", "DEATH_RESET": "retour après mort",
     "VOLUNTARY_NEUTRAL": "reset volontaire — contexte neutre", "WARMUP": "historique insuffisant",
+    "POST_DEATH_SHOP": "retour boutique après une mort",
+    "TIGHT_PRE_OBJECTIVE": "juste avant un objectif", "PRE_OBJECTIVE": "avant un objectif",
+    "BETWEEN_OBJECTIVES": "entre deux objectifs", "POST_OBJECTIVE": "après un objectif",
+    "VOLUNTARY_TIGHT_PRE_OBJECTIVE": "retour volontaire juste avant un objectif",
+    "VOLUNTARY_PRE_OBJECTIVE": "retour volontaire avant un objectif",
+    "VOLUNTARY_BETWEEN_OBJECTIVES": "retour volontaire entre deux objectifs",
+    "VOLUNTARY_POST_OBJECTIVE": "retour volontaire après un objectif",
     "GOOD": "au-dessus de la référence", "EXCELLENT": "très au-dessus de la référence",
     "BELOW_BASELINE": "sous la référence", "UNKNOWN": "inconnu",
 }

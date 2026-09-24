@@ -10,6 +10,7 @@ PLAYER COACHING V1 — 2026-09-24
 [x] De-duplicate the summary to one priority per analyzer family while retaining all detailed events
 [x] Link coaching cards directly to the matching source-analysis tab
 [x] Add targeted coaching semantics/navigation checks and rerun desktop UI captures
+[x] Use observed objective/reset context in post-shop coaching wording; keep it non-causal
 [ ] Human review of recommendation wording and gameplay usefulness
 [ ] Human visual review on the user's display
 
