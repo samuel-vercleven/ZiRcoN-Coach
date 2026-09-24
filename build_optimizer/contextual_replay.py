@@ -40,7 +40,8 @@ def sources(champions=None):
 
 
 def run(champions=None):
-    catalogs, history, counts, abstention_warnings, rows = {}, defaultdict(list), Counter(), Counter(), []
+    catalogs, history, counts = {}, defaultdict(list), Counter()
+    abstention_warnings, abstention_warnings_by_champion, rows = Counter(), defaultdict(Counter), []
     for creation, game in sources(champions):
         patch = patch_of(game.game_state.get('patch'))
         champion = game.player.get('championName')
@@ -83,6 +84,7 @@ def run(champions=None):
                 counts['abstentions'] += 1
                 counts[f'{str(champion).lower()}_abstentions'] += 1
                 abstention_warnings.update(recommendation.warnings)
+                abstention_warnings_by_champion[champion].update(recommendation.warnings)
                 continue
             plan = optimizer.planner.plan(recommendation.target_item, context.inventory, context.gold)
             try:
@@ -116,6 +118,10 @@ def run(champions=None):
               'counts': dict(counts), 'invalid_purchases': 0, 'future_leakage': 0,
               'score_recomputation_errors': 0, 'untraceable_explanations': 0,
               'abstention_warning_counts': dict(sorted(abstention_warnings.items())),
+              'abstention_warning_counts_by_champion': {
+                  champion: dict(sorted(warnings.items()))
+                  for champion, warnings in sorted(abstention_warnings_by_champion.items())
+              },
               'rows': rows, 'model_kind': 'DETERMINISTIC_CONTEXTUAL_HEURISTIC_V1'}
     folder = ROOT / 'logs/build_optimizer'
     folder.mkdir(parents=True, exist_ok=True)

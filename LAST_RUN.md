@@ -1,5 +1,23 @@
 # LAST RUN
 
+## Build Optimizer — per-champion abstention audit — 2026-09-24
+
+- Complete all-champion contextual replay: PASS, 143 games / 572 snapshots,
+  92 nonempty recommendations, 480 abstentions; 0 invalid purchases, future
+  leaks, score recomputation errors, or untraceable explanations.
+- Added and verified per-champion abstention warning totals. Their merged counts
+  exactly equal global warning counts.
+- All four played champions with no emitted recommendation (Diana, DrMundo,
+  Leona, Zyra; 14 snapshots) had `INVENTORY_UNRELIABLE` on every snapshot.
+  Each has an exact-patch generic class profile, so the immediate issue is not
+  missing champion profiles. Shyvana, Viego and Bel'Veth have the largest
+  affected abstention pools (240/241, 105/108, 66/67 respectively).
+- The data does not justify dropping ambiguous item-destruction events or
+  relaxing legality/inventory gates. Human gameplay review of generic-class
+  recommendations and the product's visual review remain required; no freeze.
+- Focused verification: contextual checks 7/7, UI/status semantics PASS, and
+  post-game app smoke PASS. No optimizer scoring or frozen analyzer logic changed.
+
 ## Coaching après-match — contexte objectif / mort autour d’un reset — 2026-09-24
 
 - Audit des rapports pré-existants : 421/421 findings supportés sur 45 parties

@@ -61,4 +61,5 @@ BUILD OPTIMIZER — ALL-CHAMPION COVERAGE EXTENSION — 2026-09-24
 [x] Generalize local chronological replay to all SoloQ champions by default
 [x] Expand exact-patch allowlist to all nine audited local catalogs; stale item fingerprints fail closed
 [x] Run all-champion replay, legality/recipe/temporal gates, and inspect per-champion coverage
+[x] Report contextual abstention reasons by champion to diagnose no-recommendation coverage
 [ ] Human review generic class-based recommendations; do not freeze automatically

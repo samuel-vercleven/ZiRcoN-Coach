@@ -17,6 +17,14 @@
 - 480 snapshots abstained, mostly because inventory reconstruction is ambiguous;
   an experiment that omitted destruction events changed 379/572 inventory
   states and inflated slot-capacity warnings, so the strict gate remains.
+- Per-champion abstention diagnostics now reconcile exactly to the global warning
+  counts. In the 143-game replay, the four champions with no emitted build
+  recommendation (Diana, DrMundo, Leona, Zyra; 14 snapshots total) all had
+  unreliable inventory reconstruction in every snapshot; their candidate class
+  profiles existed, so missing profile coverage was not the cause. The largest
+  affected pools were Shyvana (240/241 abstentions), Viego (105/108), and
+  Bel'Veth (66/67). This is a data/reconstruction limitation, not evidence to
+  weaken legality or inventory gates.
   Human gameplay review is still required; no freeze.
 
 ## Player coaching v1 — REVIEW_REQUIRED
