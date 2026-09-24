@@ -69,6 +69,16 @@ class MatchDetailPage(QWidget):
         builder(layout); layout.addStretch(); scroll.setWidget(host); return scroll
 
     @staticmethod
+    def _open_tab(tabs: QTabWidget, title: str):
+        """Resolve the tab only when clicked, after lazy detail tabs exist."""
+        def open_tab():
+            for index in range(tabs.count()):
+                if tabs.tabText(index) == title:
+                    tabs.setCurrentIndex(index)
+                    return
+        return open_tab
+
+    @staticmethod
     def _clear_layout(layout):
         while layout.count():
             item = layout.takeAt(0)
@@ -101,7 +111,10 @@ class MatchDetailPage(QWidget):
             layout.addWidget(Scoreboard(roster, self.assets, match))
             focuses = coaching_focuses(report, limit=1)
             if focuses:
-                layout.addWidget(CoachingCard(focuses[0], compact=True))
+                layout.addWidget(CoachingCard(
+                    focuses[0], compact=True,
+                    open_source=self._open_tab(tabs, "Analyse coach"),
+                ))
             else:
                 prompt = QLabel(coaching_empty_message(report)); prompt.setObjectName('Muted'); prompt.setWordWrap(True); layout.addWidget(prompt)
             player_row = next((row for row in roster if row['is_player']), None)
@@ -291,7 +304,10 @@ class MatchDetailPage(QWidget):
             focuses = coaching_focuses(report)
             if focuses:
                 for focus in focuses:
-                    summary_layout.addWidget(CoachingCard(focus))
+                    summary_layout.addWidget(CoachingCard(
+                        focus,
+                        open_source=self._open_tab(tabs, focus.source_tab_title),
+                    ))
             else:
                 label = QLabel(coaching_empty_message(report))
                 label.setWordWrap(True); label.setObjectName("Muted"); summary_layout.addWidget(label)

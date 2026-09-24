@@ -7,7 +7,11 @@ PLAYER COACHING V1 — 2026-09-24
 [x] Compose match-specific review priorities from explicitly supported findings
 [x] Explain the observation, why to review it, event evidence, and a practical next-game experiment
 [x] Keep causal claims and unsupported praise out of the coaching layer
+[x] De-duplicate the summary to one priority per analyzer family while retaining all detailed events
+[x] Link coaching cards directly to the matching source-analysis tab
+[x] Add targeted coaching semantics/navigation checks and rerun desktop UI captures
 [ ] Human review of recommendation wording and gameplay usefulness
+[ ] Human visual review on the user's display
 
 NATIVE UI/UX PASS — 2026-09-11
 

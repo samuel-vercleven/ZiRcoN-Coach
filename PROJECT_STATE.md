@@ -31,9 +31,17 @@
   possible and retains analyzer/version traceability. Missing or partial data
   produces an abstention message rather than fabricated advice.
 - This remains a deterministic layer over cached analyzer outputs, not an ML
-  coach. Frozen analyzer and optimizer scoring files were not changed. No tests
-  or runtime validation were run for this update; human product review is still
-  needed before any freeze.
+  coach. Frozen analyzer and optimizer scoring files were not changed. The
+  initial coaching pass did not include tests; the follow-up validation is
+  recorded below. Human product review is still needed before any freeze.
+
+- Follow-up UX check (2026-09-24): the match summary now prioritizes at most one
+  supported coaching focus per analyzer family, so repeated reset/death signals
+  do not crowd out other areas. Full event history remains available in each
+  analyzer tab. Coaching cards link to their source analysis; the overview
+  shortcut opens Analyse coach. Targeted semantic tests, app smoke and 30 visual
+  captures pass. Human review on the user's display and gameplay usefulness
+  remain REVIEW_REQUIRED.
 
 - Match UI reference follow-up (2026-09-23): final-match overview now contains a
   mirrored scoreboard for both teams with saved names, champion portraits, KDA,

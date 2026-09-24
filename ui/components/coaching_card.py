@@ -1,4 +1,7 @@
-from PySide6.QtWidgets import QFrame, QLabel, QVBoxLayout
+from collections.abc import Callable
+
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QFrame, QLabel, QPushButton, QVBoxLayout
 
 from ui.player_coach import CoachingFocus
 
@@ -6,7 +9,8 @@ from ui.player_coach import CoachingFocus
 class CoachingCard(QFrame):
     """Readable, traceable single coaching focus."""
 
-    def __init__(self, focus: CoachingFocus, compact: bool = False, parent=None):
+    def __init__(self, focus: CoachingFocus, compact: bool = False,
+                 open_source: Callable[[], None] | None = None, parent=None):
         super().__init__(parent)
         self.setObjectName("CoachCard")
         layout = QVBoxLayout(self)
@@ -52,3 +56,9 @@ class CoachingCard(QFrame):
             source.setObjectName("MicroLabel")
             source.setWordWrap(True)
             layout.addWidget(source)
+        if open_source is not None:
+            action = QPushButton("Ouvrir l’analyse coach" if compact else "Voir les événements associés")
+            action.setObjectName("GhostButton")
+            action.setCursor(Qt.CursorShape.PointingHandCursor)
+            action.clicked.connect(open_source)
+            layout.addWidget(action)

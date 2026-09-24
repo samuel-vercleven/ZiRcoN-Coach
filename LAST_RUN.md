@@ -1,5 +1,25 @@
 # LAST RUN
 
+## Coaching après-match — navigation et diversité — 2026-09-24
+
+- La synthèse coach n’affiche maintenant qu’une priorité par famille d’analyse,
+  pour éviter que plusieurs retours boutique similaires masquent les autres
+  signaux. Tous les événements détaillés restent présents dans leurs onglets.
+- Les cartes de coaching proposent une action ouvrant directement l’onglet
+  d’analyse source ; le raccourci depuis le résumé mène à Analyse coach.
+- Tests de sémantique couvrant le rattachement d’un finding à l’événement de
+  18:42, les preuves factuelles, la diversité des priorités et les deux liens :
+  PASS. Smoke UI : PASS. Rendu UI : PASS (30 captures, écrans 1600x900 et
+  1180x720, plus les captures de détails de partie).
+- Après l’ajout d’un cas limite `limit=0`, les tests sémantiques et le smoke ont
+  été relancés et restent PASS. Validation complète Build Optimizer : PASS
+  technique (7 gates), 89 chemins FROZEN inchangés, 204 fichiers scannés ;
+  statut produit inchangé : REVIEW_REQUIRED / NO FREEZE, avec 92 conseils
+  exercés et aucune recommandation jugée automatiquement optimale.
+- Revue visuelle headless : le résumé ne répète plus les cartes de reset de la
+  même famille. La revue humaine sur l’écran de l’utilisateur et la qualité
+  gameplay des conseils restent requises ; aucune causalité n’est affirmée.
+
 ## All-champion Build Optimizer coverage — 2026-09-24
 
 - Added a generic champion-class profile fallback using exact-patch Data Dragon

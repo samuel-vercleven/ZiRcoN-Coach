@@ -17,6 +17,7 @@ class CoachingFocus:
     evidence: tuple[str, ...]
     limitation: str
     source: str
+    source_tab_title: str
     severity: str
 
 
@@ -136,12 +137,15 @@ def _focus_for(insight: InsightViewModel, finding: dict) -> CoachingFocus:
         evidence=tuple(evidence[:3]),
         limitation=limitation,
         source=f"{insight.title} · {insight.source_version or insight.status}",
+        source_tab_title=insight.title,
         severity=str(finding.get("severity") or "INFO").upper(),
     )
 
 
 def coaching_focuses(report: CoachingReport, limit: int = 3) -> tuple[CoachingFocus, ...]:
-    """Turn supported facts into cautious review prompts; never infer blame/causality."""
+    """Return concise, varied prompts; detailed same-analyzer events remain in their tabs."""
+    if limit <= 0:
+        return ()
     candidates = []
     for analyzer_index, insight in enumerate(report.insights):
         if insight.status not in ("AVAILABLE", "PARTIAL"):
@@ -155,7 +159,18 @@ def coaching_focuses(report: CoachingReport, limit: int = 3) -> tuple[CoachingFo
                 _focus_for(insight, finding),
             ))
     candidates.sort(key=lambda item: item[:3])
-    return tuple(item[3] for item in candidates[:max(0, limit)])
+    selected = []
+    selected_families = set()
+    for _severity, analyzer_index, _finding_index, focus in candidates:
+        insight = report.insights[analyzer_index]
+        family = (insight.source_module or insight.category or insight.title).casefold()
+        if family in selected_families:
+            continue
+        selected_families.add(family)
+        selected.append(focus)
+        if len(selected) >= limit:
+            break
+    return tuple(selected)
 
 
 def coaching_empty_message(report: CoachingReport) -> str:

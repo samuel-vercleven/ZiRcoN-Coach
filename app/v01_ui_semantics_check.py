@@ -8,15 +8,17 @@ from unittest.mock import Mock
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QPushButton, QTabWidget, QWidget
 
 from services.runtime_settings import RuntimeSettingsService
 from services.riot_client import DynamicRiotClient, RiotResult, RiotStatus
 from ui.components.status_badge import StatusBadge
+from ui.components.coaching_card import CoachingCard
 from ui.components.trend_chart import TrendChart
-from ui.pages.match_detail_page import coach_summary_empty_message, coach_summary_lines
+from ui.pages.match_detail_page import MatchDetailPage, coach_summary_empty_message, coach_summary_lines
 from ui.pages.settings_page import SettingsPage
 from viewmodels import CoachingReport, InsightViewModel
+from ui.player_coach import coaching_focuses
 
 
 def main() -> None:
@@ -58,6 +60,49 @@ def main() -> None:
                          findings=({"title": "Finding exact", "detail": "Signal v17", "severity": "MEDIUM", "supported": True},)),
     ), "AVAILABLE")
     assert coach_summary_lines(report) == ("Finding exact: Signal v17",)
+
+    death_report = CoachingReport("m", (
+        InsightViewModel(
+            "DEATH", "Morts", "1 mort avec un repère à revoir", status="AVAILABLE",
+            source_module="death", source_version="death_v11",
+            findings=({"title": "Signal historique EXPERIMENTAL — HIGH",
+                       "detail": "À 18:42, indice comparatif élevé; sans causalité.",
+                       "severity": "HIGH", "supported": True},),
+            events=({"title": "Mort à 18:42", "metrics": [
+                {"label": "Tueur", "value": "Jarvan IV"},
+                {"label": "État avant la mort", "value": "BEHIND"},
+            ]},),
+        ),
+    ), "AVAILABLE")
+    focus, = coaching_focuses(death_report)
+    assert coaching_focuses(death_report, limit=0) == ()
+    assert focus.source_tab_title == "Morts"
+    assert "18:42" in focus.observation and "Jarvan IV" in " ".join(focus.evidence)
+
+    varied_report = CoachingReport("m", (
+        InsightViewModel("RESETS", "Recalls / Resets", "x", status="AVAILABLE", source_module="resets",
+                         findings=({"title": "Production après reset à 04:59", "detail": "Sous la référence", "severity": "MEDIUM", "supported": True},
+                                   {"title": "Production après reset à 14:08", "detail": "Sous la référence", "severity": "MEDIUM", "supported": True})),
+        InsightViewModel("OBJECTIVES", "Objectifs", "x", status="AVAILABLE", source_module="objectives",
+                         findings=({"title": "Objectif à revoir", "detail": "Contexte observé", "severity": "LOW", "supported": True},)),
+    ), "AVAILABLE")
+    varied = coaching_focuses(varied_report)
+    assert len(varied) == 2 and [item.source_tab_title for item in varied] == ["Recalls / Resets", "Objectifs"]
+
+    tabs = QTabWidget(); overview_tab = QWidget(); coach_tab = QWidget(); death_tab = QWidget()
+    tabs.addTab(overview_tab, "Vue d’ensemble"); tabs.addTab(coach_tab, "Analyse coach")
+    tabs.addTab(death_tab, focus.source_tab_title)
+    card = CoachingCard(focus, open_source=MatchDetailPage._open_tab(tabs, focus.source_tab_title))
+    source_action = card.findChild(QPushButton, "GhostButton")
+    assert source_action is not None and source_action.text() == "Voir les événements associés"
+    source_action.click()
+    assert tabs.currentWidget() is death_tab
+
+    compact = CoachingCard(focus, compact=True, open_source=MatchDetailPage._open_tab(tabs, "Analyse coach"))
+    compact_action = compact.findChild(QPushButton, "GhostButton")
+    assert compact_action is not None and compact_action.text() == "Ouvrir l’analyse coach"
+    compact_action.click()
+    assert tabs.currentWidget() is coach_tab
 
     chart = TrendChart(); chart.set_values([2.0, None, 3.0])
     assert chart.values == [2.0, None, 3.0] and chart.values[1] is None
