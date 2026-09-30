@@ -37,6 +37,16 @@ def main() -> None:
             window.resize(width, height)
             for tab_index in range(window.match_detail_page.tabs.count()):
                 window.match_detail_page.tabs.setCurrentIndex(tab_index); app.processEvents()
+                if window.match_detail_page.tabs.tabText(tab_index) == "Build Optimizer":
+                    assert QThreadPool.globalInstance().waitForDone(30000), "Build Optimizer UI worker timed out"
+                    app.processEvents()
+                    assert window.match_detail_page._optimizer_worker is None, "Build Optimizer UI result was not applied"
+                    first = window.match_detail_page._optimizer_layout.itemAt(0).widget()
+                    assert first is not None and first.isVisible() and first.height() > 0, "Build Optimizer result has no visible layout"
+                    from PySide6.QtWidgets import QLabel
+                    labels = [label.text() for label in first.findChildren(QLabel) if label.text()]
+                    assert labels and "Calcul de la recommandation" not in labels, "Build Optimizer result stayed empty/loading"
+                    print("Build Optimizer visible result:", " · ".join(labels[:3]), flush=True)
                 assert window.grab().save(str(target / f"post-game-{tab_index}-{size_name}.png"))
                 post_game_captures += 1
         death_match = next((match for match in matches if match.deaths is not None and match.deaths > 0), None)

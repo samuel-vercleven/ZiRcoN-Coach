@@ -136,11 +136,12 @@ class ContextChecks(unittest.TestCase):
         self.assertEqual(context.inventory_status, 'PARTIAL')
         self.assertIn('PREFIX_TRANSACTION_UNRELIABLE', context.warnings)
 
-    def test_rune_grants_remain_unmodeled(self):
+    def test_rune_grant_after_snapshot_does_not_pollute_prefix(self):
         source = game()
         source.player['perks'] = {'styles': [{'selections': [{'perk': 8304, 'var1': 9999}]}]}
         context = build_context(source, 60000, catalog(), CHAMPIONS)
-        self.assertIn('UNOBSERVED_RUNE_GRANT_UNMODELED', context.warnings)
+        self.assertIn('MAGICAL_FOOTWEAR_GRANT_DERIVED_AFTER_SNAPSHOT', context.warnings)
+        self.assertNotIn('UNOBSERVED_RUNE_GRANT_UNMODELED', context.warnings)
         self.assertEqual(context.inventory, ())
 
 

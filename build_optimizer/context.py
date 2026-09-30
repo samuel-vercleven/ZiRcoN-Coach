@@ -4,7 +4,8 @@ from dataclasses import asdict, dataclass
 import math
 
 from analysis.itemization_analyzer import (
-    ITEM_EVENT_TYPES, MAGICAL_FOOTWEAR_PERK_ID, reconstruct_item_timeline,
+    ITEM_EVENT_TYPES, MAGICAL_FOOTWEAR_PERK_ID, _derive_magical_footwear_timestamp,
+    reconstruct_item_timeline,
 )
 from services.game_context import GameContext
 from build_optimizer.catalog import CatalogView, natural, patch_of
@@ -13,9 +14,33 @@ from build_optimizer.catalog import CatalogView, natural, patch_of
 # scoring threshold. Riot's nominal minute frames have millisecond drift.
 MAX_PREFIX_FRAME_GAP_MS = 90000
 
+# Riot timeline represents recall actions and lane-quest progress as destroyed
+# items. These exact patch-pinned Data Dragon records are non-purchasable
+# generated markers, not permanent shop inventory. Ignore only their destruction
+# events; all other ambiguous ITEM_DESTROYED events remain fail-closed.
+NON_INVENTORY_MARKER_NAMES = {
+    1201: 'Quête de la voie du milieu',
+    1203: 'Quête de support',
+    1204: 'Quête de la jungle',
+    2001: 'Rappel',
+    2002: 'Rappel renforcé',
+}
+
 
 def number(value):
     return type(value) in (int, float) and math.isfinite(value)
+
+
+def _is_non_inventory_marker_event(event, catalog):
+    if event.get('type') != 'ITEM_DESTROYED' or catalog.blockers:
+        return False
+    item_id = event.get('itemId')
+    expected_name = NON_INVENTORY_MARKER_NAMES.get(item_id)
+    item = catalog.items.get(item_id)
+    if not expected_name or item is None or item.name != expected_name:
+        return False
+    required = {'NOT_SR_PURCHASABLE', 'NOT_IN_STORE', 'NON_PURCHASABLE', 'SPECIAL_OR_GENERATED'}
+    return required <= set(item.structural_blockers)
 
 
 @dataclass(frozen=True)
@@ -67,6 +92,8 @@ def _inventory(game, subject, events, timestamp, catalog):
         # player-scoped shop transaction stream.
         if viego and event.get('type') not in {'ITEM_PURCHASED', 'ITEM_SOLD', 'ITEM_UNDO'}:
             continue
+        if _is_non_inventory_marker_event(event, catalog):
+            continue
         if (not natural(event.get('itemId'), True) and event['type'] != 'ITEM_UNDO'):
             warnings.append('ITEM_EVENT_ID_UNRESOLVED')
             continue
@@ -77,7 +104,22 @@ def _inventory(game, subject, events, timestamp, catalog):
     perk_ids = [selection.get('perk') for style in (subject.get('perks') or {}).get('styles', [])
                 for selection in style.get('selections', [])]
     if MAGICAL_FOOTWEAR_PERK_ID in perk_ids:
-        warnings.append('UNOBSERVED_RUNE_GRANT_UNMODELED')
+        prefix_takedowns = [
+            event['timestamp'] for event in events
+            if event.get('type') == 'CHAMPION_KILL'
+            and (event.get('killerId') == pid
+                 or pid in (event.get('assistingParticipantIds') or ()))
+            and number(event.get('timestamp'))
+        ]
+        grant = _derive_magical_footwear_timestamp(prefix_takedowns)
+        if (grant.get('derived_status') == 'DERIVED_INFERRED'
+                and grant.get('derived_timestamp') > timestamp):
+            notes.append('MAGICAL_FOOTWEAR_GRANT_DERIVED_AFTER_SNAPSHOT')
+        else:
+            # A grant at/before this snapshot, or an unstable derived time,
+            # leaves a real inventory uncertainty. Never synthesize an item
+            # purchase or reinterpret its timing as Riot-observed.
+            warnings.append('UNOBSERVED_RUNE_GRANT_UNMODELED')
     if viego:
         notes.extend((
             'PERMANENT_SHOP_INVENTORY',

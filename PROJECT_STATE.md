@@ -2,6 +2,17 @@
 
 ## Build Optimizer champion coverage extension — REVIEW_REQUIRED / NO FREEZE
 
+- Reliability follow-up (2026-09-30): exact, patch-audited recall/quest marker
+  destroys no longer contaminate permanent inventory prefixes; unknown destroy
+  events remain blocking. Magical Footwear grants strictly after a snapshot no
+  longer invalidate that earlier snapshot, using the existing frozen timing
+  helper without synthesizing an item event.
+- Updated all-champion replay: 143 games / 572 snapshots, 172 recommendations
+  across 93 games and 9/11 champions, 400 abstentions. Zero illegal emitted
+  purchases, future leakage, score recomputation errors or untraceable reasons.
+  Full seven-gate validation PASS; 89 frozen paths unchanged. Still
+  REVIEW_REQUIRED / NO FREEZE pending human gameplay review.
+
 - Build / Itemization Analyzer v22 remains champion-agnostic and unchanged. The
   contextual optimizer now keeps reviewed Shyvana/Viego profiles and can use a
   broad class-based fallback for champions with exact-patch Data Dragon tags.
@@ -11,20 +22,18 @@
   16.14, 16.15, 16.16, 16.17 and 16.18. Viego item 6610 fails its exact
   fingerprint on 16.8–16.15 and is excluded there.
 - The first generalized replay passed its invariants on the original four
-  patches; the final nine-patch replay and complete build gates now pass:
-  143/143 games profiled, 572 snapshots, 92 valid/traceable recommendations
-  across 41 games and 7/11 played champions, 0 invalid buys/leaks/score errors.
-- 480 snapshots abstained, mostly because inventory reconstruction is ambiguous;
+  patches; the nine-patch replay and complete build gates now pass:
+  143/143 games profiled, 572 snapshots, now 172 valid/traceable recommendations
+  across 93 games and 9/11 played champions, 0 invalid buys/leaks/score errors.
+- 400 snapshots abstained, mostly because inventory reconstruction is ambiguous;
   an experiment that omitted destruction events changed 379/572 inventory
   states and inflated slot-capacity warnings, so the strict gate remains.
-- Per-champion abstention diagnostics now reconcile exactly to the global warning
-  counts. In the 143-game replay, the four champions with no emitted build
-  recommendation (Diana, DrMundo, Leona, Zyra; 14 snapshots total) all had
-  unreliable inventory reconstruction in every snapshot; their candidate class
-  profiles existed, so missing profile coverage was not the cause. The largest
-  affected pools were Shyvana (240/241 abstentions), Viego (105/108), and
-  Bel'Veth (66/67). This is a data/reconstruction limitation, not evidence to
-  weaken legality or inventory gates.
+- Per-champion abstention diagnostics reconcile exactly to global warning
+  counts. In the current replay, Leona (4 snapshots) and Zyra (8) remain without
+  emitted recommendations; the earlier no-output set and warning totals in the
+  2026-09-24 entry were superseded by the 2026-09-30 prefix fix. This is a
+  data/reconstruction limitation, not evidence to weaken legality or inventory
+  gates.
   Human gameplay review is still required; no freeze.
 
 ## Player coaching v1 — REVIEW_REQUIRED

@@ -1,5 +1,31 @@
 # LAST RUN
 
+## Post-game reliability follow-up — 2026-09-30
+
+- Kept ambiguous `ITEM_DESTROYED` transactions fail-closed, but verified exact
+  patch-pinned generated markers for lane/support/jungle quests and recall actions
+  (IDs 1201, 1203, 1204, 2001, 2002). Only exact non-purchasable marker records
+  are ignored; unrelated/unknown destroy events still make the prefix unreliable.
+- Reused the frozen Magical Footwear timing helper against prefix-only takedowns.
+  When the deterministic grant is after the queried frame, the future grant no
+  longer poisons that earlier inventory snapshot. At/after an uncertain grant,
+  the item remains unmodeled; no synthetic purchase is introduced.
+- Contextual replay PASS: 143 games, 572 snapshots, 172 nonempty
+  recommendations across 93 games and 9/11 played champions; 400 abstentions.
+  Zero invalid purchases, future leakage, score recomputation errors or
+  untraceable explanations. Viego emitted 60 recommendations (up from 34 in
+  the possession-only pass); the other emitted counts are recorded in
+  `logs/build_optimizer/contextual_replay.json`.
+- Full validation: all 7 gates PASS; 89 FROZEN paths unchanged; 204 files
+  scanned; `git diff --check` PASS. The product gate remains
+  `REVIEW_REQUIRED / NO FREEZE`: gameplay quality is still a human decision.
+- UI check: Build Optimizer content is visible at desktop and minimum sizes.
+  The tested match correctly abstains because inventory at that snapshot is
+  ambiguous; that is expected fail-closed behavior, not an empty UI.
+- Targeted checks: optimizer 23/23, contextual 11/11, UI/status semantics PASS,
+  app smoke PASS, visual render PASS (30 captures). Human gameplay and on-device
+  product review remain open.
+
 ## Build Optimizer — per-champion abstention audit — 2026-09-24
 
 - Complete all-champion contextual replay: PASS, 143 games / 572 snapshots,

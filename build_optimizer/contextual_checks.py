@@ -4,10 +4,10 @@ import json
 import unittest
 
 from build_optimizer.checks import CHAMPIONS, game
-from build_optimizer.context import build_context
+from build_optimizer.context import _inventory, _is_non_inventory_marker_event, build_context
 from build_optimizer.engine import BuildOptimizer
 from build_optimizer.legality import decide
-from build_optimizer.profiles import MODEL_KIND, item_profile
+from build_optimizer.profiles import MODEL_KIND, SUPPORTED_PATCHES, item_profile
 from build_optimizer.replay import exact_catalogs, validate_recipe_plan
 from build_optimizer.signals import build_baseline, game_signals
 
@@ -81,6 +81,62 @@ class ContextualRecommendationChecks(unittest.TestCase):
         self.assertIn('PERMANENT_SHOP_INVENTORY', output.warnings)
         self.assertTrue(all('Viego' not in str(facts) for facts in
                             [row['supporting_facts'] for row in output.score_breakdown]))
+
+    def test_recall_action_markers_do_not_poison_permanent_inventory(self):
+        source = game()
+        source = replace(source, game_state={**source.game_state, 'patch': '16.18.1'})
+        baseline = build_context(source, 60000, self.catalog, exact_catalogs('16.18')[1])
+        with_recall_events = replace(source, events=(*source.events,
+            {'timestamp': 30000, 'type': 'ITEM_DESTROYED', 'itemId': 2001, 'participantId': 1},
+            {'timestamp': 40000, 'type': 'ITEM_DESTROYED', 'itemId': 2002, 'participantId': 1}))
+        projected = build_context(with_recall_events, 60000, self.catalog, exact_catalogs('16.18')[1])
+        self.assertEqual(projected.inventory, baseline.inventory)
+        self.assertEqual(projected.inventory_status, baseline.inventory_status)
+        self.assertEqual('PREFIX_TRANSACTION_UNRELIABLE' in projected.warnings,
+                         'PREFIX_TRANSACTION_UNRELIABLE' in baseline.warnings)
+
+    def test_unknown_destroyed_normal_item_still_fails_closed(self):
+        source = game()
+        source = replace(source, game_state={**source.game_state, 'patch': '16.18.1'},
+                         events=(*source.events, {'timestamp': 30000, 'type': 'ITEM_DESTROYED',
+                                                 'itemId': 3031, 'participantId': 1}))
+        context = build_context(source, 60000, self.catalog, exact_catalogs('16.18')[1])
+        self.assertIn('PREFIX_TRANSACTION_UNRELIABLE', context.warnings)
+
+    def test_non_inventory_marker_contract_is_exact_on_every_supported_patch(self):
+        for patch in SUPPORTED_PATCHES:
+            catalog, _ = exact_catalogs(patch)
+            self.assertFalse(catalog.blockers, patch)
+            markers = ((1201, 'Quête de la voie du milieu'), (1203, 'Quête de support'),
+                       (1204, 'Quête de la jungle'), (2001, 'Rappel'), (2002, 'Rappel renforcé'))
+            for item_id, name in markers:
+                item = catalog.items[item_id]
+                self.assertEqual(item.name, name, patch)
+                required = {'NOT_SR_PURCHASABLE', 'NOT_IN_STORE', 'NON_PURCHASABLE',
+                            'SPECIAL_OR_GENERATED'}
+                self.assertTrue(required <= set(item.structural_blockers), (patch, item_id))
+                event = {'type': 'ITEM_DESTROYED', 'itemId': item_id}
+                self.assertTrue(_is_non_inventory_marker_event(event, catalog), (patch, item_id))
+                changed = replace(item, name=f'{name} modifié')
+                catalog.items[item_id] = changed
+                self.assertFalse(_is_non_inventory_marker_event(event, catalog), (patch, item_id))
+                catalog.items[item_id] = item
+
+    def test_magical_footwear_future_grant_does_not_poison_earlier_snapshot(self):
+        source = game()
+        subject = {**source.player, 'perks': {'styles': [{'selections': [{'perk': 8304}]}]}}
+        one_takedown = ({'timestamp': 420000, 'type': 'CHAMPION_KILL', 'killerId': 1,
+                         'assistingParticipantIds': []},)
+        _, before_grant_status, before_grant_warnings = _inventory(
+            source, subject, one_takedown, 600000, self.catalog)
+        self.assertEqual(before_grant_status, 'OBSERVED_PREFIX')
+        self.assertIn('MAGICAL_FOOTWEAR_GRANT_DERIVED_AFTER_SNAPSHOT', before_grant_warnings)
+        self.assertNotIn('UNOBSERVED_RUNE_GRANT_UNMODELED', before_grant_warnings)
+
+        _, after_grant_status, after_grant_warnings = _inventory(
+            source, subject, one_takedown, 700000, self.catalog)
+        self.assertEqual(after_grant_status, 'PARTIAL')
+        self.assertIn('UNOBSERVED_RUNE_GRANT_UNMODELED', after_grant_warnings)
 
     def test_nonempty_shyvana_recommendation_is_recomputable_and_legal(self):
         output = self.optimizer.recommend(self.context, self.baseline)

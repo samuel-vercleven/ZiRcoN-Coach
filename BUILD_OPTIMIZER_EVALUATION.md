@@ -17,20 +17,30 @@ generic Data Dragon class profile (172–233 champion records per patch).
 | Games with an admitted champion profile | 143 |
 | Generic class-profile games | 39 |
 | Snapshots replayed | 572 |
-| Nonempty recommendations | 92 |
-| Games with at least one recommendation | 41 |
-| Champions with at least one recommendation | 7 of 11 |
+| Nonempty recommendations (2026-09-30 replay) | 172 |
+| Games with at least one recommendation | 93 |
+| Champions with at least one recommendation | 9 of 11 |
+| Abstentions | 400 |
 | Invalid emitted purchases / temporal leaks | 0 / 0 |
 | Score recomposition errors / untraceable explanations | 0 / 0 |
 | Unsupported-patch games after expansion | 0 |
 
-The 480 snapshot abstentions are intentional gates, not missing champion
-profiles. `INVENTORY_UNRELIABLE` appeared on 469 abstentions and
-`HISTORICAL_BASELINE_UNAVAILABLE` on 112 (reasons overlap). A read-only
+The 400 snapshot abstentions are intentional gates, not missing champion
+profiles. The most frequent current warnings include
+`INVENTORY_UNRELIABLE` (366) and `PREFIX_TRANSACTION_UNRELIABLE` (275);
+warning counts overlap. Exact verified recall/quest markers and safely
+post-snapshot Magical Footwear grant timing improve prefix admission, while
+unknown destruction events and unresolved grants still abstain. A read-only
 shop-only experiment changed 379/572 reconstructed inventory states and caused
 374 over-capacity warnings, so the ambiguous event stream was not discarded to
 inflate recommendation coverage. The UI now states abstention reasons in player
-language. The 92 outputs satisfy technical invariants, not gameplay quality.
+language. The 172 emitted outputs satisfy technical invariants, not gameplay
+quality.
+
+The first 92-row result above was superseded by the 2026-09-30 replay. The
+current replay emitted 172 rows across 93 games / 9 of 11 champions; details,
+including per-champion counts, are in `logs/build_optimizer/contextual_replay.json`.
+The increased coverage does not validate recommendation usefulness.
 
 The earlier Viego-only replay results below are historical evidence for that
 prior implementation and are not a separate validation of all class-specific
@@ -82,8 +92,8 @@ the current gold **if shopping now**; no current shop location is inferred.
 | Human gameplay quality review | REVIEW_REQUIRED |
 | Build Optimizer freeze | **NO FREEZE** |
 
-Final validation passed Stable Base, unit, adversarial, real-catalog, Golden,
-batch and generalized contextual replay gates. It exercised 53 nonempty
-contextual rows overall, including the Viego-only 34 rows. A green technical
+Final validation (2026-09-30) passed Stable Base, unit, product, real-catalog,
+Golden, historical-batch and generalized contextual replay gates. It exercised
+172 nonempty contextual rows overall. A green technical
 replay cannot convert the heuristic into an optimality claim or auto-freeze the
 product.

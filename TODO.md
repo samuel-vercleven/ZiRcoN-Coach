@@ -54,6 +54,16 @@ optimal-build or combat simulator. `buy_now` means `IF_SHOPPING_NOW`.
 [x] Commit and push `feature/build-optimizer` after all final gates pass
 [x] REVIEW_REQUIRED — never freeze automatically
 
+POST-GAME INVENTORY PREFIX RELIABILITY — 2026-09-30
+
+[x] Audit exact-patch recall/quest generated marker destroys; ignore only verified markers
+[x] Derive Magical Footwear's future grant timing from the existing frozen helper without inventing a purchase
+[x] Re-run all-champion replay and legality / temporal / explanation gates
+[x] Confirm Build Optimizer page renders an explicit recommendation or abstention at supported UI sizes
+[ ] Human review of actual emitted recommendation usefulness (9/11 played champions now have outputs)
+[ ] Human visual/product review on the user's display
+[ ] Decide whether to freeze this product version; default remains NO FREEZE
+
 BUILD OPTIMIZER — ALL-CHAMPION COVERAGE EXTENSION — 2026-09-24
 
 [x] Add exact-patch Data Dragon class-profile fallback while retaining reviewed champion profiles
@@ -62,4 +72,4 @@ BUILD OPTIMIZER — ALL-CHAMPION COVERAGE EXTENSION — 2026-09-24
 [x] Expand exact-patch allowlist to all nine audited local catalogs; stale item fingerprints fail closed
 [x] Run all-champion replay, legality/recipe/temporal gates, and inspect per-champion coverage
 [x] Report contextual abstention reasons by champion to diagnose no-recommendation coverage
-[ ] Human review generic class-based recommendations; do not freeze automatically
+[ ] Obtain human review of generic class-based recommendations; do not freeze automatically

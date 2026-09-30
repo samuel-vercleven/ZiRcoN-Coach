@@ -58,6 +58,30 @@ Enemy frame observations remain independently scoped and can provide only the
 declared contextual signals. No possession passive/reset/damage calculation is
 claimed.
 
+## Prefix reliability follow-up — 2026-09-30
+
+Some non-Viego timeline `ITEM_DESTROYED` rows represent action/progression
+markers rather than shop inventory. Exact-patch catalog checks across all nine
+supported local patches verified IDs 1201 (mid quest), 1203 (support quest),
+1204 (jungle quest), 2001 (recall) and 2002 (enhanced recall) as generated,
+non-purchasable, and outside the store. The prefix projector ignores only these
+exact ID/name/catalog-fingerprint combinations. Unknown items, ordinary item
+destructions, catalog blockers and changed marker records still fail closed.
+
+Magical Footwear uses the frozen itemization helper's derived grant timing over
+only takedowns observed by the snapshot. A derived grant strictly after the
+snapshot is noted but does not contaminate that earlier permanent inventory
+prefix. At or before the grant (or when timing is not reliable), inventory
+uncertainty remains. No rune-granted boots purchase event is synthesized and a
+derived timestamp is not represented as an observed timeline event.
+
+The 2026-09-30 all-champion replay therefore grows from 92 to 172 nonempty rows
+on the same 143-game / 572-snapshot corpus, with 400 remaining abstentions.
+It emits on 9/11 locally played champions; Viego contributes 60 rows. All
+emitted plans pass exact recipe, budget/slot, temporal-prefix, score and reason
+traceability checks. This is improved data admission, not a gameplay-quality
+claim; human review and NO FREEZE remain required.
+
 ## Exact-patch semantic and purchase contracts
 
 `viego_build_profile_v1` allows twelve reviewed major-item semantic profiles:
