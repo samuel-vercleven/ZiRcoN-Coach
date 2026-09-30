@@ -1,5 +1,23 @@
 # LAST RUN
 
+## Player-facing language pass — 2026-09-30
+
+- Removed internal analyzer versions, source labels, backend status and the
+  expandable technical journal from player screens. Match tabs, settings,
+  connection/import status and empty states now use plain French.
+- Rewrote build advice and abstention reasons for a player: estimated relevance,
+  the game-time moment, observed enemy composition, understandable item traits,
+  and purchase steps using the gold available then. Engine terms such as
+  “heuristic”, “archetype”, “Data Dragon”, “snapshot” and “legality v1” are not
+  shown in the recommendation UI.
+- Rephrased coaching explanations and hidden implementation trace labels while
+  keeping the evidence, uncertainty and non-causal caveats.
+- Verified a real nonempty Shyvana recommendation and a separate inventory-
+  ambiguity abstention at desktop/minimum sizes. UI semantics PASS, app smoke
+  PASS, visual render PASS (30 captures); the UI test rejects internal engine
+  terms in rendered copy. No optimizer scoring or FROZEN analyzer changed.
+- Human review of gameplay usefulness remains open; no freeze.
+
 ## Post-game reliability follow-up — 2026-09-30
 
 - Kept ambiguous `ITEM_DESTROYED` transactions fail-closed, but verified exact

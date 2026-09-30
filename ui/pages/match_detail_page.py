@@ -9,7 +9,7 @@ from services.post_game_analysis import PostGameAnalysisService
 from services.build_optimizer_presentation import BuildOptimizerPresentationService
 from ui.components.asset_icon import AssetIcon
 from ui.components.empty_state import EmptyState
-from ui.components.insight_card import AnalyzerEventCard, InsightCard
+from ui.components.insight_card import AnalyzerEventCard, InsightCard, player_insight_summary, player_insight_title
 from ui.components.coaching_card import CoachingCard
 from ui.components.gold_timeline import GoldTimeline
 from ui.components.moments_timeline import MomentsTimeline
@@ -36,12 +36,19 @@ def coach_summary_lines(report: CoachingReport) -> tuple[str, ...]:
 
 def coach_summary_empty_message(report: CoachingReport) -> str:
     if any(value.status != "AVAILABLE" for value in report.insights):
-        return "Synthèse limitée : certaines analyses compatibles sont absentes, partielles ou en erreur. Aucun diagnostic d’absence de problème n’est déduit."
-    return "Aucun finding de gameplay explicitement supporté n’émerge des cinq sorties disponibles. Les mesures factuelles restent consultables ci-dessous."
+        return "Certaines informations de cette partie manquent. Je préfère ne pas tirer de conclusion à partir de données incomplètes."
+    return "Je n’ai pas repéré de conseil assez clair dans les informations disponibles. Cela ne veut pas dire que la partie était parfaite."
 
 
 class MatchDetailPage(QWidget):
     back_requested = Signal()
+    INSIGHT_TAB_TITLES = {
+        "DEATH": "Morts",
+        "TEMPO": "Déplacements et rythme",
+        "OBJECTIVES": "Objectifs",
+        "RESETS": "Retours à la base",
+        "BUILD": "Objets",
+    }
 
     def __init__(self, service: LocalDataService, analysis: PostGameAnalysisService,
                  optimizer: BuildOptimizerPresentationService, assets: AssetService, parent=None):
@@ -71,6 +78,11 @@ class MatchDetailPage(QWidget):
     @staticmethod
     def _open_tab(tabs: QTabWidget, title: str):
         """Resolve the tab only when clicked, after lazy detail tabs exist."""
+        title = {
+            "Tempo / Pathing": "Déplacements et rythme",
+            "Recalls / Resets": "Retours à la base",
+            "Build / Itemisation": "Objets",
+        }.get(title, title)
         def open_tab():
             for index in range(tabs.count()):
                 if tabs.tabText(index) == title:
@@ -89,16 +101,16 @@ class MatchDetailPage(QWidget):
     def _optimizer_tab(self, tabs, match):
         scroll = QScrollArea(); scroll.setWidgetResizable(True)
         host = QWidget(); layout = QVBoxLayout(host); layout.setContentsMargins(4, 12, 8, 8); layout.setSpacing(10)
-        scroll.setWidget(host); tabs.addTab(scroll, "Build Optimizer")
+        scroll.setWidget(host); tabs.addTab(scroll, "Conseil de build")
         self._optimizer_layout, self._optimizer_match_id = layout, match.match_id
         self._optimizer_version += 1; version = self._optimizer_version
-        layout.addWidget(EmptyState("Calcul de la recommandation", "Lecture locale des frames et du catalogue exact ; aucun téléchargement n’est déclenché."))
+        layout.addWidget(EmptyState("Préparation du conseil", "J’examine les objets et les adversaires rencontrés pendant la partie."))
         layout.addStretch()
         worker = FunctionWorker(self.optimizer.recommendation_for_match, match.match_id)
         worker.setAutoDelete(False)
         worker.signals.result.connect(lambda result, current=match.match_id, token=version: self._show_optimizer_result(current, token, result, match.game_version))
         worker.signals.error.connect(lambda _message, current=match.match_id, token=version: self._show_optimizer_result(
-            current, token, {'status': 'UNAVAILABLE', 'reason': 'CALCUL_LOCAL_INDISPONIBLE'}, match.game_version))
+            current, token, {'status': 'UNAVAILABLE', 'reason': 'Impossible de préparer le conseil pour le moment. Réessaie plus tard.'}, match.game_version))
         worker.signals.finished.connect(lambda current=worker: setattr(self, '_optimizer_worker', None) if self._optimizer_worker is current else None)
         self._optimizer_worker = worker; QThreadPool.globalInstance().start(worker)
 
@@ -137,15 +149,15 @@ class MatchDetailPage(QWidget):
             dashboard.addWidget(performance, 0, 0)
             build = QFrame(); build.setObjectName('DashboardCard'); build_box = QVBoxLayout(build); build_box.setContentsMargins(16, 14, 16, 14); build_box.setSpacing(7)
             build_title = QLabel('Build final'); build_title.setObjectName('SectionTitle'); build_box.addWidget(build_title)
-            build_note = QLabel('Inventaire final observé'); build_note.setObjectName('Muted'); build_box.addWidget(build_note)
+            build_note = QLabel('Objets à la fin de la partie'); build_note.setObjectName('Muted'); build_box.addWidget(build_note)
             item_row = QHBoxLayout(); item_row.setSpacing(6)
             for item_id in match.items[:6]:
                 icon = AssetIcon(self.assets, 38); icon.load('item', item_id, match.game_version); item_row.addWidget(icon)
             item_row.addStretch(); build_box.addLayout(item_row)
-            runes = QLabel('Runes : non synchronisées pour cette partie'); runes.setObjectName('MicroLabel'); runes.setWordWrap(True); build_box.addWidget(runes); dashboard.addWidget(build, 0, 1)
+            runes = QLabel('Runes : informations non disponibles'); runes.setObjectName('MicroLabel'); runes.setWordWrap(True); build_box.addWidget(runes); dashboard.addWidget(build, 0, 1)
             preview = QFrame(); preview.setObjectName('OptimizerPreview'); preview_box = QVBoxLayout(preview); preview_box.setContentsMargins(16, 14, 16, 14); preview_box.setSpacing(7)
-            preview_title = QLabel('Build Optimizer'); preview_title.setObjectName('SectionTitle'); preview_box.addWidget(preview_title)
-            waiting = QLabel('Calcul de la recommandation locale…'); waiting.setObjectName('Muted'); waiting.setWordWrap(True); preview_box.addWidget(waiting)
+            preview_title = QLabel('Conseil de build'); preview_title.setObjectName('SectionTitle'); preview_box.addWidget(preview_title)
+            waiting = QLabel('Préparation du conseil…'); waiting.setObjectName('Muted'); waiting.setWordWrap(True); preview_box.addWidget(waiting)
             self._optimizer_preview_layout = preview_box; self._optimizer_preview_match_id = match.match_id
             dashboard.addWidget(preview, 0, 2)
             for column in range(3): dashboard.setColumnStretch(column, 1)
@@ -157,9 +169,9 @@ class MatchDetailPage(QWidget):
             timeline = MomentsTimeline(); timeline.set_data(story.get('events'), match.duration_seconds); moments_box.addWidget(timeline); lower.addWidget(moments, 0, 0)
             recap = QFrame(); recap.setObjectName('RecapCard'); recap_box = QVBoxLayout(recap); recap_box.setContentsMargins(16, 14, 16, 14); recap_box.setSpacing(6)
             recap_title = QLabel('Résumé de la partie'); recap_title.setObjectName('SectionTitle'); recap_box.addWidget(recap_title)
-            recap_text = QLabel(f"{match.result_text} · {match.champion} · {match.kda_text} KDA\nOuvre Analyse coach pour les constats strictement supportés."); recap_text.setObjectName('ContextLine'); recap_text.setWordWrap(True); recap_box.addWidget(recap_text); recap_box.addStretch(); lower.addWidget(recap, 0, 1)
+            recap_text = QLabel(f"{match.result_text} · {match.champion} · {match.kda_text} KDA\nOuvre Analyse coach pour voir les moments à revoir."); recap_text.setObjectName('ContextLine'); recap_text.setWordWrap(True); recap_box.addWidget(recap_text); recap_box.addStretch(); lower.addWidget(recap, 0, 1)
             lower.setColumnStretch(0, 2); lower.setColumnStretch(1, 1); layout.addLayout(lower)
-            boundary = QLabel("Les chiffres de ce résumé sont les données finales. L’onglet Build Optimizer indique séparément la frame exacte utilisée pour son conseil.")
+            boundary = QLabel("Le résumé montre le résultat final. Le conseil de build s’appuie sur l’or, les objets et les adversaires observés à un moment précis de la partie.")
             boundary.setObjectName("MicroLabel"); boundary.setWordWrap(True); layout.addWidget(boundary)
         tabs.addTab(self._scroll_panel(build), "Vue d’ensemble")
 
@@ -168,13 +180,13 @@ class MatchDetailPage(QWidget):
             return
         layout = self._optimizer_preview_layout; self._clear_layout(layout)
         status = result.get('status', 'UNAVAILABLE') if isinstance(result, dict) else 'UNAVAILABLE'
-        title = QLabel('Build Optimizer'); title.setObjectName('SectionTitle'); layout.addWidget(title)
+        title = QLabel('Conseil de build'); title.setObjectName('SectionTitle'); layout.addWidget(title)
         if status != 'SUPPORTED_HEURISTIC':
             unavailable = QLabel('Pas de conseil : ' + str(result.get('reason') or 'contexte local insuffisant.'))
             unavailable.setObjectName('Muted'); unavailable.setWordWrap(True); layout.addWidget(unavailable); return
         choice = QHBoxLayout(); icon = AssetIcon(self.assets, 40); icon.load('item', result.get('target_item'), game_version, result.get('target_name') or '?'); choice.addWidget(icon)
         text = QVBoxLayout(); item = QLabel(result.get('target_name') or 'Objet inconnu'); item.setObjectName('EventTitle'); text.addWidget(item)
-        score = QLabel(f"Score heuristique {result.get('score', 0):.0f}/100 · frame {result.get('snapshot_label', '—')}"); score.setObjectName('OptimizerScore'); text.addWidget(score); choice.addLayout(text, 1); layout.addLayout(choice)
+        score = QLabel(f"Pertinence estimée : {result.get('score', 0):.0f}/100 · vers {result.get('snapshot_label', '—')}"); score.setObjectName('OptimizerScore'); text.addWidget(score); choice.addLayout(text, 1); layout.addLayout(choice)
         reason = next(iter(result.get('reasons') or ()), 'Direction contextualisée par les observations locales.')
         why = QLabel(reason); why.setObjectName('Muted'); why.setWordWrap(True); layout.addWidget(why)
 
@@ -183,7 +195,7 @@ class MatchDetailPage(QWidget):
         def build(layout):
             card = QFrame(); card.setObjectName('Card'); box = QVBoxLayout(card); box.setContentsMargins(18, 15, 18, 15); box.setSpacing(9)
             title = QLabel('Déroulé de la partie'); title.setObjectName('SectionTitle'); box.addWidget(title)
-            note = QLabel("Écart d’or d’équipe observé sur les frames locales : positif si votre équipe est devant. Ce graphique décrit la partie, il ne prouve pas une cause.")
+            note = QLabel("Écart d’or entre les équipes : au-dessus de zéro, ton équipe avait l’avantage. Cette courbe montre l’évolution de la partie, pas ce qui l’a causée.")
             note.setObjectName('Muted'); note.setWordWrap(True); box.addWidget(note)
             chart = GoldTimeline(); chart.set_points(story.get('points')); box.addWidget(chart)
             layout.addWidget(card)
@@ -203,15 +215,15 @@ class MatchDetailPage(QWidget):
         def build(layout):
             card = QFrame(); card.setObjectName('Card'); box = QVBoxLayout(card); box.setContentsMargins(18, 15, 18, 15); box.setSpacing(9)
             title = QLabel('Notes de coaching'); title.setObjectName('SectionTitle'); box.addWidget(title)
-            note = QLabel('Garde ici une leçon courte à revoir. Cette note reste uniquement dans ta base locale.'); note.setObjectName('Muted'); note.setWordWrap(True); box.addWidget(note)
+            note = QLabel('Garde ici une leçon courte à revoir. Cette note reste sur cet ordinateur.'); note.setObjectName('Muted'); note.setWordWrap(True); box.addWidget(note)
             favorite = QPushButton('★ Partie à revoir'); favorite.setObjectName('CompactButton'); favorite.setCheckable(True); favorite.setChecked(bool(journal['starred'])); box.addWidget(favorite, 0)
             editor = QPlainTextEdit(); editor.setPlaceholderText('Exemple : mieux préparer le dragon à 14:00.'); editor.setPlainText(journal['note']); editor.setMaximumHeight(150); box.addWidget(editor)
             save = QPushButton('Enregistrer ma note'); save.setObjectName('PrimaryButton'); box.addWidget(save, 0)
             status = QLabel(''); status.setObjectName('Muted'); box.addWidget(status)
             def persist():
-                if not cache: status.setText('Base locale indisponible.'); return
+                if not cache: status.setText('Sauvegarde indisponible sur cet ordinateur.'); return
                 try:
-                    cache.save_match_journal(match.match_id, favorite.isChecked(), editor.toPlainText()); status.setText('Note enregistrée localement.')
+                    cache.save_match_journal(match.match_id, favorite.isChecked(), editor.toPlainText()); status.setText('Note enregistrée sur cet ordinateur.')
                 except Exception:
                     status.setText('Enregistrement local impossible.')
             save.clicked.connect(persist); layout.addWidget(card)
@@ -225,20 +237,18 @@ class MatchDetailPage(QWidget):
         self._show_optimizer_preview(match_id, result, game_version)
         if status != 'SUPPORTED_HEURISTIC':
             card = QFrame(); card.setObjectName("CoachCard"); box = QVBoxLayout(card); box.setContentsMargins(15, 12, 15, 12); box.setSpacing(6)
-            heading = QHBoxLayout(); title = QLabel("Recommandation indisponible"); title.setObjectName("SectionTitle"); heading.addWidget(title); heading.addStretch(); heading.addWidget(StatusBadge("PARTIAL")); box.addLayout(heading)
+            heading = QHBoxLayout(); title = QLabel("Pas de conseil pour cette partie"); title.setObjectName("SectionTitle"); heading.addWidget(title); heading.addStretch(); heading.addWidget(StatusBadge("PARTIAL")); box.addLayout(heading)
             message = QLabel("ZiRcoN s’abstient : " + str(result.get('reason') or 'contexte, patch ou historique insuffisant.'))
             message.setObjectName("Muted"); message.setWordWrap(True); box.addWidget(message)
-            note = QLabel("Aucune recommandation n’est inventée lorsque les données locales ne permettent pas de reconstruire un contexte fiable.")
+            note = QLabel("Mieux vaut ne rien conseiller que te proposer un achat qui ne correspondrait pas à la situation.")
             note.setObjectName("MicroLabel"); note.setWordWrap(True); box.addWidget(note); layout.addWidget(card); layout.addStretch(); return
         card = QFrame(); card.setObjectName("OptimizerHero"); box = QVBoxLayout(card); box.setContentsMargins(20, 17, 20, 17); box.setSpacing(10)
-        header = QHBoxLayout(); title = QLabel("Recommandation Build Optimizer"); title.setObjectName("SectionTitle"); header.addWidget(title); header.addStretch(); header.addWidget(StatusBadge("AVAILABLE")); box.addLayout(header)
-        profile_label = (f"profil de classe {result.get('profile_archetype')}" if result.get('profile_scope') == 'GENERIC_CLASS_ARCHETYPE'
-                         else f"profil spécifique {result.get('profile_archetype') or result['profile']}")
-        context = QLabel(f"{result['champion']} · {profile_label} · snapshot post-game à {result['snapshot_label']} · {result['baseline_samples']} partie(s) de référence")
+        header = QHBoxLayout(); title = QLabel("Piste d’achat à examiner"); title.setObjectName("SectionTitle"); header.addWidget(title); header.addStretch(); header.addWidget(StatusBadge("AVAILABLE")); box.addLayout(header)
+        context = QLabel(f"Pour {result['champion']} · situation vers {result['snapshot_label']} · repères issus de {result['baseline_samples']} partie(s) précédente(s)")
         context.setObjectName("Muted"); context.setWordWrap(True); box.addWidget(context)
         choice = QHBoxLayout(); icon = AssetIcon(self.assets, 46); icon.load("item", result.get('target_item'), game_version, result.get('target_name') or '?'); choice.addWidget(icon)
         choice_text = QVBoxLayout(); item_name = QLabel(result.get('target_name') or 'Objet inconnu'); item_name.setObjectName("EventTitle"); choice_text.addWidget(item_name)
-        score = QLabel(f"Score heuristique : {result.get('score', 0):.1f}/100 · si shopping maintenant")
+        score = QLabel(f"Pertinence estimée : {result.get('score', 0):.0f}/100 · estimation indicative, pas une garantie")
         score.setObjectName("ContextLine"); choice_text.addWidget(score); choice.addLayout(choice_text, 1); box.addLayout(choice)
         reasons = result.get('reasons') or ()
         if reasons:
@@ -246,11 +256,11 @@ class MatchDetailPage(QWidget):
             for reason in reasons[:5]:
                 line = QLabel("• " + str(reason)); line.setObjectName("ContextLine"); line.setWordWrap(True); box.addWidget(line)
         steps = result.get('buy_now_named') or ()
-        purchase = QLabel("Acheter maintenant : " + (" → ".join(f"{step['name']} ({step['cost']} PO)" for step in steps) if steps else "Aucun achat réalisable avec le gold de cette frame."))
+        purchase = QLabel("Étapes d’achat possibles à ce moment : " + (" → ".join(f"{step['name']} ({step['cost']} PO)" for step in steps) if steps else "tu n’avais pas assez d’or pour terminer cet objet à ce moment."))
         purchase.setObjectName("Muted"); purchase.setWordWrap(True); box.addWidget(purchase)
         alternatives = result.get('alternatives_named') or ()
         if alternatives:
-            alternatives_label = QLabel("Alternatives : " + " · ".join(f"{row['name']} ({row['score']:.1f})" for row in alternatives))
+            alternatives_label = QLabel("Autres objets à envisager : " + " · ".join(row['name'] for row in alternatives))
             alternatives_label.setObjectName("Muted"); alternatives_label.setWordWrap(True); box.addWidget(alternatives_label)
         enemy_snapshot = result.get('enemy_snapshot') or ()
         if enemy_snapshot:
@@ -260,13 +270,13 @@ class MatchDetailPage(QWidget):
                 if enemy.get('health_max') is not None: stats.append(f"{int(enemy['health_max'])} PV max")
                 if enemy.get('armor') is not None: stats.append(f"{int(enemy['armor'])} armure")
                 readable.append(enemy.get('champion', 'Inconnu') + (f" ({', '.join(stats)})" if stats else ""))
-            matchup = QLabel("Composition adverse à cette frame : " + " · ".join(readable))
+            matchup = QLabel("Adversaires présents à ce moment : " + " · ".join(readable))
             matchup.setObjectName("ContextLine"); matchup.setWordWrap(True); box.addWidget(matchup)
-        limitations = ["Heuristique déterministe, pas un simulateur de combat ni une preuve d’item optimal."]
+        limitations = ["C’est une piste à vérifier, pas la preuve qu’un objet était le meilleur choix."]
         if result.get('profile_scope') == 'GENERIC_CLASS_ARCHETYPE':
-            limitations.append("Profil générique fondé sur les classes Data Dragon : moins personnalisé qu’un profil champion revu manuellement.")
+            limitations.append("Ce conseil s’appuie surtout sur le style général du champion ; il est moins personnalisé.")
         if result.get('champion') == 'Viego':
-            limitations.append("L’inventaire possédé et les stats personnelles affectées par sa possession restent hors modèle.")
+            limitations.append("Avec Viego, les objets et les caractéristiques peuvent changer lorsqu’il prend possession d’un adversaire ; cette situation n’est pas prise en compte ici.")
         limitation = QLabel(" ".join(limitations))
         limitation.setObjectName("MicroLabel"); limitation.setWordWrap(True); box.addWidget(limitation)
         layout.addWidget(card); layout.addStretch()
@@ -311,7 +321,7 @@ class MatchDetailPage(QWidget):
             else:
                 label = QLabel(coaching_empty_message(report))
                 label.setWordWrap(True); label.setObjectName("Muted"); summary_layout.addWidget(label)
-            boundary = QLabel("Ces pistes aident à revoir la partie et à tester une habitude. Elles n’attribuent pas une cause certaine au résultat."); boundary.setObjectName("MicroLabel"); boundary.setWordWrap(True); summary_layout.addWidget(boundary)
+            boundary = QLabel("Ces pistes aident à revoir la partie et à tester une habitude. Ce ne sont pas des explications certaines du résultat."); boundary.setObjectName("MicroLabel"); boundary.setWordWrap(True); summary_layout.addWidget(boundary)
             layout.addWidget(summary_card)
             insight_grid = QGridLayout(); insight_grid.setHorizontalSpacing(12); insight_grid.setVerticalSpacing(12)
             for index, insight in enumerate(report.insights):
@@ -321,16 +331,14 @@ class MatchDetailPage(QWidget):
         for insight in report.insights:
             def build(layout, current=insight):
                 header = QFrame(); header.setObjectName("AnalyzerHeader"); h = QVBoxLayout(header); h.setContentsMargins(14, 11, 14, 11)
-                top = QHBoxLayout(); name = QLabel(current.title); name.setObjectName("SectionTitle"); top.addWidget(name); top.addStretch(); top.addWidget(StatusBadge(current.status)); h.addLayout(top)
-                summary = QLabel(current.summary); summary.setWordWrap(True); summary.setObjectName("Muted"); h.addWidget(summary); layout.addWidget(header)
+                top = QHBoxLayout(); name = QLabel(player_insight_title(current)); name.setObjectName("SectionTitle"); top.addWidget(name); top.addStretch(); top.addWidget(StatusBadge(current.status)); h.addLayout(top)
+                summary = QLabel(player_insight_summary(current)); summary.setWordWrap(True); summary.setObjectName("Muted"); h.addWidget(summary); layout.addWidget(header)
                 if current.events:
                     for event in current.events:
                         layout.addWidget(AnalyzerEventCard(event, self.assets, match.game_version))
                 else:
-                    layout.addWidget(EmptyState("Aucun événement structuré", current.summary))
-                if current.technical_details:
-                    layout.addWidget(AnalyzerEventCard({"title": "Journal technique", "subtitle": "Événements bruts de reconstruction", "status": current.status, "metrics": [], "context": [], "technical": list(current.technical_details)}, self.assets, match.game_version))
-            tabs.addTab(self._scroll_panel(build), insight.title)
+                    layout.addWidget(EmptyState("Rien à afficher pour cette partie", "Aucun moment correspondant n’a été enregistré."))
+            tabs.addTab(self._scroll_panel(build), self.INSIGHT_TAB_TITLES.get(insight.category, insight.title))
         self._optimizer_tab(tabs, match)
         self._journal_tab(tabs, match)
         self.content.addWidget(tabs, 1)

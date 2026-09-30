@@ -64,6 +64,14 @@ POST-GAME INVENTORY PREFIX RELIABILITY — 2026-09-30
 [ ] Human visual/product review on the user's display
 [ ] Decide whether to freeze this product version; default remains NO FREEZE
 
+PLAYER-FACING LANGUAGE PASS — 2026-09-30
+
+[x] Remove internal analyzer versions, engine labels and technical journals from player screens
+[x] Explain item advice with player terms, enemy context and game-time purchase steps
+[x] Translate abstention, import and connection messages into plain French
+[x] Verify both a real recommendation and a safe abstention in the visual checks
+[ ] Human review that explanations make sense to a League of Legends player
+
 BUILD OPTIMIZER — ALL-CHAMPION COVERAGE EXTENSION — 2026-09-24
 
 [x] Add exact-patch Data Dragon class-profile fallback while retaining reviewed champion profiles

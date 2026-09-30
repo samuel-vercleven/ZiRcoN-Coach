@@ -10,15 +10,17 @@ class StatusBadge(QLabel):
 
     def set_status(self, status: str) -> None:
         labels = {
-            "AVAILABLE": "DISPONIBLE", "PARTIAL": "PARTIEL", "UNAVAILABLE": "INDISPONIBLE",
-            "VALID": "VALIDE", "COMPLETE": "TERMINÉ", "CURRENT": "ACTUEL", "CACHED": "CACHE",
-            "LOCAL": "LOCAL", "NOT_CONFIGURED": "NON CONFIGURÉE", "CONFIGURED_UNVALIDATED": "CONFIGURÉE · NON VALIDÉE",
-            "UNAUTHORIZED_OR_EXPIRED": "NON AUTORISÉE / EXPIRÉE", "FORBIDDEN": "ACCÈS REFUSÉ",
-            "RATE_LIMITED": "LIMITE ATTEINTE", "NETWORK_ERROR": "ERREUR RÉSEAU",
-            "RIOT_SERVER_ERROR": "ERREUR RIOT", "ERROR": "ERREUR", "FAILED": "ÉCHEC",
-            "RUNNING": "EN COURS", "OFFLINE": "HORS LIGNE", "NOT_TESTED": "NON TESTÉE", "TESTING": "TEST EN COURS",
+            "AVAILABLE": "DISPONIBLE", "PARTIAL": "À VÉRIFIER", "UNAVAILABLE": "INDISPONIBLE",
+            "VALID": "CONNECTÉ", "COMPLETE": "TERMINÉ", "CURRENT": "À JOUR", "CACHED": "ENREGISTRÉ",
+            "LOCAL": "SUR CET ORDINATEUR", "NOT_CONFIGURED": "CLÉ MANQUANTE", "CONFIGURED_UNVALIDATED": "À VÉRIFIER",
+            "UNAUTHORIZED_OR_EXPIRED": "CLÉ À RENOUVELER", "FORBIDDEN": "ACCÈS REFUSÉ",
+            "RATE_LIMITED": "TROP DE DEMANDES", "NETWORK_ERROR": "PAS DE CONNEXION",
+            "RIOT_SERVER_ERROR": "SERVICE INDISPONIBLE", "ACCOUNT_NOT_FOUND": "COMPTE INTROUVABLE",
+            "REVIEW_REQUIRED": "À VÉRIFIER", "ERROR": "ERREUR", "FAILED": "ÉCHEC",
+            "RUNNING": "EN COURS", "OFFLINE": "HORS LIGNE", "NOT_TESTED": "NON VÉRIFIÉE", "TESTING": "VÉRIFICATION…",
+            "UNKNOWN": "À VÉRIFIER",
         }
-        self.setText(labels.get(status, status.replace("_", " ")))
+        self.setText(labels.get(status, "À VÉRIFIER"))
         self.setProperty("statusCode", status)
         # Epistemic/data support is deliberately neutral, never gameplay-green.
         tone = "support" if status in ("AVAILABLE", "VALID", "COMPLETE", "EXACT", "RESOLVED", "CURRENT") else "amber" if status in ("PARTIAL", "UNKNOWN", "CONFIGURED_UNVALIDATED", "CACHED") else "red" if status in ("ERROR", "FAILED", "UNAUTHORIZED_OR_EXPIRED", "FORBIDDEN") else "slate"

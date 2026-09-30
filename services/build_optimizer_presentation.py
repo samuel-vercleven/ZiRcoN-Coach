@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import re
 import sqlite3
 
 from app.paths import PROJECT_ROOT
@@ -29,6 +30,60 @@ def _clock(timestamp: int) -> str:
     return f'{timestamp // 60000:02d}:{timestamp // 1000 % 60:02d}'
 
 
+_PLAYER_TRAITS = {
+    'ABILITY_HASTE': 'la réduction du délai de récupération de tes compétences',
+    'AD': 'les dégâts physiques', 'AP': 'la puissance magique',
+    'ARMOR': 'l’armure', 'ATTACK_SPEED': 'la vitesse d’attaque',
+    'BURST': 'les dégâts rapides', 'CRIT': 'les coups critiques',
+    'DEFENSE_MR': 'la protection contre les dégâts magiques',
+    'HEALTH': 'les points de vie', 'LIFESTEAL': 'le vol de vie',
+    'MR': 'la résistance magique', 'ON_HIT': 'les effets à l’impact',
+    'PERCENT_MAGIC_PEN': 'la pénétration magique', 'RAW_DAMAGE': 'les dégâts directs',
+    'SURVIVABILITY': 'la résistance en combat', 'SUSTAINED_DAMAGE': 'les dégâts dans les combats qui durent',
+    'UTILITY': 'des outils supplémentaires',
+}
+
+
+def player_facing_reasons(reasons, champion: str = '') -> tuple[str, ...]:
+    """Translate engine scoring traces into concise explanations for players."""
+    readable = []
+    for reason in reasons or ():
+        text = str(reason)
+        direction = re.match(r"Direction ([A-Z_]+) compatible avec (?:le profil [\w_]+|l’archétype .+)\.", text)
+        if direction:
+            trait = _PLAYER_TRAITS.get(direction.group(1))
+            if trait:
+                readable.append(f"Cet objet apporte {trait}" + (f", utile pour {champion}." if champion else "."))
+            continue
+        folded = text.casefold()
+        if 'composition observée peut favoriser burst / pénétration magique plate' in folded:
+            readable.append("Les adversaires présents peuvent rendre utiles les dégâts rapides et la pénétration magique.")
+        elif 'composition observée peut favoriser crit / burst / pénétration physique plate' in folded:
+            readable.append("Les adversaires présents peuvent rendre utiles les coups critiques, les dégâts rapides et la pénétration d’armure.")
+        elif 'menace magique relative est très élevée' in folded:
+            readable.append("Les dégâts magiques adverses étaient particulièrement élevés à ce moment.")
+        elif 'menace physique relative est très élevée' in folded:
+            readable.append("Les dégâts physiques adverses étaient particulièrement élevés à ce moment.")
+        elif 'pression hp ennemie est élevée dans la référence historique' in folded:
+            readable.append("Tes adversaires avaient souvent beaucoup de points de vie dans tes parties précédentes.")
+        elif 'résistance magique ennemie est élevée dans la référence historique' in folded:
+            readable.append("Tes adversaires avaient souvent beaucoup de résistance magique dans tes parties précédentes.")
+        elif 'armure ennemie est élevée dans la référence historique' in folded:
+            readable.append("Tes adversaires avaient souvent beaucoup d’armure dans tes parties précédentes.")
+        elif 'delta de gold d’équipe est bas dans la référence historique' in folded:
+            readable.append("Dans tes parties précédentes, ton équipe avait souvent peu d’avance en or à ce moment.")
+        elif 'delta de gold d’équipe est positif dans la référence historique' in folded:
+            readable.append("Dans tes parties précédentes, ton équipe était souvent en avance en or à ce moment.")
+        elif 'item complet est réalisable dans le modèle de recette' in folded:
+            readable.append("Tu avais assez d’or pour terminer cet objet à ce moment.")
+        elif 'progrès de recette réalisable est disponible' in folded:
+            readable.append("Avec l’or dont tu disposais, tu pouvais déjà avancer dans l’achat de cet objet.")
+        # Engine/model plumbing is intentionally omitted from player copy.
+    return tuple(dict.fromkeys(readable)) or (
+        'Cette piste s’appuie sur les objets, l’or et les adversaires observés à ce moment.',
+    )
+
+
 class BuildOptimizerPresentationService:
     """Creates a local, latest-observed-frame recommendation for the UI."""
 
@@ -39,16 +94,16 @@ class BuildOptimizerPresentationService:
     @staticmethod
     def _unavailable(reason_code: str, **details) -> dict:
         messages = {
-            'PARTIE_OU_JOUEUR_LOCAL_INDISPONIBLE': 'La partie ou le profil joueur local est indisponible.',
-            'PATCH_NON_SUPPORTÉ': 'Je n’ai pas de profil d’objets vérifié pour le patch de cette partie.',
-            'CATALOGUE_EXACT_LOCAL_INDISPONIBLE': 'Le catalogue exact de ce patch manque en local ; je ne remplace pas les données par celles d’un autre patch.',
-            'CHAMPION_SANS_CLASSE_DATA_DRAGON_FIABLE': 'Les données de classe exactes du champion ne permettent pas encore d’établir un profil fiable.',
-            'AUCUNE_FRAME_OBSERVÉE': 'Aucune frame de jeu exploitable n’est disponible pour situer le conseil.',
-            'PARTIE_LOCALE_INTRouvABLE': 'La partie n’est plus disponible dans la base locale.',
-            'CONTEXTE_DE_RECOMMANDATION_INDISPONIBLE': 'Les données observées ne permettent pas de construire un contexte de recommandation fiable.',
+            'PARTIE_OU_JOUEUR_LOCAL_INDISPONIBLE': 'Cette partie ou ce profil joueur n’est pas disponible.',
+            'PATCH_NON_SUPPORTÉ': 'Cette partie vient d’une version du jeu que le conseil ne reconnaît pas encore.',
+            'CATALOGUE_EXACT_LOCAL_INDISPONIBLE': 'Les informations sur les objets de cette version ne sont pas disponibles.',
+            'CHAMPION_SANS_CLASSE_DATA_DRAGON_FIABLE': 'Je n’ai pas encore assez d’informations sur ce champion pour te conseiller.',
+            'AUCUNE_FRAME_OBSERVÉE': 'Je n’ai pas assez de moments enregistrés pour situer un conseil dans cette partie.',
+            'PARTIE_LOCALE_INTRouvable': 'Cette partie n’est plus disponible.',
+            'CONTEXTE_DE_RECOMMANDATION_INDISPONIBLE': 'Les informations de cette partie ne suffisent pas pour proposer un conseil fiable.',
         }
         if reason_code.startswith('CONTEXTE_LOCAL_INDISPONIBLE:'):
-            message = 'Les données locales nécessaires à cette partie n’ont pas pu être lues.'
+            message = 'Impossible de lire les détails de cette partie sur cet ordinateur.'
         else:
             message = messages.get(reason_code, 'Les données disponibles ne suffisent pas pour proposer un conseil fiable.')
         return {'status': 'UNAVAILABLE', 'reason': message, 'reason_code': reason_code, **details}
@@ -58,16 +113,16 @@ class BuildOptimizerPresentationService:
         warnings = set(warnings or ())
         reasons = []
         if 'INVENTORY_UNRELIABLE' in warnings:
-            reasons.append('L’inventaire à cette frame reste ambigu ; je préfère éviter une recette ou un doublon erroné.')
+            reasons.append('Je ne peux pas confirmer les objets que tu avais à ce moment-là ; je préfère éviter un doublon ou un achat incorrect.')
         if 'CURRENT_GOLD_UNRESOLVED' in warnings:
-            reasons.append('L’or disponible à la frame exacte n’a pas pu être établi.')
+            reasons.append('Je ne peux pas confirmer combien d’or tu avais à ce moment-là.')
         if 'HISTORICAL_BASELINE_UNAVAILABLE' in warnings:
-            reasons.append('Il manque assez de parties antérieures comparables sur le même patch et la même phase.')
+            reasons.append('Je n’ai pas assez de parties précédentes comparables pour étayer ce conseil.')
         if 'UNSUPPORTED_QUEUE' in warnings:
-            reasons.append('Ce mode de jeu n’est pas pris en charge par ce conseil.')
+            reasons.append('Ce mode de jeu n’est pas encore pris en charge.')
         if 'CONTEXT_CATALOG_PATCH_MISMATCH' in warnings:
-            reasons.append('Le patch de la partie ne correspond pas au catalogue vérifié.')
-        return tuple(reasons) or ('Les données de cette frame ne suffisent pas pour défendre un achat précis.',)
+            reasons.append('Les informations de la partie ne correspondent pas à cette version du jeu.')
+        return tuple(reasons) or ('Je n’ai pas assez d’informations pour te proposer un achat précis.',)
 
     def _catalog(self, patch: str) -> tuple[CatalogView, dict] | None:
         if patch in self._catalogs:
@@ -183,6 +238,7 @@ class BuildOptimizerPresentationService:
             'snapshot_timestamp': context.timestamp,
             'snapshot_label': _clock(context.timestamp),
             'baseline_samples': baseline.sample_count,
+            'reasons': player_facing_reasons(recommendation.reasons, context.champion),
             'target_name': name(recommendation.target_item) if recommendation.target_item else None,
             'buy_now_named': tuple({'item_id': step.item_id, 'name': name(step.item_id), 'cost': step.cost}
                                   for step in recommendation.buy_now),

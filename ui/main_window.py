@@ -17,7 +17,7 @@ from ui.workers import FunctionWorker
 
 class MainWindow(QMainWindow):
     PAGE_DASHBOARD, PAGE_MATCHES, PAGE_PROGRESS, PAGE_SETTINGS, PAGE_MATCH_DETAIL = range(5)
-    PAGE_NAMES = ("Tableau de bord", "Historique", "Progression", "Réglages", "Analyse post-game")
+    PAGE_NAMES = ("Tableau de bord", "Historique", "Progression", "Réglages", "Analyse de partie")
 
     def __init__(self, context: AppContext, parent=None):
         super().__init__(parent)
@@ -31,7 +31,7 @@ class MainWindow(QMainWindow):
         self.match_detail_page = None
         QThreadPool.globalInstance().setMaxThreadCount(6)
 
-        self.setWindowTitle("ZiRcoN Coach — V0.1 Alpha")
+        self.setWindowTitle("ZiRcoN Coach")
         self.resize(1600, 900)
         self.setMinimumSize(1100, 700)
         central = QWidget()
@@ -73,7 +73,7 @@ class MainWindow(QMainWindow):
         brand = QLabel("ZiRcoN Coach")
         brand.setObjectName("Brand")
         side.addWidget(brand)
-        accent = QLabel("Post-game analytics")
+        accent = QLabel("Ton coach de partie")
         accent.setObjectName("BrandAccent")
         side.addWidget(accent)
         side.addSpacing(22)
@@ -87,10 +87,8 @@ class MainWindow(QMainWindow):
             side.addWidget(button)
             self.nav_buttons.append(button)
         side.addStretch()
-        version = QLabel("V0.1 Alpha")
-        version.setObjectName("Muted")
-        side.addWidget(version)
-        local = QLabel("●  Données locales")
+        side.addSpacing(14)
+        local = QLabel("●  Tes données de jeu")
         local.setStyleSheet("color: #43D39E; font-size: 11px;")
         side.addWidget(local)
         return sidebar
@@ -113,19 +111,19 @@ class MainWindow(QMainWindow):
         self.player.setMaximumWidth(180)
         self.player.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         top.addWidget(self.player)
-        self.connection = QLabel("●  Local")
+        self.connection = QLabel("●  Sur cet ordinateur")
         self.connection.setStyleSheet("color: #43D39E; font-size: 12px;")
         top.addWidget(self.connection)
 
         # Compatibility state stays available to tests, but technical failures live in Settings.
         self.api = StatusBadge("UNKNOWN")
         self.sync_badge = StatusBadge("OFFLINE")
-        self.sync_text = QLabel("Données locales")
+        self.sync_text = QLabel("Parties enregistrées sur cet ordinateur")
         self.sync_text.setMaximumWidth(140)
         for widget in (self.api, self.sync_badge, self.sync_text):
             widget.hide()
             top.addWidget(widget)
-        self.sync_button = QPushButton("Synchroniser")
+        self.sync_button = QPushButton("Importer mes parties")
         self.sync_button.setObjectName("PrimaryButton")
         self.sync_button.clicked.connect(self.start_sync)
         top.addWidget(self.sync_button)
@@ -208,18 +206,39 @@ class MainWindow(QMainWindow):
         QThreadPool.globalInstance().start(worker)
 
     def _sync_progress(self, message, value):
-        self.sync_text.setText(message)
+        if message.startswith("Validating Riot API"):
+            readable = "Vérification de ta connexion Riot…"
+        elif message.startswith("Fetching profile and rank"):
+            readable = "Récupération de ton profil et de ton classement…"
+        elif message.startswith("Fetching match IDs"):
+            readable = "Recherche de tes parties…"
+        elif message.startswith("Downloading match "):
+            readable = "Import des parties " + message.removeprefix("Downloading match ") + "…"
+        elif message.startswith("Downloading timeline "):
+            readable = "Import des détails " + message.removeprefix("Downloading timeline ") + "…"
+        elif message.startswith("Running cached post-game analysis"):
+            readable = "Analyse de tes parties…"
+        elif message.startswith("Refreshing local views"):
+            readable = "Mise à jour de l’application…"
+        else:
+            readable = "Import de tes parties en cours…"
+        self.sync_text.setText(readable)
         self.progress.setValue(value)
 
     def _sync_result(self, result):
         status = result.get("status", "ERROR")
         self.refresh_all()
-        self.sync_text.setText(result.get("message", status))
+        if status == "COMPLETE":
+            self.sync_text.setText(f"Import terminé : {result.get('new_matches', 0)} nouvelle(s) partie(s), {result.get('existing_matches', 0)} déjà présente(s).")
+        elif status == "PARTIAL":
+            self.sync_text.setText("Import terminé, mais certaines parties ou informations manquent. Tu peux réessayer plus tard.")
+        else:
+            self.sync_text.setText("L’import n’a pas abouti. Vérifie ta connexion et les réglages du compte Riot.")
         self.sync_badge.set_status(status)
         self.api.set_status(self.context.settings.api_status())
 
     def _sync_failed(self, message):
-        self.sync_text.setText(message)
+        self.sync_text.setText("L’import a échoué. Vérifie ta connexion et réessaie.")
         self.sync_badge.set_status("ERROR")
         self.api.set_status(self.context.settings.api_status())
 

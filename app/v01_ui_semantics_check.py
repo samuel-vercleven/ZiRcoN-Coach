@@ -8,12 +8,14 @@ from unittest.mock import Mock
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QPushButton, QTabWidget, QWidget
+from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QTabWidget, QWidget
 
 from services.runtime_settings import RuntimeSettingsService
+from services.build_optimizer_presentation import player_facing_reasons
 from services.riot_client import DynamicRiotClient, RiotResult, RiotStatus
 from ui.components.status_badge import StatusBadge
 from ui.components.coaching_card import CoachingCard
+from ui.components.insight_card import AnalyzerEventCard, InsightCard
 from ui.components.trend_chart import TrendChart
 from ui.pages.match_detail_page import MatchDetailPage, coach_summary_empty_message, coach_summary_lines
 from ui.pages.settings_page import SettingsPage
@@ -39,6 +41,8 @@ def main() -> None:
         local.status.return_value = SimpleNamespace(api_status="VALID", db_path="test.db", db_available=True,
             match_count=0, timeline_count=0, analyzed_match_count=0, latest_match_date="—", last_sync_at="—", sync_message="")
         page = SettingsPage(local, settings, Mock())
+        settings_copy = " ".join(label.text() for label in page.findChildren(QLabel)).casefold()
+        assert not any(term in settings_copy for term in ("backend", ".env", "candidate", "timelines", "base de données"))
         page._validation_done(RiotResult(RiotStatus.UNAUTHORIZED, message="candidate rejected"), "BAD_CANDIDATE", "Player#EUW", False)
         assert settings.api_key() == "ACTIVE_TEST_KEY" and settings.api_status() == "VALID"
         settings.save_api_key("REPLACEMENT_TEST_KEY")
@@ -52,7 +56,7 @@ def main() -> None:
     ), "UNAVAILABLE")
     assert coach_summary_lines(unavailable) == ()
     missing_message = coach_summary_empty_message(unavailable)
-    assert "Synthèse limitée" in missing_message and "absence de problème" in missing_message
+    assert "informations" in missing_message and "données incomplètes" in missing_message
 
     report = CoachingReport("m", (
         InsightViewModel("DEATH", "Morts", "x", status="AVAILABLE", evidence=tuple("x" for _ in range(99))),
@@ -102,8 +106,8 @@ def main() -> None:
     ), "AVAILABLE")
     reset_focus, = coaching_focuses(reset_report)
     assert "temps" in reset_focus.why_review and "objectif" in reset_focus.next_game_experiment
-    assert any("DRAGON (111 s)" in value for value in reset_focus.evidence)
-    assert "ne suffit pas à juger le reset" in reset_focus.why_review
+    assert any("proximité d’un objectif" in value for value in reset_focus.evidence)
+    assert "ne juge pas à lui seul ton choix" in reset_focus.why_review
 
     death_after_reset_report = CoachingReport("m", (
         InsightViewModel("RESETS", "Recalls / Resets", "x", status="AVAILABLE", source_module="resets",
@@ -114,8 +118,8 @@ def main() -> None:
                          ], "context": ["mort observée dans les 120 s après le proxy de reset"]},)),
     ), "AVAILABLE")
     death_after_reset, = coaching_focuses(death_after_reset_report)
-    assert "Une mort est observée" in death_after_reset.why_review
-    assert "ne prouvent pas" in death_after_reset.why_review
+    assert "Une mort est survenue" in death_after_reset.why_review
+    assert "sans en conclure" in death_after_reset.why_review
     assert "menaces" in death_after_reset.next_game_experiment
 
     tabs = QTabWidget(); overview_tab = QWidget(); coach_tab = QWidget(); death_tab = QWidget()
@@ -123,7 +127,7 @@ def main() -> None:
     tabs.addTab(death_tab, focus.source_tab_title)
     card = CoachingCard(focus, open_source=MatchDetailPage._open_tab(tabs, focus.source_tab_title))
     source_action = card.findChild(QPushButton, "GhostButton")
-    assert source_action is not None and source_action.text() == "Voir les événements associés"
+    assert source_action is not None and source_action.text() == "Revoir les moments associés"
     source_action.click()
     assert tabs.currentWidget() is death_tab
 
@@ -132,6 +136,34 @@ def main() -> None:
     assert compact_action is not None and compact_action.text() == "Ouvrir l’analyse coach"
     compact_action.click()
     assert tabs.currentWidget() is coach_tab
+
+    full_card = CoachingCard(reset_focus)
+    coaching_copy = " ".join(label.text() for label in full_card.findChildren(QLabel)).casefold()
+    assert not any(term in coaching_copy for term in ("proxy", "v21", "expérimental", "historique"))
+
+    old_insight = InsightViewModel("RESETS", "Recalls / Resets", "Séquence proxy de reset volontaire v21.",
+                                   status="AVAILABLE", events=({"title": "Reset / shop à 03:35",
+                                   "subtitle": "Évidence v21", "technical": ["reset_id=123"],
+                                   "metrics": [{"label": "Gold avant / dépensé (proxy)", "value": "EXPERIMENTAL"}],
+                                   "context": ["séquence v21 : proxy de reset"]},))
+    player_card = InsightCard(old_insight)
+    event_card = AnalyzerEventCard(old_insight.events[0], Mock())
+    rendered_copy = " ".join(label.text() for widget in (player_card, event_card) for label in widget.findChildren(QLabel)).casefold()
+    assert not any(term in rendered_copy for term in ("proxy", "v21", "reset_id", "recalls / resets", "experimental"))
+
+    recommendation_copy = player_facing_reasons((
+        "Direction AP compatible avec l’archétype Mage.",
+        "La résistance magique ennemie est élevée dans la référence historique.",
+        "Un progrès de recette réalisable est disponible.",
+        "La couverture de recette utilise seulement coûts et composants observés.",
+        "Le contrat de légalité v1 et le plan de recette sont supportés.",
+    ), "AurelionSol")
+    joined_recommendation_copy = " ".join(recommendation_copy).casefold()
+    assert "puissance magique" in joined_recommendation_copy
+    assert "résistance magique" in joined_recommendation_copy
+    assert "référence historique" not in joined_recommendation_copy
+    assert "couverture de recette" not in joined_recommendation_copy
+    assert "légalité v1" not in joined_recommendation_copy
 
     chart = TrendChart(); chart.set_values([2.0, None, 3.0])
     assert chart.values == [2.0, None, 3.0] and chart.values[1] is None

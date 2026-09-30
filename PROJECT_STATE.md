@@ -2,6 +2,13 @@
 
 ## Build Optimizer champion coverage extension — REVIEW_REQUIRED / NO FREEZE
 
+- Player-facing copy pass (2026-09-30): match pages no longer show analyzer
+  version IDs, engine/profile names, raw recommendation diagnostics or technical
+  journals. Recommendations explain item traits, game-time context, enemy
+  composition and conditional purchase steps in plain French. Settings and sync
+  labels are player-readable. Real recommendation and abstention render checks,
+  UI semantics and app smoke PASS. This changes presentation only; no scoring
+  or FROZEN analysis code changed. Human gameplay review remains required.
 - Reliability follow-up (2026-09-30): exact, patch-audited recall/quest marker
   destroys no longer contaminate permanent inventory prefixes; unknown destroy
   events remain blocking. Magical Footwear grants strictly after a snapshot no

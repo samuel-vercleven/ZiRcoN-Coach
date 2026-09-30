@@ -113,8 +113,8 @@ class MatchesPage(QWidget):
         except Exception:
             compositions = {}
         self.status.setText(
-            f"{len(self._filtered_matches)} parties analysées · "
-            f"{len(visible)} affichées · données locales"
+            f"{len(self._filtered_matches)} parties trouvées · "
+            f"{len(visible)} affichées · sur cet ordinateur"
         )
         if not visible:
             self.list.addWidget(EmptyState(

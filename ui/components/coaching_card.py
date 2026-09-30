@@ -1,9 +1,26 @@
 from collections.abc import Callable
+import re
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QLabel, QPushButton, QVBoxLayout
 
 from ui.player_coach import CoachingFocus
+
+
+def _player_text(value: str) -> str:
+    text = value
+    for old, new in (
+        ("proxy de reset volontaire", "retour volontaire à la base"),
+        ("proxy de reset", "retour à la base"),
+        ("proxy", "estimation"),
+        ("référence historique", "tes parties précédentes"),
+        ("indice historique", "repère comparatif"),
+        ("composite relatif", "repère comparatif"),
+        ("EXPÉRIMENTAL", "estimé"),
+        ("pathing", "déplacements"),
+    ):
+        text = text.replace(old, new).replace(old.upper(), new)
+    return re.sub(r"\bv\d+\b", "", text).strip()
 
 
 class CoachingCard(QFrame):
@@ -24,18 +41,18 @@ class CoachingCard(QFrame):
         title.setObjectName("EventTitle")
         title.setWordWrap(True)
         layout.addWidget(title)
-        observation = QLabel(f"Ce qu’on observe · {focus.observation}")
+        observation = QLabel(f"Ce qu’on observe · {_player_text(focus.observation)}")
         observation.setObjectName("ContextLine")
         observation.setWordWrap(True)
         layout.addWidget(observation)
-        why = QLabel(f"Pourquoi y revenir · {focus.why_review}")
+        why = QLabel(f"Pourquoi y revenir · {_player_text(focus.why_review)}")
         why.setObjectName("Muted")
         why.setWordWrap(True)
         layout.addWidget(why)
         action_title = QLabel("À tester la prochaine partie")
         action_title.setObjectName("CardTitle")
         layout.addWidget(action_title)
-        experiment = QLabel(focus.next_game_experiment)
+        experiment = QLabel(_player_text(focus.next_game_experiment))
         experiment.setObjectName("ContextLine")
         experiment.setWordWrap(True)
         layout.addWidget(experiment)
@@ -43,21 +60,17 @@ class CoachingCard(QFrame):
             evidence_title = QLabel("Repères de cette partie")
             evidence_title.setObjectName("CardTitle")
             layout.addWidget(evidence_title)
-            evidence = QLabel("  ·  ".join(focus.evidence))
+            evidence = QLabel("  ·  ".join(_player_text(value) for value in focus.evidence))
             evidence.setObjectName("Muted")
             evidence.setWordWrap(True)
             layout.addWidget(evidence)
         if not compact:
-            limitation = QLabel(focus.limitation)
+            limitation = QLabel(_player_text(focus.limitation))
             limitation.setObjectName("MicroLabel")
             limitation.setWordWrap(True)
             layout.addWidget(limitation)
-            source = QLabel(f"Données : {focus.source}")
-            source.setObjectName("MicroLabel")
-            source.setWordWrap(True)
-            layout.addWidget(source)
         if open_source is not None:
-            action = QPushButton("Ouvrir l’analyse coach" if compact else "Voir les événements associés")
+            action = QPushButton("Ouvrir l’analyse coach" if compact else "Revoir les moments associés")
             action.setObjectName("GhostButton")
             action.setCursor(Qt.CursorShape.PointingHandCursor)
             action.clicked.connect(open_source)

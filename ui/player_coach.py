@@ -76,7 +76,7 @@ def _focus_for(insight: InsightViewModel, finding: dict) -> CoachingFocus:
         killer = metrics.get("Tueur", "")
         zone = metrics.get("Zone approximative", "")
         if time and score:
-            observation = f"À {time}, l’indice historique de coût relatif de cette mort est de {score}."
+            observation = f"À {time}, cette mort a un coût estimé de {score} par rapport à tes repères habituels."
         else:
             observation = detail
         why = "Ce repère sert à revoir le contexte autour de la mort, pas à conclure qu’elle explique à elle seule la suite de la partie."
@@ -90,24 +90,27 @@ def _focus_for(insight: InsightViewModel, finding: dict) -> CoachingFocus:
             evidence.append(f"Tueur observé : {killer}")
         if zone and zone not in ("—", "None"):
             evidence.append(f"Zone approximative : {_readable(zone)}")
-        limitation = "L’indice est expérimental et relatif à une référence historique ; les fenêtres observées ne prouvent pas une causalité et peuvent se chevaucher."
+        limitation = "Ce chiffre est un repère de comparaison, pas la preuve que cette mort a causé la suite de la partie."
         coach_title = "Revoir le contexte de cette mort"
     elif "pathing" in title.casefold() or "tempo" in title.casefold() or "tempo" in source:
         phase = str(event.get("title")) if event else title.split("phase", 1)[-1].strip()
-        observation = "Pendant " + phase + ", " + detail.rstrip(".") + "."
+        if metrics.get("Pathing historique") and metrics.get("Pathing historique") != "—":
+            observation = f"Pendant {phase}, tes déplacements méritent d’être revus par rapport aux occasions disponibles."
+        else:
+            observation = f"Pendant {phase}, quelques moments méritent d’être revus pour comprendre ton rythme."
         pathing = metrics.get("Pathing historique", "")
         tempo = metrics.get("Tempo historique", "")
         if pathing and pathing != "—":
-            evidence.append(f"Repère de pathing sur la phase : {pathing}")
+            evidence.append(f"Repère sur tes déplacements : {pathing}")
         if tempo and tempo != "—":
             evidence.append(f"Repère de tempo sur la phase : {tempo}")
-        why = "Cette fenêtre vaut un replay pour comprendre ce que tu cherchais à obtenir sur la carte et si ton trajet servait cette priorité. Le signal ne désigne pas une route optimale."
-        action = "Sur le replay de cette phase, formule d’abord ton objectif (farm, regroupement ou préparation d’objectif), puis vérifie si ton trajet réel y conduisait compte tenu de ce qui était disponible."
-        limitation = "Le résultat est agrégé par phase de jeu ; il ne reconstitue pas à lui seul chaque décision ni la vision disponible seconde par seconde."
+        why = "Revois cette période pour comprendre ce que tu voulais faire sur la carte et si tes déplacements t’en rapprochaient."
+        action = "Dans le replay, choisis un objectif (farm, regroupement ou préparation d’objectif) et vérifie si tes déplacements t’y ont aidé."
+        limitation = "Ce résumé regarde de grandes périodes ; il ne montre pas chaque décision ni tout ce que tu pouvais voir."
         coach_title = "Vérifier le choix de trajet"
     elif "reset" in source or "reset" in title.casefold() or "shop" in title.casefold():
         score = metrics.get("Production après reset vs historique", "")
-        observation = f"Après le retour boutique vers {time}, la production observée est sous la référence historique{f' ({score})' if score else ''}." if time else detail
+        observation = f"Après ton retour à la base vers {time}, les ressources gagnées sont sous tes repères habituels{f' ({score})' if score else ''}." if time else detail
         origin = metrics.get("Origine", "").casefold()
         objective_timing = metrics.get("Timing objectif", "").casefold()
         event_context = tuple(str(value).casefold() for value in (event.get("context", ()) if event else ()))
@@ -115,27 +118,29 @@ def _focus_for(insight: InsightViewModel, finding: dict) -> CoachingFocus:
         death_followed_reset = any("mort observée dans les 120 s" in value for value in event_context)
         is_objective_window = any(token in objective_timing for token in ("objectif", "dragon", "héraut", "baron"))
         if is_post_death:
-            why = "Après une mort, ce repère porte sur la production observée à la reprise ; il ne juge ni la mort ni la qualité du retour pris isolément."
+            why = "Après une mort, ce repère regarde les ressources gagnées à ta reprise ; il ne juge ni la mort ni ton retour à la base."
             action = "Sur le replay, distingue le temps d’absence, le retour sur la carte et ton premier déplacement. À la prochaine reprise comparable, choisis une destination puis vérifie si tu pouvais réellement l’atteindre à temps."
         elif death_followed_reset:
-            why = "Une mort est observée dans les 120 secondes après ce proxy de reset. La séquence mérite un replay, mais les données ne prouvent pas que le retour ou le trajet l’a provoquée."
+            why = "Une mort est survenue dans les deux minutes après ton retour à la base. Revois la séquence, sans en conclure que le retour ou le trajet l’a provoquée."
             action = "Revois le trajet après la boutique et le contexte juste avant cette mort. À une situation comparable, choisis ton premier déplacement en tenant compte des menaces et des alliés visibles, puis vérifie si tu as pu rejoindre ta priorité."
         elif is_objective_window:
-            why = "Le timing du retour par rapport aux objectifs aide à revoir si ta reprise te laissait le temps de rejoindre ta prochaine priorité. Le score de production ne suffit pas à juger le reset."
+            why = "Le moment de ton retour par rapport aux objectifs aide à revoir si tu pouvais rejoindre ta prochaine priorité à temps. Ce repère ne juge pas à lui seul ton choix."
             action = "Dans le replay, compare le temps restant avant l’objectif au moment où tu retrouves la carte. À un cas similaire, annonce ta destination avant de quitter la base et vérifie si tu arrives à temps pour la priorité choisie."
         else:
-            why = "C’est utile pour examiner comment la reprise s’est enchaînée après la boutique ; ce constat ne dit pas que le retour boutique était mauvais."
+            why = "Revois comment la reprise s’est déroulée après ton passage à la base ; ce constat ne dit pas que ton retour était mauvais."
             action = "À ton prochain retour, annonce-toi une destination de reprise (camp, voie ou préparation d’objectif) avant de quitter la base ; revois ensuite si ton premier trajet t’en a rapproché."
         if score:
-            evidence.append(f"Production après reset vs historique : {score}")
+            evidence.append(f"Ressources gagnées après la reprise : {score}")
         for context_line in (event.get("context", ()) if event else ()):
             context_line = str(context_line)
             lowered_context = context_line.casefold()
-            if "timing objectif" in lowered_context or "mort observée" in lowered_context:
-                evidence.append(f"Contexte observé : {context_line}")
+            if "timing objectif" in lowered_context:
+                evidence.append("Contexte : retour à la base à proximité d’un objectif")
+            elif "mort observée" in lowered_context:
+                evidence.append("Contexte : une mort est survenue dans les deux minutes après le retour à la base")
             elif "gold non dépensé" in lowered_context:
-                evidence.append(f"Contexte exploratoire : {context_line}")
-        limitation = "Le retour est reconstruit à partir d’un proxy boutique, et la production postérieure est comparée à l’historique ; aucune causalité du reset n’est établie."
+                evidence.append("Repère : il te restait beaucoup d’or avant le retour à la base")
+        limitation = "Les ressources après la reprise sont comparées à tes parties précédentes ; ce repère n’explique pas à lui seul le résultat."
         coach_title = "Mieux relier boutique et reprise"
     else:
         observation = detail
@@ -198,7 +203,7 @@ def coaching_focuses(report: CoachingReport, limit: int = 3) -> tuple[CoachingFo
 
 def coaching_empty_message(report: CoachingReport) -> str:
     if all(insight.status == "UNAVAILABLE" for insight in report.insights):
-        return "Les analyses de cette partie ne sont pas disponibles. Synchronise ou régénère les analyses pour obtenir des pistes personnalisées."
+        return "Les informations nécessaires à l’analyse de cette partie ne sont pas disponibles. Importe-la à nouveau pour obtenir des pistes personnalisées."
     if any(insight.status != "AVAILABLE" for insight in report.insights):
-        return "Les données disponibles ne font pas ressortir de piste assez étayée pour te conseiller. Certaines analyses sont absentes ou partielles ; leurs faits restent consultables dans les onglets dédiés."
-    return "Aucune piste de coaching assez étayée n’a été isolée dans cette partie. Les moments et mesures disponibles restent consultables dans les onglets d’analyse."
+        return "Les informations disponibles ne suffisent pas pour te conseiller avec confiance. Certains moments de cette partie n’ont pas pu être examinés."
+    return "Je n’ai pas repéré de piste assez claire pour cette partie. Cela ne prouve pas qu’il n’y avait rien à améliorer."
