@@ -47,7 +47,7 @@ def main() -> None:
             window.resize(width, height)
             for tab_index in range(window.match_detail_page.tabs.count()):
                 window.match_detail_page.tabs.setCurrentIndex(tab_index); app.processEvents()
-                if window.match_detail_page.tabs.tabText(tab_index) == "Conseil de build":
+                if window.match_detail_page.tabs.tabText(tab_index) == "Objets":
                     assert QThreadPool.globalInstance().waitForDone(30000), "Build Optimizer UI worker timed out"
                     app.processEvents()
                     assert window.match_detail_page._optimizer_worker is None, "Build Optimizer UI result was not applied"

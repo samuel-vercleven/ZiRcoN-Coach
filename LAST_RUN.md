@@ -1,5 +1,28 @@
 # LAST RUN
 
+## Post-game readability follow-up — 2026-09-30
+
+### Status
+PASS / REVIEW_REQUIRED FOR HUMAN VISUAL REVIEW
+
+### Command and tests
+- `python -m py_compile` on the changed UI and check files — PASS.
+- `python -m app.v01_ui_semantics_check` — PASS.
+- `python -m app.v01_alpha_smoke` — PASS; verifies the exact five tabs.
+- `python -m app.v01_visual_check` — PASS (20 desktop/minimum-size captures).
+- `git diff --check` — PASS.
+
+### Files changed
+- Match detail navigation, optimizer gauge, and focused UI validation scripts.
+- `TODO.md`, `PROJECT_STATE.md`, and this report.
+
+### Result and scope
+- Detailed coach events remain available in the consolidated Coach section.
+- The circle shows the existing numeric score without `/100`; fill and color
+  visualize that same value. No scoring formula, category threshold, frozen
+  analyzer or recommendation semantics changed.
+- Human visual review on the user's display remains open; no freeze.
+
 ## Player-facing language pass — 2026-09-30
 
 - Removed internal analyzer versions, source labels, backend status and the

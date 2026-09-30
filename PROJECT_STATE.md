@@ -1,5 +1,17 @@
 # ZiRcoN Coach - Project State
 
+## Post-game readability follow-up — technical PASS / human visual review required
+
+- Match detail is organized into five player-facing sections: Résumé, Coach,
+  Objets, Déroulé and Notes. Coaching cards and their source links lead to the
+  consolidated Coach section; detailed event cards remain available there.
+- Optimizer relevance is shown in a circular gauge whose fill and continuous
+  color reflect the existing score. The raw value remains visible without a
+  `/100` suffix; copy and tooltip identify it as an indicative comparison cue,
+  not a probability. Scoring formulas and recommendation semantics are unchanged.
+- UI semantics, alpha smoke and 20 desktop/minimum-size visual captures pass.
+  Human review on the user's display remains open; no freeze.
+
 ## Build Optimizer champion coverage extension — REVIEW_REQUIRED / NO FREEZE
 
 - Player-facing copy pass (2026-09-30): match pages no longer show analyzer

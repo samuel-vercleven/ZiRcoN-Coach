@@ -72,6 +72,14 @@ PLAYER-FACING LANGUAGE PASS — 2026-09-30
 [x] Verify both a real recommendation and a safe abstention in the visual checks
 [ ] Human review that explanations make sense to a League of Legends player
 
+POST-GAME READABILITY FOLLOW-UP — 2026-09-30
+
+[x] Consolidate match navigation into Résumé, Coach, Objets, Déroulé and Notes
+[x] Keep detailed coach events accessible under the Coach section
+[x] Replace the optimizer's `/100` display with a colored, filled visual gauge
+[x] Verify score display, tab navigation and desktop/minimum UI renders
+[ ] Human visual review on the user's display
+
 BUILD OPTIMIZER — ALL-CHAMPION COVERAGE EXTENSION — 2026-09-24
 
 [x] Add exact-patch Data Dragon class-profile fallback while retaining reviewed champion profiles

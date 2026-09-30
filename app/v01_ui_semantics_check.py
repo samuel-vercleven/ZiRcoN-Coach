@@ -17,6 +17,7 @@ from ui.components.status_badge import StatusBadge
 from ui.components.coaching_card import CoachingCard
 from ui.components.insight_card import AnalyzerEventCard, InsightCard
 from ui.components.trend_chart import TrendChart
+from ui.components.relevance_gauge import RelevanceGauge, relevance_color
 from ui.pages.match_detail_page import MatchDetailPage, coach_summary_empty_message, coach_summary_lines
 from ui.pages.settings_page import SettingsPage
 from viewmodels import CoachingReport, InsightViewModel
@@ -122,20 +123,26 @@ def main() -> None:
     assert "sans en conclure" in death_after_reset.why_review
     assert "menaces" in death_after_reset.next_game_experiment
 
-    tabs = QTabWidget(); overview_tab = QWidget(); coach_tab = QWidget(); death_tab = QWidget()
-    tabs.addTab(overview_tab, "Vue d’ensemble"); tabs.addTab(coach_tab, "Analyse coach")
-    tabs.addTab(death_tab, focus.source_tab_title)
+    tabs = QTabWidget(); overview_tab = QWidget(); coach_tab = QWidget(); object_tab = QWidget()
+    tabs.addTab(overview_tab, "Résumé"); tabs.addTab(coach_tab, "Coach"); tabs.addTab(object_tab, "Objets")
     card = CoachingCard(focus, open_source=MatchDetailPage._open_tab(tabs, focus.source_tab_title))
     source_action = card.findChild(QPushButton, "GhostButton")
     assert source_action is not None and source_action.text() == "Revoir les moments associés"
     source_action.click()
-    assert tabs.currentWidget() is death_tab
+    assert tabs.currentWidget() is coach_tab
 
-    compact = CoachingCard(focus, compact=True, open_source=MatchDetailPage._open_tab(tabs, "Analyse coach"))
+    compact = CoachingCard(focus, compact=True, open_source=MatchDetailPage._open_tab(tabs, "Coach"))
     compact_action = compact.findChild(QPushButton, "GhostButton")
     assert compact_action is not None and compact_action.text() == "Ouvrir l’analyse coach"
     compact_action.click()
     assert tabs.currentWidget() is coach_tab
+
+    assert relevance_color(82).green() > relevance_color(10).green()
+    assert relevance_color(-10) == relevance_color(0)
+    assert relevance_color(110) == relevance_color(100)
+    gauge = RelevanceGauge(76); gauge.set_value(82)
+    assert gauge.accessibleName() == "Repère d’achat 82, estimation indicative"
+    assert "/100" not in gauge.toolTip()
 
     full_card = CoachingCard(reset_focus)
     coaching_copy = " ".join(label.text() for label in full_card.findChildren(QLabel)).casefold()

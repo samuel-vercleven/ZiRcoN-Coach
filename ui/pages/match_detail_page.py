@@ -14,6 +14,7 @@ from ui.components.coaching_card import CoachingCard
 from ui.components.gold_timeline import GoldTimeline
 from ui.components.moments_timeline import MomentsTimeline
 from ui.components.performance_gauge import PerformanceGauge
+from ui.components.relevance_gauge import RelevanceGauge
 from ui.components.status_badge import SeverityBadge, StatusBadge
 from ui.workers import FunctionWorker
 from viewmodels import CoachingReport
@@ -42,13 +43,6 @@ def coach_summary_empty_message(report: CoachingReport) -> str:
 
 class MatchDetailPage(QWidget):
     back_requested = Signal()
-    INSIGHT_TAB_TITLES = {
-        "DEATH": "Morts",
-        "TEMPO": "Déplacements et rythme",
-        "OBJECTIVES": "Objectifs",
-        "RESETS": "Retours à la base",
-        "BUILD": "Objets",
-    }
 
     def __init__(self, service: LocalDataService, analysis: PostGameAnalysisService,
                  optimizer: BuildOptimizerPresentationService, assets: AssetService, parent=None):
@@ -76,16 +70,11 @@ class MatchDetailPage(QWidget):
         builder(layout); layout.addStretch(); scroll.setWidget(host); return scroll
 
     @staticmethod
-    def _open_tab(tabs: QTabWidget, title: str):
-        """Resolve the tab only when clicked, after lazy detail tabs exist."""
-        title = {
-            "Tempo / Pathing": "Déplacements et rythme",
-            "Recalls / Resets": "Retours à la base",
-            "Build / Itemisation": "Objets",
-        }.get(title, title)
+    def _open_tab(tabs: QTabWidget, _source_title: str):
+        """Open the consolidated Coach tab for any finding's source analysis."""
         def open_tab():
             for index in range(tabs.count()):
-                if tabs.tabText(index) == title:
+                if tabs.tabText(index) == "Coach":
                     tabs.setCurrentIndex(index)
                     return
         return open_tab
@@ -101,7 +90,7 @@ class MatchDetailPage(QWidget):
     def _optimizer_tab(self, tabs, match):
         scroll = QScrollArea(); scroll.setWidgetResizable(True)
         host = QWidget(); layout = QVBoxLayout(host); layout.setContentsMargins(4, 12, 8, 8); layout.setSpacing(10)
-        scroll.setWidget(host); tabs.addTab(scroll, "Conseil de build")
+        scroll.setWidget(host); tabs.addTab(scroll, "Objets")
         self._optimizer_layout, self._optimizer_match_id = layout, match.match_id
         self._optimizer_version += 1; version = self._optimizer_version
         layout.addWidget(EmptyState("Préparation du conseil", "J’examine les objets et les adversaires rencontrés pendant la partie."))
@@ -125,7 +114,7 @@ class MatchDetailPage(QWidget):
             if focuses:
                 layout.addWidget(CoachingCard(
                     focuses[0], compact=True,
-                    open_source=self._open_tab(tabs, "Analyse coach"),
+                    open_source=self._open_tab(tabs, "Coach"),
                 ))
             else:
                 prompt = QLabel(coaching_empty_message(report)); prompt.setObjectName('Muted'); prompt.setWordWrap(True); layout.addWidget(prompt)
@@ -169,11 +158,11 @@ class MatchDetailPage(QWidget):
             timeline = MomentsTimeline(); timeline.set_data(story.get('events'), match.duration_seconds); moments_box.addWidget(timeline); lower.addWidget(moments, 0, 0)
             recap = QFrame(); recap.setObjectName('RecapCard'); recap_box = QVBoxLayout(recap); recap_box.setContentsMargins(16, 14, 16, 14); recap_box.setSpacing(6)
             recap_title = QLabel('Résumé de la partie'); recap_title.setObjectName('SectionTitle'); recap_box.addWidget(recap_title)
-            recap_text = QLabel(f"{match.result_text} · {match.champion} · {match.kda_text} KDA\nOuvre Analyse coach pour voir les moments à revoir."); recap_text.setObjectName('ContextLine'); recap_text.setWordWrap(True); recap_box.addWidget(recap_text); recap_box.addStretch(); lower.addWidget(recap, 0, 1)
+            recap_text = QLabel(f"{match.result_text} · {match.champion} · {match.kda_text} KDA\nOuvre Coach pour voir les moments à revoir."); recap_text.setObjectName('ContextLine'); recap_text.setWordWrap(True); recap_box.addWidget(recap_text); recap_box.addStretch(); lower.addWidget(recap, 0, 1)
             lower.setColumnStretch(0, 2); lower.setColumnStretch(1, 1); layout.addLayout(lower)
             boundary = QLabel("Le résumé montre le résultat final. Le conseil de build s’appuie sur l’or, les objets et les adversaires observés à un moment précis de la partie.")
             boundary.setObjectName("MicroLabel"); boundary.setWordWrap(True); layout.addWidget(boundary)
-        tabs.addTab(self._scroll_panel(build), "Vue d’ensemble")
+        tabs.addTab(self._scroll_panel(build), "Résumé")
 
     def _show_optimizer_preview(self, match_id, result, game_version):
         if match_id != getattr(self, '_optimizer_preview_match_id', None) or self._optimizer_preview_layout is None:
@@ -185,8 +174,9 @@ class MatchDetailPage(QWidget):
             unavailable = QLabel('Pas de conseil : ' + str(result.get('reason') or 'contexte local insuffisant.'))
             unavailable.setObjectName('Muted'); unavailable.setWordWrap(True); layout.addWidget(unavailable); return
         choice = QHBoxLayout(); icon = AssetIcon(self.assets, 40); icon.load('item', result.get('target_item'), game_version, result.get('target_name') or '?'); choice.addWidget(icon)
+        gauge = RelevanceGauge(58); gauge.set_value(result.get('score', 0)); choice.addWidget(gauge)
         text = QVBoxLayout(); item = QLabel(result.get('target_name') or 'Objet inconnu'); item.setObjectName('EventTitle'); text.addWidget(item)
-        score = QLabel(f"Pertinence estimée : {result.get('score', 0):.0f}/100 · vers {result.get('snapshot_label', '—')}"); score.setObjectName('OptimizerScore'); text.addWidget(score); choice.addLayout(text, 1); layout.addLayout(choice)
+        score = QLabel(f"Pertinence estimée · vers {result.get('snapshot_label', '—')}"); score.setObjectName('OptimizerScore'); score.setWordWrap(True); text.addWidget(score); choice.addLayout(text, 1); layout.addLayout(choice)
         reason = next(iter(result.get('reasons') or ()), 'Direction contextualisée par les observations locales.')
         why = QLabel(reason); why.setObjectName('Muted'); why.setWordWrap(True); layout.addWidget(why)
 
@@ -248,8 +238,11 @@ class MatchDetailPage(QWidget):
         context.setObjectName("Muted"); context.setWordWrap(True); box.addWidget(context)
         choice = QHBoxLayout(); icon = AssetIcon(self.assets, 46); icon.load("item", result.get('target_item'), game_version, result.get('target_name') or '?'); choice.addWidget(icon)
         choice_text = QVBoxLayout(); item_name = QLabel(result.get('target_name') or 'Objet inconnu'); item_name.setObjectName("EventTitle"); choice_text.addWidget(item_name)
-        score = QLabel(f"Pertinence estimée : {result.get('score', 0):.0f}/100 · estimation indicative, pas une garantie")
-        score.setObjectName("ContextLine"); choice_text.addWidget(score); choice.addLayout(choice_text, 1); box.addLayout(choice)
+        gauge = RelevanceGauge(82); gauge.set_value(result.get("score", 0)); choice.addWidget(gauge)
+        score = QLabel("Pertinence estimée"); score.setObjectName("ContextLine"); score.setWordWrap(True); choice_text.addWidget(score)
+        score_note = QLabel("Repère de comparaison, pas une probabilité de réussite.")
+        score_note.setObjectName("MicroLabel"); score_note.setWordWrap(True); choice_text.addWidget(score_note)
+        choice.addLayout(choice_text, 1); box.addLayout(choice)
         reasons = result.get('reasons') or ()
         if reasons:
             why = QLabel("Pourquoi :"); why.setObjectName("CardTitle"); box.addWidget(why)
@@ -281,6 +274,35 @@ class MatchDetailPage(QWidget):
         limitation.setObjectName("MicroLabel"); limitation.setWordWrap(True); box.addWidget(limitation)
         layout.addWidget(card); layout.addStretch()
 
+    def _coach_tab(self, tabs, match, report):
+        def build(layout):
+            summary_card = QFrame(); summary_card.setObjectName("CoachCard"); summary_layout = QVBoxLayout(summary_card); summary_layout.setContentsMargins(17, 14, 17, 14); summary_layout.setSpacing(7)
+            summary_title = QLabel("Synthèse coach"); summary_title.setObjectName("SectionTitle"); summary_layout.addWidget(summary_title)
+            focuses = coaching_focuses(report)
+            if focuses:
+                for focus in focuses:
+                    summary_layout.addWidget(CoachingCard(focus, open_source=self._open_tab(tabs, "Coach")))
+            else:
+                label = QLabel(coaching_empty_message(report)); label.setWordWrap(True); label.setObjectName("Muted"); summary_layout.addWidget(label)
+            boundary = QLabel("Ces pistes aident à revoir la partie et à tester une habitude. Ce ne sont pas des explications certaines du résultat."); boundary.setObjectName("MicroLabel"); boundary.setWordWrap(True); summary_layout.addWidget(boundary)
+            layout.addWidget(summary_card)
+
+            insight_grid = QGridLayout(); insight_grid.setHorizontalSpacing(12); insight_grid.setVerticalSpacing(12)
+            for index, insight in enumerate(report.insights):
+                insight_grid.addWidget(InsightCard(insight), index // 2, index % 2)
+            layout.addLayout(insight_grid)
+
+            detailed = [insight for insight in report.insights if insight.events]
+            if detailed:
+                heading = QLabel("Moments associés"); heading.setObjectName("SectionTitle"); layout.addWidget(heading)
+            for current in detailed:
+                header = QFrame(); header.setObjectName("AnalyzerHeader"); h = QVBoxLayout(header); h.setContentsMargins(14, 11, 14, 11)
+                top = QHBoxLayout(); name = QLabel(player_insight_title(current)); name.setObjectName("SectionTitle"); top.addWidget(name); top.addStretch(); top.addWidget(StatusBadge(current.status)); h.addLayout(top)
+                summary = QLabel(player_insight_summary(current)); summary.setWordWrap(True); summary.setObjectName("Muted"); h.addWidget(summary); layout.addWidget(header)
+                for event in current.events:
+                    layout.addWidget(AnalyzerEventCard(event, self.assets, match.game_version))
+        tabs.addTab(self._scroll_panel(build), "Coach")
+
     def load_match(self, match_id: str):
         self._clear()
         try:
@@ -307,38 +329,8 @@ class MatchDetailPage(QWidget):
 
         tabs = QTabWidget(); self.tabs = tabs
         self._match_summary_tab(tabs, match, report)
-        self._story_tab(tabs, match)
-        def overview(layout):
-            summary_card = QFrame(); summary_card.setObjectName("CoachCard"); summary_layout = QVBoxLayout(summary_card); summary_layout.setContentsMargins(17, 14, 17, 14); summary_layout.setSpacing(7)
-            summary_title = QLabel("Synthèse coach"); summary_title.setObjectName("SectionTitle"); summary_layout.addWidget(summary_title)
-            focuses = coaching_focuses(report)
-            if focuses:
-                for focus in focuses:
-                    summary_layout.addWidget(CoachingCard(
-                        focus,
-                        open_source=self._open_tab(tabs, focus.source_tab_title),
-                    ))
-            else:
-                label = QLabel(coaching_empty_message(report))
-                label.setWordWrap(True); label.setObjectName("Muted"); summary_layout.addWidget(label)
-            boundary = QLabel("Ces pistes aident à revoir la partie et à tester une habitude. Ce ne sont pas des explications certaines du résultat."); boundary.setObjectName("MicroLabel"); boundary.setWordWrap(True); summary_layout.addWidget(boundary)
-            layout.addWidget(summary_card)
-            insight_grid = QGridLayout(); insight_grid.setHorizontalSpacing(12); insight_grid.setVerticalSpacing(12)
-            for index, insight in enumerate(report.insights):
-                insight_grid.addWidget(InsightCard(insight), index // 2, index % 2)
-            layout.addLayout(insight_grid)
-        tabs.addTab(self._scroll_panel(overview), "Analyse coach")
-        for insight in report.insights:
-            def build(layout, current=insight):
-                header = QFrame(); header.setObjectName("AnalyzerHeader"); h = QVBoxLayout(header); h.setContentsMargins(14, 11, 14, 11)
-                top = QHBoxLayout(); name = QLabel(player_insight_title(current)); name.setObjectName("SectionTitle"); top.addWidget(name); top.addStretch(); top.addWidget(StatusBadge(current.status)); h.addLayout(top)
-                summary = QLabel(player_insight_summary(current)); summary.setWordWrap(True); summary.setObjectName("Muted"); h.addWidget(summary); layout.addWidget(header)
-                if current.events:
-                    for event in current.events:
-                        layout.addWidget(AnalyzerEventCard(event, self.assets, match.game_version))
-                else:
-                    layout.addWidget(EmptyState("Rien à afficher pour cette partie", "Aucun moment correspondant n’a été enregistré."))
-            tabs.addTab(self._scroll_panel(build), self.INSIGHT_TAB_TITLES.get(insight.category, insight.title))
+        self._coach_tab(tabs, match, report)
         self._optimizer_tab(tabs, match)
+        self._story_tab(tabs, match)
         self._journal_tab(tabs, match)
         self.content.addWidget(tabs, 1)
