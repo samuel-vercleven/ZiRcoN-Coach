@@ -1,5 +1,6 @@
 import os
 import json
+import math
 import sqlite3
 from contextlib import closing
 from datetime import datetime
@@ -253,16 +254,16 @@ class LocalDataService:
             points, events = [], []
             for frame in timeline['info']['frames']:
                 frames = frame.get('participantFrames') or {}
-                own_gold = sum(frames.get(pid, {}).get('totalGold', 0) for pid in own_ids)
-                enemy_gold = sum(frames.get(pid, {}).get('totalGold', 0) for pid in enemy_ids)
-                if isinstance(own_gold, (int, float)) and isinstance(enemy_gold, (int, float)):
-                    points.append({'timestamp': frame.get('timestamp', 0), 'delta': own_gold - enemy_gold})
+                totals = {pid: frames.get(pid, {}).get('totalGold') for pid in own_ids | enemy_ids}
+                complete = all(type(value) in (int, float) and math.isfinite(value) and value >= 0 for value in totals.values())
+                delta = sum(totals[pid] for pid in own_ids) - sum(totals[pid] for pid in enemy_ids) if complete else None
+                points.append({'timestamp': frame.get('timestamp', 0), 'delta': delta})
                 for event in frame.get('events') or []:
                     if event.get('type') == 'ELITE_MONSTER_KILL':
                         events.append({'timestamp': event.get('timestamp', 0), 'label': str(event.get('monsterType') or 'Objectif'), 'team_id': event.get('killerTeamId')})
                     elif event.get('type') == 'BUILDING_KILL' and event.get('buildingType') == 'TOWER_BUILDING':
                         events.append({'timestamp': event.get('timestamp', 0), 'label': 'Tour', 'team_id': event.get('teamId')})
-            return {'points': tuple(points), 'events': tuple(events[:12]), 'own_team': own_team}
+            return {'points': tuple(points), 'events': tuple(sorted(events, key=lambda e: e['timestamp'])), 'own_team': own_team}
         except (sqlite3.Error, KeyError, TypeError, ValueError, json.JSONDecodeError, StopIteration):
             return {'points': (), 'events': (), 'reason': 'TIMELINE_LOCALE_INDISPONIBLE'}
 

@@ -17,8 +17,13 @@ class GoldTimeline(QWidget):
         self.setAccessibleName("Écart d’or entre les équipes selon le temps de partie")
 
     def set_points(self, points):
-        self.points = list(points or [])
+        self.points = sorted((dict(p) for p in (points or []) if self._number(p.get('timestamp'))
+                              and p['timestamp'] >= 0), key=lambda p: p['timestamp'])
         self.update()
+
+    @staticmethod
+    def _number(value):
+        return type(value) in (int, float) and math.isfinite(value)
 
     def set_focus(self, timestamp_seconds):
         self.focus_timestamp = None if timestamp_seconds is None else max(0, int(timestamp_seconds))
@@ -34,7 +39,7 @@ class GoldTimeline(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.fillRect(self.rect(), QColor('#101a26'))
-        available = [p for p in self.points if isinstance(p.get('delta'), (int, float))]
+        available = [p for p in self.points if self._number(p.get('delta'))]
         duration = self._duration()
         if len(available) < 2 or duration <= 0:
             painter.setPen(QColor('#91a5bb'))
@@ -52,14 +57,23 @@ class GoldTimeline(QWidget):
         previous = None
         for point in self.points:
             delta = point.get('delta')
-            if not isinstance(delta, (int, float)):
+            if not self._number(delta):
                 previous = None
                 continue
             current = QPointF(plot.left() + float(point.get('timestamp') or 0) / 1000 / duration * plot.width(),
                               plot.center().y() - delta / maximum * plot.height() / 2)
             if previous is not None:
-                painter.setPen(QPen(QColor('#58d0b4'), 2.5))
-                painter.drawLine(previous, current)
+                # Split at zero so each segment's color represents the team ahead.
+                segments = [(previous, current)]
+                if (previous.y() - plot.center().y()) * (current.y() - plot.center().y()) < 0:
+                    fraction = (plot.center().y() - previous.y()) / (current.y() - previous.y())
+                    cross = QPointF(previous.x() + fraction * (current.x() - previous.x()), plot.center().y())
+                    segments = [(previous, cross), (cross, current)]
+                for start, end in segments:
+                    color = QColor('#58d0b4' if (start.y() + end.y()) / 2 <= plot.center().y() else '#f0808c')
+                    painter.setPen(QPen(color, 3)); painter.drawLine(start, end)
+            painter.setPen(Qt.PenStyle.NoPen); painter.setBrush(QColor('#58d0b4' if delta >= 0 else '#f0808c'))
+            painter.drawEllipse(current, 2.5, 2.5)
             previous = current
         painter.setPen(QColor('#a4b6c9'))
         for ratio in (0, .25, .5, .75, 1):
@@ -77,7 +91,7 @@ class GoldTimeline(QWidget):
     def mouseMoveEvent(self, event):
         duration = self._duration()
         plot = self._plot()
-        available = [p for p in self.points if isinstance(p.get('delta'), (int, float))]
+        available = [p for p in self.points if self._number(p.get('delta'))]
         if not available or duration <= 0 or not plot.contains(event.position()):
             QToolTip.hideText()
             return

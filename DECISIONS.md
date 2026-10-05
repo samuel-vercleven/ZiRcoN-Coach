@@ -1,5 +1,14 @@
 # ZiRcoN Coach - Decisions Log
 
+## Exact item semantics on newly admitted patches — 2026-10-05
+
+- Patch 26.19 uses Data Dragon 16.19.1. New-patch admission pins complete reviewed
+  item records in addition to recipe/price facts; traits are never inferred from
+  tooltip text. Unknown changes abstain until reviewed.
+- New-patch controlled scenarios and old-patch historical replays are reported
+  separately. Same-patch historical warmup is preserved, with no automatic
+  borrowing from the previous patch. This is compatibility work, not a freeze.
+
 ## Windows candidate data isolation — 2026-10-05
 
 - A packaged application keeps writable history/settings/cache/logs in the user's

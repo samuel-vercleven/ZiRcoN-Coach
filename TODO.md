@@ -1,5 +1,17 @@
 BUILD OPTIMIZER v1 — CONTEXTUAL RECOMMENDATION PASS
 
+USER READABILITY / CURRENT PATCH FOLLOW-UP — 2026-10-05
+
+[x] Show the actual gold curve in Résumé with readable colors, units and missing-data gaps
+[x] Replace overlapping objective labels with grouped markers and clickable timed entries
+[x] Keep all observed objectives available; collapse the longer list by default
+[x] Shorten coaching observations/actions; retain evidence and limitations behind a disclosure
+[x] Audit 26.19 / 16.19.1 and pin complete semantic records for the 20 reviewed items
+[x] Verify new-patch recipes, alternatives, temporal integrity and strict historical warmup
+[x] Inspect desktop/minimum UI captures and the original dense-event case
+[x] Complete final full gates and rebuild the corrected portable release
+[ ] Human review on the user's display; NO FREEZE
+
 POST-GAME V1 CANDIDATE — user-authorized completion, 2026-10-05
 
 [x] One supported “À retenir” summary, expandable Coach themes and source navigation

@@ -1,6 +1,8 @@
 """Read-only consumer of frozen Item Knowledge, not another knowledge parser."""
 from copy import deepcopy
 from dataclasses import dataclass
+import hashlib
+import json
 
 from knowledge.item_knowledge import ITEM_KNOWLEDGE_VERSION
 
@@ -12,6 +14,11 @@ def natural(value, positive=False):
 def patch_of(version):
     parts = str(version).split('.')
     return '.'.join(parts[:2]) if len(parts) >= 2 and all(p.isdigit() for p in parts[:2]) else None
+
+
+def item_record_fingerprint(raw):
+    """Exact reviewed raw record, including tooltip/stats/applicability, not text inference."""
+    return hashlib.sha256(json.dumps(raw, sort_keys=True, ensure_ascii=False, separators=(',', ':')).encode()).hexdigest()
 
 
 @dataclass(frozen=True)
@@ -27,6 +34,7 @@ class ItemView:
     structural_blockers: tuple[str, ...]
     restrictions_status: str = 'UNMODELED'
     effects_status: str = 'UNMODELED'
+    semantic_fingerprint: str = ''
 
 
 class CatalogView:
@@ -67,7 +75,7 @@ class CatalogView:
             self.items[item_id] = ItemView(item_id, record['name'], gold.get('total'), gold.get('base'),
                 tuple(record.get('from_item_ids') or ()), tuple(record.get('into_item_ids') or ()),
                 tuple(deepcopy(record.get('normalized_stats') or ())), tuple(record.get('tags') or ()),
-                tuple(sorted(set(reasons))))
+                tuple(sorted(set(reasons))), semantic_fingerprint=item_record_fingerprint(record.get('raw_data') or {}))
 
     def reconstruction_catalog(self):
         from analysis.itemization_analyzer import ItemCatalog

@@ -2,7 +2,7 @@ from collections.abc import Callable
 import re
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QFrame, QLabel, QPushButton, QVBoxLayout
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QToolButton, QVBoxLayout, QWidget
 
 from ui.player_coach import CoachingFocus
 
@@ -41,37 +41,32 @@ class CoachingCard(QFrame):
         title.setObjectName("EventTitle")
         title.setWordWrap(True)
         layout.addWidget(title)
-        observation = QLabel(f"Ce qu’on observe · {_player_text(focus.observation)}")
-        observation.setObjectName("ContextLine")
+        observation = QLabel(_player_text(focus.observation))
+        observation.setObjectName("CoachObservation")
         observation.setWordWrap(True)
         layout.addWidget(observation)
-        why = QLabel(f"Pourquoi y revenir · {_player_text(focus.why_review)}")
-        why.setObjectName("Muted")
-        why.setWordWrap(True)
-        layout.addWidget(why)
-        action_title = QLabel("À tester la prochaine partie")
-        action_title.setObjectName("CardTitle")
+        action_title = QLabel("Ton prochain réflexe")
+        action_title.setObjectName("CoachActionHeading")
         layout.addWidget(action_title)
         experiment = QLabel(_player_text(focus.next_game_experiment))
-        experiment.setObjectName("ContextLine")
+        experiment.setObjectName("CoachAction")
         experiment.setWordWrap(True)
         layout.addWidget(experiment)
-        if focus.evidence:
-            evidence_title = QLabel("Repères de cette partie")
-            evidence_title.setObjectName("CardTitle")
-            layout.addWidget(evidence_title)
-            evidence = QLabel("  ·  ".join(_player_text(value) for value in focus.evidence))
-            evidence.setObjectName("Muted")
-            evidence.setWordWrap(True)
-            layout.addWidget(evidence)
-        if not compact:
-            limitation = QLabel(_player_text(focus.limitation))
-            limitation.setObjectName("MicroLabel")
-            limitation.setWordWrap(True)
-            layout.addWidget(limitation)
+        caution = QLabel('Une piste à tester, pas une explication certaine du résultat.'); caution.setObjectName('Muted'); caution.setWordWrap(True); layout.addWidget(caution)
+        details = QWidget(); details.setObjectName('CoachEvidenceDetails'); detail_layout = QVBoxLayout(details); detail_layout.setContentsMargins(0, 6, 0, 6); detail_layout.setSpacing(8)
+        for value in (focus.why_review, *focus.evidence, focus.limitation):
+            label = QLabel(_player_text(value)); label.setObjectName('Muted'); label.setWordWrap(True); detail_layout.addWidget(label)
+        layout.addWidget(details); details.hide()
+        controls = QHBoxLayout()
+        toggle = QToolButton(); toggle.setObjectName('CoachEvidenceToggle'); toggle.setText('Comprendre ce conseil'); toggle.setCheckable(True); toggle.setArrowType(Qt.ArrowType.RightArrow); toggle.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        def reveal(checked):
+            details.setVisible(checked); toggle.setArrowType(Qt.ArrowType.DownArrow if checked else Qt.ArrowType.RightArrow)
+            toggle.setText('Masquer les explications' if checked else 'Comprendre ce conseil')
+        toggle.toggled.connect(reveal); controls.addWidget(toggle); controls.addStretch()
         if open_source is not None:
             action = QPushButton("Ouvrir Coach" if compact else "Revoir les moments associés")
             action.setObjectName("GhostButton")
             action.setCursor(Qt.CursorShape.PointingHandCursor)
             action.clicked.connect(open_source)
-            layout.addWidget(action)
+            controls.addWidget(action)
+        layout.addLayout(controls)

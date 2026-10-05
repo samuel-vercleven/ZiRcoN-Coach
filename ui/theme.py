@@ -55,6 +55,12 @@ QLabel#Evidence { background: #0B1521; color: #91A5BB; border-radius: 7px; paddi
 QFrame#Card, QFrame#InsightCard, QFrame#AnalyzerHeader { background: #111D2B; border: 1px solid #1A2B3D; border-radius: 10px; }
 QFrame#EventCard { background: #111D2B; border: 1px solid #23374B; border-radius: 10px; }
 QFrame#CoachCard { background: #10262C; border: 1px solid #245A5B; border-radius: 10px; }
+QLabel#CoachObservation { color: #b4c8d5; font-size: 14px; }
+QLabel#CoachActionHeading { color: #70dfc4; font-size: 12px; font-weight: 600; padding-top: 5px; }
+QLabel#CoachAction { color: #f3f6fa; font-size: 15px; font-weight: 600; padding: 7px 10px; background: #173a3e; border-radius: 7px; }
+QToolButton#CoachEvidenceToggle { padding: 7px 0; }
+QPushButton#MomentChip { background: #152d3b; border: 1px solid #294655; color: #cde6ea; font-size: 12px; padding: 6px 8px; }
+QPushButton#MomentChip:hover { background: #1b414a; border-color: #45c9b0; }
 QFrame#HeroCard { background: #111D2B; border: 1px solid #23374B; border-radius: 12px; }
 QFrame#MatchSummaryHero { background: #111D2B; border: 1px solid #23374B; border-radius: 12px; }
 QFrame#MatchupBoard { background: #0f1b28; border: 1px solid #2a435b; border-radius: 15px; }

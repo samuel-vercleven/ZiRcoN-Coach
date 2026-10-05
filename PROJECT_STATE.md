@@ -1,25 +1,36 @@
 # ZiRcoN Coach - Project State
 
-## Windows V1 candidate 1.0.0-rc1 — 2026-10-05
+## Windows V1 candidate 1.0.0-rc2 — 2026-10-05
 
 - Local after-match candidate, not a publicly approved release. Five match tabs:
   Résumé, Coach, Objets, Déroulé, Notes; pre-game/live-game remain out of scope.
 - Résumé shows one supported “À retenir” focus. Coach details start collapsed;
   source buttons expand the matching theme, and explicit clocks jump to Déroulé.
+- Coaching observations/actions are shorter; evidence and limitations expand via
+  “Comprendre ce conseil”. The gold curve now appears directly in Résumé, with
+  green/red segments, sample points and gaps when participant gold is missing.
+- Nearby objectives share an axis badge with distinct timed entries underneath.
+  Clicking an entry opens its time in Déroulé. All objectives, including later
+  events, remain accessible through a collapsed remainder.
 - Gold is scaled by real timestamps with PO/time axes. Progress shows units,
   chronological direction, a clearly labeled up-to-five-game rolling win rate,
   sample tooltips and gaps for missing observations. No formula changes.
 - Adaptive scoreboard avoids horizontal overflow at minimum size. Sidebar icons,
   empty onboarding, readable missing states and visible import results added.
-- Windows portable package contains Python/Qt and nine exact catalog versions,
+- Windows portable package contains Python/Qt and ten exact catalog versions,
   but no key, account or history. Packaged writable data uses
   %LOCALAPPDATA%/ZiRcoN-Coach; source development paths are unchanged.
   Existing source history is neither migrated nor overwritten automatically.
-- Source regression 43/43, real main.py, 24 visual captures and seven optimizer
-  gates PASS. Packaged fresh-profile and three-match local-copy smoke tests PASS.
+- Source regression 43/43, real main.py, 33 visual captures and 16 contextual
+  scenario tests PASS. All eight final optimizer command gates PASS; see LAST_RUN.md.
+  Packaged fresh-profile and three-match local-copy smoke tests PASS.
   89 FROZEN paths unchanged. Final delivery provenance/SHA-256 is in dist/*.json.
 - Current contextual counts remain 143 games / 572 snapshots / 172 emitted
   recommendations / 400 abstentions, with zero legality/leakage/traceability errors.
+- Patch 26.19 / Data Dragon 16.19.1 admitted after exact catalog review: all 20
+  whitelisted item records unchanged; complete raw-record fingerprints now gate
+  this patch. Six controlled champion scenarios and 2,795 recipe cases PASS.
+  No real 16.19 games are present locally; same-patch historical warmup remains.
 - Public distribution still needs Riot production access and complete Qt/PySide6
   license/source compliance. Unsigned candidate; live Riot import not tested here.
   Human gameplay and real-display review remain REVIEW_REQUIRED / NO FREEZE.
@@ -62,7 +73,7 @@
 - Generic scoring uses the existing exact-patch item-profile whitelist and
   class-level champion fit; it is explicitly less personalized than a reviewed
   champion profile. Exact catalogs are available for 16.8, 16.9, 16.11, 16.12,
-  16.14, 16.15, 16.16, 16.17 and 16.18. Viego item 6610 fails its exact
+  16.14, 16.15, 16.16, 16.17, 16.18 and 16.19. Viego item 6610 fails its exact
   fingerprint on 16.8–16.15 and is excluded there.
 - The first generalized replay passed its invariants on the original four
   patches; the nine-patch replay and complete build gates now pass:

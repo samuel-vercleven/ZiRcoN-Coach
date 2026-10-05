@@ -6,9 +6,17 @@
 
 ## All-champion extension — technical PASS, gameplay REVIEW_REQUIRED
 
-The full gate passed after expanding exact-patch support to all nine locally
-cached catalogs: 16.8, 16.9, 16.11, 16.12, 16.14, 16.15, 16.16, 16.17 and
-16.18. Every champion record in those catalogs has a reviewed Shyvana/Viego or
+Compatibility follow-up, 2026-10-05: 16.19.1 is the tenth exact supported
+catalog. All 20 item profiles and 173 champion identities pass exact-patch
+admission. Six controlled champion scenarios produce legal nonempty outputs
+and alternatives; full-record semantic mutation and cross-patch history are
+rejected. The new patch has 2,795 controlled recipe cases. No actual 16.19 game
+is present locally, so the historical figures below are not new-patch gameplay
+validation. The validation runner now includes contextual scenario checks as
+an eighth command gate.
+
+The real local history covers nine patch families: 16.8, 16.9, 16.11, 16.12,
+16.14, 16.15, 16.16, 16.17 and 16.18. Every champion record in those catalogs has a reviewed Shyvana/Viego or
 generic Data Dragon class profile (172–233 champion records per patch).
 
 | Measure | Result |

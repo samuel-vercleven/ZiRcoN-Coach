@@ -74,6 +74,7 @@ def main():
     commands = [
         ('stable_base', ['-m', 'app.stabilization_checks', 'final']),
         ('unit_scenarios', ['-m', 'build_optimizer.checks']),
+        ('contextual_scenarios', ['-m', 'build_optimizer.contextual_checks']),
         ('product_gate_checks', ['-m', 'build_optimizer.gate_checks']),
         ('real_catalog_recipes', ['-m', 'build_optimizer.catalog_checks']),
         ('golden_replay', ['-m', 'build_optimizer.replay', '--mode', 'golden']),

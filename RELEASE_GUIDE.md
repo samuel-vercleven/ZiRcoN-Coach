@@ -15,18 +15,23 @@ Elle peut expirer : remplace-la dans Réglages. Aucune clé n’est fournie dans
 
 ## Comprendre le bilan
 
-- **Résumé** : les deux équipes, les statistiques finales et une seule piste « À retenir » lorsqu’elle est étayée.
-- **Coach** : observation, repères disponibles et habitude à tester. Ouvre un thème pour voir ses événements.
+- **Résumé** : les deux équipes, les statistiques finales, la courbe d’or et une piste « À retenir » lorsqu’elle est étayée.
+- **Coach** : un constat court et un réflexe à tester. « Comprendre ce conseil » affiche les preuves et les nuances. Ouvre un thème pour voir ses événements.
 - **Objets** : une piste d’achat liée à une situation de la partie. Le cercle donne un repère comparatif.
 - **Déroulé** : l’écart d’or des équipes selon la minute. Au-dessus de zéro, ton équipe avait davantage d’or.
 - **Notes** : ta leçon personnelle et les parties à revoir.
 
 Survole une courbe pour lire son relevé. Dans Coach, clique sur une heure pour la mettre en évidence dans Déroulé.
+Le vert indique l’avance de ton équipe, le rouge celle des adversaires. Une coupure indique un relevé manquant.
+Dans le résumé, les événements proches sont regroupés sur l’axe : chaque heure reste lisible en dessous.
+Clique sur un objectif pour le situer dans Déroulé ; « Voir les autres moments » déplie la liste complète.
 Les grandes périodes sans heure précise ne disposent pas de raccourci vers un instant inventé.
 
 Les observations ne prouvent pas qu’une décision a causé la victoire ou la défaite.
 Un conseil d’objet peut manquer si le patch, l’historique ou l’inventaire ne permettent pas une proposition fiable.
-La couverture exacte des objets porte sur les patchs 16.8, 16.9, 16.11, 16.12, 16.14, 16.15, 16.16, 16.17 et 16.18.
+La couverture exacte des objets porte sur les catalogues 16.8, 16.9, 16.11, 16.12, 16.14, 16.15, 16.16, 16.17, 16.18 et 16.19.
+Le patch public 26.19 correspond au catalogue 16.19.1. Au début d’un nouveau patch,
+le conseil peut attendre plusieurs parties comparables : les anciennes versions ne servent pas de référence de remplacement.
 
 ## Données et mises à jour
 

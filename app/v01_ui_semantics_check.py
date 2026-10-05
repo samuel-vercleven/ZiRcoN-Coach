@@ -15,6 +15,8 @@ from services.build_optimizer_presentation import player_facing_reasons
 from services.riot_client import DynamicRiotClient, RiotResult, RiotStatus
 from ui.components.status_badge import StatusBadge
 from ui.components.coaching_card import CoachingCard
+from ui.components.gold_timeline import GoldTimeline
+from ui.components.moments_timeline import MomentsTimeline
 from ui.components.insight_card import AnalyzerEventCard, InsightCard, event_timestamp_seconds
 from ui.components.trend_chart import TrendChart
 from ui.components.relevance_gauge import RelevanceGauge, relevance_color
@@ -122,6 +124,9 @@ def main() -> None:
     assert "Une mort est survenue" in death_after_reset.why_review
     assert "sans en conclure" in death_after_reset.why_review
     assert "menaces" in death_after_reset.next_game_experiment
+    assert len(death_after_reset.next_game_experiment) < 125
+    assert '5.2' not in death_after_reset.observation
+    assert any('5.2' in value for value in death_after_reset.evidence)
 
     tabs = QTabWidget(); overview_tab = QWidget(); coach_tab = QWidget(); object_tab = QWidget()
     tabs.addTab(overview_tab, "Résumé"); tabs.addTab(coach_tab, "Coach"); tabs.addTab(object_tab, "Objets")
@@ -172,6 +177,12 @@ def main() -> None:
     assert "/100" not in gauge.toolTip()
 
     full_card = CoachingCard(reset_focus)
+    evidence_details = full_card.findChild(QWidget, 'CoachEvidenceDetails')
+    evidence_toggle = full_card.findChild(QToolButton, 'CoachEvidenceToggle')
+    assert evidence_details.isHidden() and not evidence_toggle.isChecked()
+    evidence_toggle.click(); assert not evidence_details.isHidden()
+    assert any('38.8' in label.text() for label in evidence_details.findChildren(QLabel))
+    evidence_toggle.click(); assert evidence_details.isHidden()
     coaching_copy = " ".join(label.text() for label in full_card.findChildren(QLabel)).casefold()
     assert not any(term in coaching_copy for term in ("proxy", "v21", "expérimental", "historique"))
 
@@ -201,6 +212,27 @@ def main() -> None:
 
     chart = TrendChart(); chart.set_values([2.0, None, 3.0])
     assert chart.values == [2.0, None, 3.0] and chart.values[1] is None
+    gold = GoldTimeline(); gold.set_points([{'timestamp': 120000, 'delta': -500}, {'timestamp': 0, 'delta': 0},
+        {'timestamp': 60000, 'delta': None}, {'timestamp': float('nan'), 'delta': 100}])
+    assert [point['timestamp'] for point in gold.points] == [0, 60000, 120000]
+    assert gold.points[1]['delta'] is None
+    gold.resize(650, 230); gold.show(); assert not gold.grab().isNull()
+    moments = MomentsTimeline(); moments.resize(650, 250)
+    dense_events = [{'timestamp': timestamp, 'label': 'HORDE'} for timestamp in (501000, 502000, 503000, 504000, 505000)]
+    dense_events += [{'timestamp': 691000, 'label': 'DRAGON'}, {'timestamp': 762000, 'label': 'Tour'}]
+    moments.set_data(list(reversed(dense_events)), 1897); moments.show(); app.processEvents()
+    assert len(moments.events) == 7 and moments.events[0]['timestamp'] == 501000
+    assert len(moments.rail.groups()[0][1]) == 5
+    assert sum(not button.isHidden() for button in moments.buttons) == 6
+    moments.expand.click(); assert all(not button.isHidden() for button in moments.buttons)
+    selected = []; moments.moment_selected.connect(lambda seconds, label: selected.append((seconds, label)))
+    moments.buttons[0].click(); assert selected == [(501, 'Larves du Néant')]
+    for width in (360, 650, 1100):
+        moments.resize(width, 280); app.processEvents()
+        geometries = [button.geometry() for button in moments.buttons]
+        assert not any(a.intersects(b) for index, a in enumerate(geometries) for b in geometries[index + 1:])
+        assert not moments.grab().isNull()
+    moments.set_data([], 1897); assert not moments.buttons and not moments.expand.isEnabled()
     app.processEvents()
     print("ZiRcoN Coach UI/status semantics check: PASS")
 

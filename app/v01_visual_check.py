@@ -11,6 +11,8 @@ from app.bootstrap import build_app_context
 from app.paths import PROJECT_ROOT
 from ui.main_window import MainWindow
 from ui.theme import apply_zircon_theme
+from ui.components.gold_timeline import GoldTimeline
+from ui.components.moments_timeline import MomentsTimeline
 
 
 def main() -> None:
@@ -69,7 +71,20 @@ def main() -> None:
             summary = tabs.currentWidget()
             assert isinstance(summary, QScrollArea)
             assert summary.horizontalScrollBar().maximum() == 0, 'Match summary overflows horizontally'
+            for widget_type, capture_name in ((GoldTimeline, 'summary-gold'), (MomentsTimeline, 'summary-objectives')):
+                widget = summary.findChild(widget_type)
+                assert widget is not None and widget.height() > 0
+                summary.ensureWidgetVisible(widget)
+                for _ in range(4): app.processEvents()
+                assert window.grab().save(str(target / f'{capture_name}-{size_name}.png')); post_game_captures += 1
             tabs.setCurrentIndex(1); app.processEvents()
+            explanation = tabs.currentWidget().findChild(QToolButton, 'CoachEvidenceToggle')
+            if explanation:
+                if not explanation.isChecked(): explanation.click()
+                tabs.currentWidget().ensureWidgetVisible(explanation)
+                for _ in range(4): app.processEvents()
+                assert window.grab().save(str(target / f'coach-explanation-{size_name}.png')); post_game_captures += 1
+                explanation.click()
             toggles = [button for button in tabs.currentWidget().findChildren(QToolButton) if button.objectName() == 'CoachSectionToggle']
             if toggles:
                 toggle = toggles[0]
@@ -94,6 +109,15 @@ def main() -> None:
                 window.resize(width, height); app.processEvents()
                 assert window.grab().save(str(target / f"post-game-deaths-{size_name}.png")); post_game_captures += 1
     window.close()
+    dense = MomentsTimeline()
+    dense.set_data([{'timestamp': time, 'label': 'HORDE'} for time in (501000, 502000, 503000, 504000, 505000)]
+                   + [{'timestamp': 691000, 'label': 'DRAGON'}, {'timestamp': 762000, 'label': 'Tour'}], 1897)
+    dense.expand.click(); dense.show()
+    for width in (360, 650, 1100):
+        dense.resize(width, 300)
+        for _ in range(4): app.processEvents()
+        assert dense.grab().save(str(target / f'dense-objectives-{width}.png')); post_game_captures += 1
+    dense.close()
     print(f"ZiRcoN Coach visual render check: PASS ({len(sizes) * len(pages) + post_game_captures} screenshots)")
 
 

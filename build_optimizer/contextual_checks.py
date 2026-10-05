@@ -1,15 +1,18 @@
 """Deterministic nonempty recommendation contracts for the sole v1 profile."""
 from dataclasses import replace
+from copy import deepcopy
 import json
 import unittest
 
 from build_optimizer.checks import CHAMPIONS, game
+from build_optimizer.catalog import item_record_fingerprint
 from build_optimizer.context import _inventory, _is_non_inventory_marker_event, build_context
 from build_optimizer.engine import BuildOptimizer
 from build_optimizer.legality import decide
-from build_optimizer.profiles import MODEL_KIND, SUPPORTED_PATCHES, item_profile
-from build_optimizer.replay import exact_catalogs, validate_recipe_plan
+from build_optimizer.profiles import MODEL_KIND, SUPPORTED_PATCHES, champion_profile, item_profile, _GENERIC_ITEMS
+from build_optimizer.replay import exact_catalogs, mutate_future, validate_recipe_plan
 from build_optimizer.signals import build_baseline, game_signals
+from services.build_optimizer_presentation import BuildOptimizerPresentationService
 
 
 def supported_context(enemy_hp=2000, enemy_mr=60, enemy_ad=100, enemy_ap=50, gold=900):
@@ -52,7 +55,7 @@ class ContextualRecommendationChecks(unittest.TestCase):
             self.assertTrue(profile.source.startswith('DATA_DRAGON_16.18.1'))
 
     def test_viego_profiles_are_patch_pinned_and_cover_distinct_directions(self):
-        for patch in ('16.9', '16.16', '16.17', '16.18'):
+        for patch in ('16.9', '16.16', '16.17', '16.18', '16.19'):
             catalog, _ = exact_catalogs(patch)
             profiles = [item_profile(item, patch, 'Viego') for item in catalog.items.values()]
             profiles = [profile for profile in profiles if profile]
@@ -179,6 +182,79 @@ class ContextualRecommendationChecks(unittest.TestCase):
         unknown = replace(self.catalog.items[3135], total_cost=3001)
         self.catalog.items[3135] = unknown
         self.assertEqual(decide(unknown, self.context, self.optimizer.planner).status, 'LEGALITY_UNKNOWN')
+
+    def test_1619_full_record_review_matches_all_twenty_items(self):
+        catalog, champions = exact_catalogs('16.19')
+        previous, _ = exact_catalogs('16.18')
+        self.assertEqual(catalog.version, '16.19.1')
+        self.assertFalse(catalog.blockers)
+        for item_id in _GENERIC_ITEMS:
+            self.assertEqual(catalog.records[item_id]['raw_data'], previous.records[item_id]['raw_data'])
+            self.assertIsNotNone(item_profile(catalog.items[item_id], '16.19'))
+        self.assertEqual(len(_GENERIC_ITEMS), 20)
+        for name, record in champions.items():
+            self.assertIsNotNone(champion_profile(name, '16.19', record['tags']), name)
+
+    def test_1619_same_price_recipe_but_changed_semantics_abstains(self):
+        catalog, _ = exact_catalogs('16.19')
+        item = catalog.items[3153]
+        for field, value in (('description', 'Modified passive'), ('stats', {}), ('tags', ['SpellDamage']),
+                             ('maps', {'11': False}), ('requiredChampion', 'OtherChampion')):
+            raw = deepcopy(catalog.records[3153]['raw_data']); raw[field] = value
+            changed = replace(item, semantic_fingerprint=item_record_fingerprint(raw))
+            self.assertIsNone(item_profile(changed, '16.19', 'Viego'), field)
+
+    def test_1619_recommendations_alternatives_and_temporal_integrity(self):
+        catalog, champions = exact_catalogs('16.19')
+        # Controlled scenarios only: these are NOT real 26.19 match replays.
+        for name in ('Viego', 'Shyvana', 'Annie', 'Ashe', 'Leona', 'Zed'):
+            source = replace(game(), player={**game().player, 'championName': name},
+                             game_state={**game().game_state, 'patch': '16.19.1'}, events=())
+            context = build_context(source, 60000, catalog, champions)
+            baseline = build_baseline(prior_contexts(context, catalog), context)
+            optimizer = BuildOptimizer(catalog)
+            output = optimizer.recommend(context, baseline)
+            self.assertEqual(output.status, 'SUPPORTED_HEURISTIC', name)
+            self.assertTrue(output.target_item and output.reasons, name)
+            self.assertEqual(output.score, sum(row['contribution'] for row in output.score_breakdown))
+            for target in (output.target_item, *(row['target_item'] for row in output.alternatives)):
+                plan = optimizer.planner.plan(target, context.inventory, context.gold)
+                validate_recipe_plan(plan, context.inventory, context.gold, catalog)
+                self.assertEqual(decide(catalog.items[target], context, optimizer.planner).status, 'LEGAL_SUPPORTED')
+            changed = build_context(mutate_future(source, 60000), 60000, catalog, champions)
+            self.assertEqual(output.to_dict(), optimizer.recommend(changed, baseline).to_dict(), name)
+            payload = BuildOptimizerPresentationService._recommend(context, catalog,
+                champion_profile(name, '16.19', champions[name]['tags']), prior_contexts(context, catalog))
+            self.assertEqual(payload['status'], 'SUPPORTED_HEURISTIC')
+            self.assertEqual(payload['patch'], '16.19'); self.assertTrue(payload['target_name'])
+
+    def test_1619_history_is_not_borrowed_from_previous_patch(self):
+        catalog, champions = exact_catalogs('16.19')
+        source = replace(game(), game_state={**game().game_state, 'patch': '16.19.1'})
+        context = build_context(source, 60000, catalog, champions)
+        old_priors = [replace(c, patch='16.18') for c in prior_contexts(context, catalog)]
+        baseline = build_baseline(old_priors, context)
+        self.assertEqual(baseline.sample_count, 0)
+        output = BuildOptimizer(catalog).recommend(context, baseline)
+        self.assertIsNone(output.target_item)
+        self.assertIn('HISTORICAL_BASELINE_UNAVAILABLE', output.warnings)
+        self.assertIsNone(item_profile(catalog.items[3153], '16.20', 'Viego'))
+
+    def test_1619_local_presentation_requires_exact_catalog_version(self):
+        from tempfile import TemporaryDirectory
+        from pathlib import Path
+        from unittest.mock import patch
+        from app.stabilization_golden_checks import catalog_json
+        service = BuildOptimizerPresentationService(None)
+        result = service._catalog('16.19'); self.assertIsNotNone(result)
+        self.assertEqual(result[0].version, '16.19.1')
+        with TemporaryDirectory() as directory:
+            root = Path(directory); folder = root / '16.19.1'; folder.mkdir()
+            for resource in ('item.json', 'champion.json'):
+                raw = deepcopy(catalog_json('16.19.1', resource)); raw['version'] = '16.18.1'
+                (folder / resource).write_text(json.dumps(raw), encoding='utf-8')
+            with patch('services.build_optimizer_presentation.CATALOGS', root):
+                self.assertIsNone(BuildOptimizerPresentationService(None)._catalog('16.19'))
 
 
 if __name__ == '__main__':

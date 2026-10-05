@@ -76,14 +76,12 @@ def _focus_for(insight: InsightViewModel, finding: dict) -> CoachingFocus:
         killer = metrics.get("Tueur", "")
         zone = metrics.get("Zone approximative", "")
         if time and score:
-            observation = f"À {time}, cette mort a un coût estimé de {score} par rapport à tes repères habituels."
+            observation = f"À {time}, cette mort ressort parmi les moments à revoir dans tes repères habituels."
+            evidence.append(f"Coût comparé à tes parties précédentes : {score}")
         else:
             observation = detail
         why = "Ce repère sert à revoir le contexte autour de la mort, pas à conclure qu’elle explique à elle seule la suite de la partie."
-        action = (
-            f"Dans le replay autour de {time or 'ce moment'}, arrête-toi juste avant la mort : quelles menaces étaient visibles, "
-            "quels alliés pouvaient suivre et quelle sortie restait possible ? À la prochaine situation comparable, teste une courte vérification avant de t’engager."
-        )
+        action = "Avant de t’engager, vérifie les menaces visibles, les alliés qui peuvent suivre et une sortie possible."
         if state:
             evidence.append(f"État avant la mort : {_readable(state)}")
         if killer and killer not in ("—", "None"):
@@ -105,12 +103,12 @@ def _focus_for(insight: InsightViewModel, finding: dict) -> CoachingFocus:
         if tempo and tempo != "—":
             evidence.append(f"Repère de tempo sur la phase : {tempo}")
         why = "Revois cette période pour comprendre ce que tu voulais faire sur la carte et si tes déplacements t’en rapprochaient."
-        action = "Dans le replay, choisis un objectif (farm, regroupement ou préparation d’objectif) et vérifie si tes déplacements t’y ont aidé."
+        action = "Choisis ta priorité — farm, regroupement ou objectif — avant de partir, puis vérifie si ton trajet t’en rapproche."
         limitation = "Ce résumé regarde de grandes périodes ; il ne montre pas chaque décision ni tout ce que tu pouvais voir."
         coach_title = "Vérifier le choix de trajet"
     elif "reset" in source or "reset" in title.casefold() or "shop" in title.casefold():
         score = metrics.get("Production après reset vs historique", "")
-        observation = f"Après ton retour à la base vers {time}, les ressources gagnées sont sous tes repères habituels{f' ({score})' if score else ''}." if time else detail
+        observation = f"Après ton retour à la base vers {time}, tu gagnes moins de ressources que dans tes repères habituels." if time else detail
         origin = metrics.get("Origine", "").casefold()
         objective_timing = metrics.get("Timing objectif", "").casefold()
         event_context = tuple(str(value).casefold() for value in (event.get("context", ()) if event else ()))
@@ -119,16 +117,16 @@ def _focus_for(insight: InsightViewModel, finding: dict) -> CoachingFocus:
         is_objective_window = any(token in objective_timing for token in ("objectif", "dragon", "héraut", "baron"))
         if is_post_death:
             why = "Après une mort, ce repère regarde les ressources gagnées à ta reprise ; il ne juge ni la mort ni ton retour à la base."
-            action = "Sur le replay, distingue le temps d’absence, le retour sur la carte et ton premier déplacement. À la prochaine reprise comparable, choisis une destination puis vérifie si tu pouvais réellement l’atteindre à temps."
+            action = "Après une mort, choisis une destination de reprise que tu peux rejoindre à temps."
         elif death_followed_reset:
             why = "Une mort est survenue dans les deux minutes après ton retour à la base. Revois la séquence, sans en conclure que le retour ou le trajet l’a provoquée."
-            action = "Revois le trajet après la boutique et le contexte juste avant cette mort. À une situation comparable, choisis ton premier déplacement en tenant compte des menaces et des alliés visibles, puis vérifie si tu as pu rejoindre ta priorité."
+            action = "En quittant la boutique, vérifie les menaces et tes alliés visibles avant de choisir ton trajet."
         elif is_objective_window:
             why = "Le moment de ton retour par rapport aux objectifs aide à revoir si tu pouvais rejoindre ta prochaine priorité à temps. Ce repère ne juge pas à lui seul ton choix."
-            action = "Dans le replay, compare le temps restant avant l’objectif au moment où tu retrouves la carte. À un cas similaire, annonce ta destination avant de quitter la base et vérifie si tu arrives à temps pour la priorité choisie."
+            action = "Avant de quitter la base, compare ton temps de trajet au temps restant avant l’objectif."
         else:
             why = "Revois comment la reprise s’est déroulée après ton passage à la base ; ce constat ne dit pas que ton retour était mauvais."
-            action = "À ton prochain retour, annonce-toi une destination de reprise (camp, voie ou préparation d’objectif) avant de quitter la base ; revois ensuite si ton premier trajet t’en a rapproché."
+            action = "Avant de quitter la base, choisis ta destination : camp, voie ou prochain objectif."
         if score:
             evidence.append(f"Ressources gagnées après la reprise : {score}")
         for context_line in (event.get("context", ()) if event else ()):

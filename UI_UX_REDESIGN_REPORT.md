@@ -2,11 +2,19 @@
 
 ## Current candidate — 2026-10-05
 
-Version 1.0.0-rc1 retains native PySide6/QSS; no external theme engine.
+Version 1.0.0-rc2 retains native PySide6/QSS; no external theme engine.
 The current five tabs are Résumé, Coach, Objets, Déroulé and Notes.
 Résumé selects one supported focus; Coach keeps three varied priorities and
 collapsed detailed themes. Source buttons open the matching theme, and explicit
 event timestamps select an hour in Déroulé without inventing a phase timestamp.
+
+The latest readability correction places the gold curve directly in Résumé,
+with green/red segments and real sample points. Missing participant gold leaves
+a gap instead of being summed as zero. Objective labels are separate clickable
+entries; nearby axis markers are grouped by available screen space. All events
+remain available through the collapsed remainder, including late-game events.
+Coaching defaults to a short observation and one next-game action; the why,
+raw comparative evidence and caveats expand via “Comprendre ce conseil”.
 
 Charts now have units, readable axes and chronological context. Gold uses actual
 timestamps; missing observations break lines. Progress win rate is labeled as a
@@ -16,10 +24,11 @@ comparative value, never a success probability.
 
 Minimum-size scoreboard reflows rather than hiding the enemy team. SVG sidebar
 icons, readable first-start states, account setup and visible import feedback
-complete the candidate. Source visual checks generate 24 current captures at
+complete the candidate. Source visual checks generate 33 current captures at
 1600x900 and 1180x720, including an expanded Coach and time jump; representative
-captures were inspected. Historical counts below describe earlier passes only.
-The packaged executable additionally generates 13 fresh/local-history captures.
+captures were inspected, plus dense objective layouts at 360/650/1100 px.
+Historical counts below describe earlier passes only.
+The packaged executable also checks fresh/local-history renders.
 Offscreen tests load fonts installed by Windows; no Microsoft font is bundled.
 
 Full source regression is 43/43 PASS; packaged clean-profile and three-match

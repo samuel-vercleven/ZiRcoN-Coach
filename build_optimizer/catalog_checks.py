@@ -7,7 +7,7 @@ from build_optimizer.purchase import RecipePlanner
 from build_optimizer.replay import exact_catalogs, validate_recipe_plan
 from build_optimizer.scoring import score_recipe
 
-PATCHES = ('16.9', '16.16', '16.17')
+PATCHES = ('16.9', '16.16', '16.17', '16.19')
 CONTROLLED_BUDGETS = (0, 400, 850, 2050, 3500)
 
 

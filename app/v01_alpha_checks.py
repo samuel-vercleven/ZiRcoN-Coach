@@ -50,6 +50,22 @@ def main() -> None:
 
         cache = CacheRepository(db); cache.initialize(); local = LocalDataService(db, cache, settings)
         matches = local.matches(); assert len(matches) == 1 and matches[0].champion == "Annie"
+        # Never turn a missing team frame into a fabricated zero-gold observation.
+        participants = [{'puuid': 'p', 'participantId': 1, 'teamId': 100}, {'puuid': 'enemy', 'participantId': 2, 'teamId': 200}]
+        frames = [
+            {'timestamp': 0, 'participantFrames': {'1': {'totalGold': 500}, '2': {'totalGold': 500}}, 'events': []},
+            {'timestamp': 60000, 'participantFrames': {'1': {'totalGold': 600}}, 'events': []},
+            {'timestamp': 120000, 'participantFrames': {'1': {'totalGold': 900}, '2': {'totalGold': 700}},
+             'events': [{'type': 'ELITE_MONSTER_KILL', 'monsterType': 'DRAGON', 'timestamp': 119000}] * 13},
+        ]
+        with closing(sqlite3.connect(db)) as connection:
+            connection.execute('CREATE TABLE timelines(match_id TEXT PRIMARY KEY, raw_json TEXT)')
+            connection.execute('UPDATE matches SET raw_json=?', (json.dumps({'info': {'participants': participants}}),))
+            connection.execute('INSERT INTO timelines VALUES (?, ?)', ('EUW1_TEST', json.dumps({'info': {'frames': frames}})))
+            connection.commit()
+        story = local.match_story('EUW1_TEST')
+        assert [point['delta'] for point in story['points']] == [0, None, 200]
+        assert len(story['events']) == 13, 'Post-game timeline must not silently truncate later events'
         assert local.progress().win_rate == 100.0 and local.match_detail("EUW1_TEST") is not None
         analysis = PostGameAnalysisService(local, cache)
         cache.save_report("EUW1_TEST", "death", ANALYZER_CACHE_VERSIONS["death"], "PARTIAL", {"title": "Deaths", "summary": "Supported evidence", "evidence": ["fixture"], "source_version": "death_analyzer_v11"}, puuid='p')

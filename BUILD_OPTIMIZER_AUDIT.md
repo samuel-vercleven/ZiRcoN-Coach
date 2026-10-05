@@ -1,5 +1,34 @@
 # Build Optimizer v1 — audit
 
+## Patch 26.19 compatibility review — 2026-10-05
+
+- Riot's current release is [26.19](https://www.leagueoflegends.com/en-us/news/game-updates/league-of-legends-patch-26-19-notes/),
+  with exact Data Dragon version 16.19.1, verified against its versions API.
+- Exact French [item](https://ddragon.leagueoflegends.com/cdn/16.19.1/data/fr_FR/item.json)
+  and [champion](https://ddragon.leagueoflegends.com/cdn/16.19.1/data/fr_FR/champion.json)
+  catalogs are cached and included in the portable delivery. No latest-patch fallback.
+- All 20 reviewed whitelist records are fully identical to 16.18.1, including
+  descriptions, stats, tags, prices, recipes and applicability. The five verified
+  recall/quest marker records retain their relevant identity/applicability facts.
+  Patch notes change support quest items outside this recommendation whitelist.
+- New 16.19 semantic admission additionally requires a reviewed SHA-256 of the
+  complete raw item record (canonical UTF-8 JSON, sorted keys, compact separators).
+  A same-price, same-recipe tooltip/stat/applicability change therefore abstains.
+  Older patch behavior and all FROZEN foundations stay unchanged.
+- All 173 champion catalog records admit their reviewed or generic class profile;
+  this does not imply 173 individually reviewed champion builds.
+- Controlled cases cover six champions, real recipes, alternatives, legal purchases,
+  score recomposition, future-data mutation and the UI presentation bridge.
+  Recipe audit covers 2,795 cases on 16.19, including budgets and inventory slots.
+- There is no real 16.19 game in the current 143-game local history. New-patch
+  verification is controlled, while historical replay covers existing older games.
+  Insufficient same-patch prior matches still abstain; no cross-patch borrowing.
+
+Catalog provenance (SHA-256 of JSON with sorted keys, ensure_ascii=False,
+default separators; distinct from the compact item fingerprint convention):
+items `41853c6c272a50f763888b273bae98c83fba7fdb5bcf1df74fdfa2adb79488e3`;
+champions `7f9b1adad10a0b3009d198a51553733f18037234c993071d0f236996683ece52`.
+
 ## Scope and frozen boundary
 
 The original Viego contextual pass extended only `build_optimizer/`. The later
@@ -29,9 +58,9 @@ traits. Unknown class metadata and unsupported patches still abstain.
 The fallback does not make every item relevant to every champion, nor does it
 validate build quality. Candidate/semantic coverage is reported separately.
 The audited local catalogs now include exact patches 16.8, 16.9, 16.11, 16.12,
-16.14, 16.15, 16.16, 16.17 and 16.18. All existing Shyvana fingerprints match
+16.14, 16.15, 16.16, 16.17, 16.18 and 16.19. All existing Shyvana fingerprints match
 these catalogs; Viego has 11/12 matching item fingerprints on 16.8–16.15 (item
-6610 fails closed) and 12/12 on 16.16–16.18. The all-champion replay and human
+6610 fails closed) and 12/12 on 16.16–16.19. The all-champion replay and human
 gameplay review remain required before acceptance or freeze.
 
 ## Viego possession audit
