@@ -2,9 +2,9 @@ import QtQuick
 
 Rectangle {
     id: surface
-    property color tint: "#182938"
+    property color tint: ZTheme.color("#182938")
     radius: 22
-    border.color: "#304458"
+    border.color: ZTheme.color("#304458")
     border.width: 1
     gradient: Gradient {
         GradientStop {
@@ -13,7 +13,7 @@ Rectangle {
         }
         GradientStop {
             position: 1
-            color: "#0f1b28"
+            color: ZTheme.color("#0f1b28")
         }
     }
     // Native shapes retain depth in both GPU and software renderers.
@@ -24,14 +24,14 @@ Rectangle {
         width: parent.width
         height: parent.height
         radius: parent.radius
-        color: "#50000000"
+        color: ZTheme.color("#50000000")
     }
     Rectangle {
         x: 24
         y: 1
         width: Math.max(0, parent.width - 48)
         height: 1
-        color: "#376986"
+        color: ZTheme.color("#376986")
         opacity: 0.45
     }
 }

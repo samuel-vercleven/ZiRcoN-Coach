@@ -1,82 +1,72 @@
 # LAST RUN
 
 ## Status
-TECHNICAL PASS / REVIEW_REQUIRED for display and gameplay review — NO FREEZE
+TECHNICAL PASS / REVIEW_REQUIRED for human visual preference — NO FREEZE
 
 ## Date
-2026-10-05 22:31 Europe/Paris
+2026-10-05 23:21 Europe/Paris
 
 ## Command
-- python -m app.quick_checks
-- python -m app.stabilization_checks final
-- python run_app.py --qml --smoke-check --smoke-output logs/qml-smoke.json
-- Same QML smoke with isolated ZIRCON_DATA_DIR (fresh profile)
+- python -X faulthandler -m app.quick_checks
+- python run_app.py --qml --theme belveth --smoke-check --smoke-output logs/qml-belveth-smoke.json
+- python run_app.py --qml --smoke-check --smoke-output logs/qml-turquoise-smoke.json
+- FROZEN guard, secret scan, syntax compile and git diff --check
 
 ## Runtime
-- Full source regression: 44/44 command suites PASS, including real main.py.
-- Nine focused QML bridge tests PASS. QML smoke: three real matches, 30 captures
-  at 1600×960 and 1120×720; zero QML warnings or Python callback errors.
-- Fresh-profile smoke: zero matches, six captures, classic-settings round trip
-  and clean shutdown. Existing history was not replaced.
-- Classic UI smoke/semantics pass in the full regression. One QML root survives
-  navigation; repeat match selection reuses the optimizer result.
-- All 89 FROZEN paths unchanged; secret scan and whitespace checks pass.
-- Eight optimizer gates were not rerun: no scoring, inventory, recipe, semantic
-  profile, temporal threshold or analyzer code changed. Their prior accepted
-  results remain in BUILD_OPTIMIZER_AUDIT/EVALUATION and the rc2 run.
+- Both themes PASS: three actual matches, 32 captures per mode at 1600×960 and
+  1120×720, zero QML warnings/Python callback errors including shutdown.
+- Live theme comparison repaints the background, chart and ring; match/report
+  DTOs remain exactly unchanged. No new window or optimizer recalculation.
+- Ten focused checks PASS, including GUI-thread/missing-data/account contracts,
+  live QML palette bindings and three representative contrast pairs ≥4.5:1.
+- Full backend/main.py and eight optimizer gates not rerun for this color-only
+  task. Previous full 44/44 source run passed at 2c936f8; its forensic log remains.
+- All 89 FROZEN paths unchanged. Secret scan and whitespace checks PASS.
 
 ## Files changed
-- ui/quick/bridge.py: player-facing DTOs, cached images, bounded workers,
-  GUI-thread delivery, stale-result and account guards.
-- ui/quick/qml/*: native surfaces, real history/teams, gold chart, coaching
-  disclosures, build/context and alternatives, reduced-motion option.
-- app/quick_application.py, run_app.py, Essayer-interface-QML.vbs: opt-in launch,
-  shared instance lock, classic round trip and render smoke.
-- app/quick_checks.py, app/stabilization_checks.py: validation.
-- packaging/zircon.spec: include QML sources in future builds.
-- README, QML_PREVIEW, PROJECT_STATE, TODO and DECISIONS updated.
+- ui/quick/qml/ZTheme.qml + qmldir: centralized reversible display palette.
+- QML components: themed surfaces/text/buttons/graphs, live palette controls.
+- resources/zircon-void.svg: variant of the existing vector logo system.
+- app/quick_application.py: theme argument and live-comparison smoke assertions.
+- app/quick_checks.py: native QML binding and contrast regression.
+- Essayer-theme-Belveth.vbs: dedicated violet launch, same instance lock.
+- README, QML_PREVIEW, PROJECT_STATE and TODO updated.
 
 ## Tests executed
-- Missing KDA/CS/or/result stay missing; empty items stay invisible.
-- Chart retains gaps and real timestamps; signed segments split at zero.
-- Build keeps the existing dated enemy snapshot, not final rosters.
-- Tuple-backed reasons/opponents/purchases converted to QML arrays.
-- Delayed completion cannot overwrite another game or populate a new account's
-  UI cache; refresh clears prior presentation state.
-- Worker delivery checked against the application's GUI thread.
-- Desktop/minimum history, summary and real Viego purchase captures inspected.
-- Normal Windows QML launch and actual live home capture inspected; one visible
-  ZiRcoN window remains open for the user. Automated match checks use software.
-- Longer explanations collapse while full evidence remains accessible.
+- Both theme captures: home, history, progress, summary, coach, objects,
+  observed objectives, plus live comparison summary/build.
+- Bel’Veth real match summary and real Viego build view inspected at normal and
+  minimum widths. No item/stat overlap introduced.
+- Sampled contrast pairs: main text, muted text and primary button text.
+- Switching themes does not mutate gold observations, reports, purchases or
+  dated opponent context. Unsupported builds still abstain.
 
 ## Errors encountered
-- Development QML name collisions and invalid compact separators fixed.
-- Visual inspection caught missing tuple-backed build fields and narrow-team
-  item/stat overlap; corrected and rerendered.
-- Alternative disclosure scope and teardown bindings corrected.
-- Final QML smoke includes shutdown and has zero warnings.
+- Initial singleton name collided with Qt's built-in Palette; renamed ZTheme.
+- One residual reference found by QML warnings corrected.
+- Native inline-QML test cleanup initially had an access violation; the probe
+  now has explicit engine ownership. Ten checks rerun successfully with
+  faulthandler; final application teardown also passes for both themes.
 
 ## Main analyzer results
-- Same backend services and strict historical/patch/legality gates. No new
-  analytical inference or formula in this frontend.
-- Actual Viego match EUW1_7986552283 displays Kraken advice at 09:00 on 16.18,
-  dated enemy stats, conditional purchases and alternatives.
+Unchanged; this is a presentation-only color trial, not Bel’Veth-specific advice.
 
 ## Suspicious findings
-- None in final checks. Visual polish is not proof of coaching quality.
+None in final checks.
 
 ## Methodological concerns
-- No frozen or scoring changes. Missing/unsupported inputs still abstain.
+No analytical, temporal, inventory or score changes.
 
 ## Remaining issues
-- Opt-in exploration, not a full QML migration: settings/imports, notes and
-  advanced legacy details use the classic UI in the same process.
-- Software-render QA completed; human display/GPU/DPI/gameplay review remains.
-- Prior portable rc3 ZIP unchanged. New QML bundle not rebuilt or verified.
+- Existing user window left running; close and relaunch to load new QML sources.
+- Theme preference is per launch/session, not persisted to account settings.
+- Human visual/accessibility review remains; sampled contrasts are not a complete
+  accessibility certification.
+- Previous portable ZIP remains unchanged; source preview only.
 
 ## Codex technical recommendation
-Try Essayer-interface-QML.vbs and compare the real match pages on the user's PC.
+Try Essayer-theme-Belveth.vbs; compare with Turquoise using the sidebar buttons.
 
 ## Review request
-REVIEW_REQUIRED for product/display acceptance, NO FREEZE.
-Commit/push only on feature/build-optimizer; no merge into main.
+Human theme preference only. NO FREEZE, no main merge.
+Commit/push on feature/build-optimizer after final checks.

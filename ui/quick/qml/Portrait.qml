@@ -10,7 +10,7 @@ Rectangle {
     width: 38
     height: width
     radius: 8
-    color: "#203448"
+    color: ZTheme.color("#203448")
     clip: true
     visible: identity !== "" && identity !== "0"
     Image {
@@ -26,7 +26,7 @@ Rectangle {
         asynchronous: true
         cache: true
     }
-    border.color: "#496078"
+    border.color: ZTheme.color("#496078")
     border.width: 1
     Accessible.name: description
     HoverHandler {

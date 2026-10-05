@@ -9,6 +9,22 @@ Alternative : `.venv\Scripts\python.exe run_app.py --qml`.
 La protection contre les doubles ouvertures est partagée avec la version
 classique : fermer une éventuelle fenêtre ZiRcoN déjà ouverte avant le lancement.
 
+### Variante Bel’Veth
+
+Double-cliquer `Essayer-theme-Belveth.vbs` après avoir fermé la fenêtre actuelle.
+Alternative : `.venv\Scripts\python.exe run_app.py --qml --theme belveth`.
+Violet/prune, lavande, touches dorées, logo assorti. **Bel’Veth / Turquoise**
+permet de changer instantanément la palette dans la barre latérale, sans refaire
+les analyses ni ouvrir une autre fenêtre. L’ancien lanceur reste turquoise.
+Ce thème n’applique aucun traitement différent aux champions ou aux builds.
+La courbe utilise doré pour une avance d’or et rose pour un retard, avec la
+légende mise à jour. Les couleurs de l’anneau de pertinence restent sémantiques.
+
+Les deux modes sont vérifiés sur trois vraies parties, à 1600×960 / 1120×720 :
+32 captures par mode, changement de thème en direct et arrêt sans avertissement.
+Les dix tests ciblés couvrent aussi les bindings de palette et trois contrastes
+texte/fond ≥ 4,5:1. Ce n’est pas une certification globale d’accessibilité.
+
 ## Ce qui fonctionne
 
 - Accueil, historique filtrable avec les deux équipes, progression réelle.

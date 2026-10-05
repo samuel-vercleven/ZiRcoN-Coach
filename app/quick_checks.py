@@ -6,6 +6,9 @@ import unittest
 from unittest.mock import Mock
 
 from PySide6.QtCore import QThread
+from PySide6.QtCore import QUrl
+from PySide6.QtQml import QQmlEngine, QQmlComponent
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QApplication
 from ui.quick.bridge import QuickBridge
 from viewmodels import MatchSummaryViewModel, MatchDetailViewModel, CoachingReport, PlayerViewModel, ProgressViewModel
@@ -101,6 +104,45 @@ class QuickChecks(unittest.TestCase):
         self.assertEqual(self.bridge.assetUrl('item', '0', '16.18'), '')
         self.assertEqual(self.bridge.assetUrl('item', '', '16.18'), '')
         self.assertFalse(self.bridge._workers)
+
+    def test_theme_binding_switches_without_new_components(self):
+        from app.paths import PROJECT_ROOT
+        from shiboken6 import delete
+        engine = QQmlEngine()
+        engine.rootContext().setContextProperty('initialTheme', 'turquoise')
+        component = QQmlComponent(engine)
+        source = b'''import QtQuick
+QtObject {
+    property color background: ZTheme.color("#09131f")
+    property color textColor: ZTheme.color("#edf3fa")
+    property color muted: ZTheme.color("#95acc3")
+    property color buttonBackground: ZTheme.color("#58dfc0")
+    property color buttonText: ZTheme.color("#062a2b")
+}'''
+        component.setData(source, QUrl.fromLocalFile(str(PROJECT_ROOT / 'ui/quick/qml/ThemeProbe.qml')))
+        probe = component.create()
+        self.assertIsNotNone(probe, str(component.errors()))
+        probe.setParent(engine)
+        try:
+            self.assertEqual(probe.property('background'), QColor('#09131f'))
+            self.assertEqual(probe.property('buttonBackground'), QColor('#58dfc0'))
+            engine.rootContext().setContextProperty('initialTheme', 'belveth')
+            self.app.processEvents()
+            self.assertEqual(probe.property('background'), QColor('#100b1b'))
+            self.assertEqual(probe.property('buttonBackground'), QColor('#c5a6fa'))
+            def luminance(color):
+                def linear(channel):
+                    return channel / 12.92 if channel <= 0.04045 else ((channel + 0.055) / 1.055) ** 2.4
+                return sum(weight * linear(channel) for weight, channel in zip((0.2126, 0.7152, 0.0722), (color.redF(), color.greenF(), color.blueF())))
+            for foreground, background in (('textColor', 'background'), ('muted', 'background'), ('buttonText', 'buttonBackground')):
+                values = sorted((luminance(probe.property(foreground)), luminance(probe.property(background))))
+                self.assertGreaterEqual((values[1] + 0.05) / (values[0] + 0.05), 4.5)
+            engine.rootContext().setContextProperty('initialTheme', 'turquoise')
+            self.app.processEvents()
+            self.assertEqual(probe.property('background'), QColor('#09131f'))
+        finally:
+            delete(component)
+            delete(engine)
 
 
 if __name__ == '__main__':

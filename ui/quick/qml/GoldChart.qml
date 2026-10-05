@@ -21,6 +21,10 @@ Item {
     onPointsChanged: plot.requestPaint()
     onWidthChanged: plot.requestPaint()
     onHeightChanged: plot.requestPaint()
+    Connections {
+        target: ZTheme
+        function onBelvethChanged() { plot.requestPaint() }
+    }
     Canvas {
         id: plot
         anchors.fill: parent
@@ -29,10 +33,10 @@ Item {
             ctx.reset();
             const area = height - 62, middle = 22 + area / 2;
             ctx.font = "11px Segoe UI";
-            ctx.fillStyle = "#92a9c1";
+            ctx.fillStyle = ZTheme.color("#92a9c1");
             for (let i = 0; i < 5; ++i) {
                 const y = 22 + i * area / 4, value = root.maximum * (1 - i / 2);
-                ctx.strokeStyle = i === 2 ? "#5b748c" : "#253a4d";
+                ctx.strokeStyle = i === 2 ? ZTheme.color("#5b748c") : ZTheme.color("#253a4d");
                 ctx.lineWidth = 1;
                 ctx.beginPath();
                 ctx.moveTo(52, y);
@@ -53,13 +57,13 @@ Item {
                 // Split sign-changing segments at zero; never interpolate across missing observations.
                 const cut = a.delta * b.delta < 0;
                 const splitX = cut ? x1 + (x2 - x1) * Math.abs(a.delta) / (Math.abs(a.delta) + Math.abs(b.delta)) : x2;
-                ctx.strokeStyle = a.delta >= 0 ? "#62e6c5" : "#f48a9b";
+                ctx.strokeStyle = a.delta >= 0 ? ZTheme.color("#62e6c5") : ZTheme.color("#f48a9b");
                 ctx.beginPath();
                 ctx.moveTo(x1, y1);
                 ctx.lineTo(splitX, cut ? middle : y2);
                 ctx.stroke();
                 if (cut) {
-                    ctx.strokeStyle = b.delta >= 0 ? "#62e6c5" : "#f48a9b";
+                    ctx.strokeStyle = b.delta >= 0 ? ZTheme.color("#62e6c5") : ZTheme.color("#f48a9b");
                     ctx.beginPath();
                     ctx.moveTo(splitX, middle);
                     ctx.lineTo(x2, y2);
@@ -69,7 +73,7 @@ Item {
             root.points.forEach(p => {
                 if (p.delta === null || p.delta === undefined)
                     return;
-                ctx.fillStyle = p.delta >= 0 ? "#62e6c5" : "#f48a9b";
+                ctx.fillStyle = p.delta >= 0 ? ZTheme.color("#62e6c5") : ZTheme.color("#f48a9b");
                 ctx.beginPath();
                 ctx.arc(root.sx(p), root.sy(p), 2.5, 0, Math.PI * 2);
                 ctx.fill();
@@ -82,7 +86,7 @@ Item {
         y: 18
         width: 1
         height: parent.height - 48
-        color: "#6488a7"
+        color: ZTheme.color("#6488a7")
     }
     MouseArea {
         id: tracker
@@ -107,7 +111,7 @@ Item {
         anchors.centerIn: parent
         visible: root.points.length === 0
         text: "La courbe n’est pas disponible pour cette partie."
-        color: "#a6b9cb"
+        color: ZTheme.color("#a6b9cb")
         width: parent.width - 80
         horizontalAlignment: Text.AlignHCenter
     }

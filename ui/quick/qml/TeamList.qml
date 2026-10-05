@@ -10,7 +10,7 @@ ColumnLayout {
     spacing: 8
     ZText {
         text: root.enemy ? "L’ÉQUIPE ADVERSE" : "TON ÉQUIPE"
-        color: root.enemy ? "#f29eaf" : "#70e1cc"
+        color: root.enemy ? ZTheme.color("#f29eaf") : ZTheme.color("#70e1cc")
         font.pixelSize: 11
         font.letterSpacing: 2
         Layout.bottomMargin: 6
@@ -22,8 +22,8 @@ ColumnLayout {
             Layout.fillWidth: true
             implicitHeight: root.width < 320 ? 118 : 100
             radius: 12
-            color: modelData.is_player ? "#223d49" : "#142535"
-            border.color: modelData.is_player ? "#498d8d" : "#263c4e"
+            color: modelData.is_player ? ZTheme.color("#223d49") : ZTheme.color("#142535")
+            border.color: modelData.is_player ? ZTheme.color("#498d8d") : ZTheme.color("#263c4e")
             HoverHandler {
                 id: rowHover
             }
@@ -53,7 +53,7 @@ ColumnLayout {
                     }
                     ZText {
                         text: modelData.display_name
-                        color: "#95acc3"
+                        color: ZTheme.color("#95acc3")
                         font.pixelSize: 11
                         elide: Text.ElideRight
                         wrapMode: Text.NoWrap
@@ -63,7 +63,7 @@ ColumnLayout {
                 ZText {
                     text: modelData.kda
                     font.pixelSize: 12
-                    color: root.enemy ? "#e4b5c0" : "#93e2d5"
+                    color: root.enemy ? ZTheme.color("#e4b5c0") : ZTheme.color("#93e2d5")
                 }
             }
             Row {
@@ -94,7 +94,7 @@ ColumnLayout {
                     bottomMargin: 10
                 }
                 text: modelData.csText + " CS · " + modelData.goldText + " PO"
-                color: "#95acc3"
+                color: ZTheme.color("#95acc3")
                 font.pixelSize: 10
             }
         }
@@ -102,6 +102,6 @@ ColumnLayout {
     ZText {
         visible: root.players.length === 0
         text: "Participants non disponibles"
-        color: "#a3b7cc"
+        color: ZTheme.color("#a3b7cc")
     }
 }

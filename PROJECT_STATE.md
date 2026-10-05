@@ -1,5 +1,20 @@
 # ZiRcoN Coach - Project State
 
+## Bel’Veth visual trial — 2026-10-05
+
+- Opt-in violet/plum/lavender/gold QML palette, matching SVG brand variant and
+  `Essayer-theme-Belveth.vbs` / `--qml --theme belveth`.
+- Live Bel’Veth/Turquoise comparison retains the same window, match, report and
+  optimizer output. Original launch stays turquoise; no scoring/data changes.
+- Canvas charts/rings repaint on theme changes. Gold-curve legend matches the
+  violet theme's gold/pink colors; score bands retain their original semantics.
+- Both themes: three real games, 32 desktop/minimum captures each, zero QML or
+  callback errors including shutdown. Ten focused tests PASS, including live
+  palette bindings and sampled text/button contrast ≥4.5:1. FROZEN guard:89 PASS.
+- No new full backend run or portable rebuild for this color-only task. Previous
+  full source run:44/44 at 2c936f8. Current existing user window left untouched;
+  close/relaunch to load the new theme controls. Human visual review / NO FREEZE.
+
 ## Opt-in Qt Quick / QML exploration — 2026-10-05
 
 - User-authorized alternative frontend: `run_app.py --qml` or

@@ -10,8 +10,9 @@ ApplicationWindow {
     minimumWidth: 1120
     minimumHeight: 720
     visible: true
-    title: "ZiRcoN Coach · Nouvelle interface"
-    color: "#09131f"
+    title: ZTheme.belveth ? "ZiRcoN Coach · Bel’Veth" : "ZiRcoN Coach · Nouvelle interface"
+    readonly property bool belvethMode: ZTheme.belveth
+    color: ZTheme.color("#09131f")
     property string page: "home"
     property int matchTab: 0
     property var dashboard: coach ? coach.state : ({
@@ -42,6 +43,8 @@ ApplicationWindow {
         }
     }
     function asset(name) {
+        if (name === "zircon" && ZTheme.belveth)
+            name = "zircon-void";
         return resourceRoot + "/" + name + ".svg";
     }
 
@@ -51,15 +54,15 @@ ApplicationWindow {
             orientation: Gradient.Horizontal
             GradientStop {
                 position: 0
-                color: "#0d1928"
+                color: ZTheme.color("#0d1928")
             }
             GradientStop {
                 position: 0.65
-                color: "#101f30"
+                color: ZTheme.color("#101f30")
             }
             GradientStop {
                 position: 1
-                color: "#12192b"
+                color: ZTheme.color("#12192b")
             }
         }
     }
@@ -69,7 +72,7 @@ ApplicationWindow {
         width: 490
         height: 490
         radius: 245
-        color: "#101a7381"
+        color: ZTheme.color("#101a7381")
     }
     Rectangle {
         x: 350
@@ -77,19 +80,19 @@ ApplicationWindow {
         width: 540
         height: 540
         radius: 270
-        color: "#0a8170a8"
+        color: ZTheme.color("#0a8170a8")
     }
 
     Rectangle {
         id: sidebar
         width: 188
         height: parent.height
-        color: "#09121e"
+        color: ZTheme.color("#09121e")
         Rectangle {
             anchors.right: parent.right
             height: parent.height
             width: 1
-            color: "#27384a"
+            color: ZTheme.color("#27384a")
         }
         Row {
             x: 22
@@ -111,7 +114,7 @@ ApplicationWindow {
                     text: "COACH"
                     font.pixelSize: 9
                     font.letterSpacing: 3
-                    color: "#74c6c9"
+                    color: ZTheme.color("#74c6c9")
                 }
             }
         }
@@ -121,7 +124,7 @@ ApplicationWindow {
             text: "TON ESPACE"
             font.pixelSize: 10
             font.letterSpacing: 2
-            color: "#758ea7"
+            color: ZTheme.color("#758ea7")
         }
         Column {
             x: 14
@@ -155,7 +158,7 @@ ApplicationWindow {
                     Accessible.name: modelData.label
                     background: Rectangle {
                         radius: 13
-                        color: window.page === modelData.name || (window.page === "match" && modelData.name === "history") ? "#1e3549" : parent.hovered ? "#132636" : "transparent"
+                        color: window.page === modelData.name || (window.page === "match" && modelData.name === "history") ? ZTheme.color("#1e3549") : parent.hovered ? ZTheme.color("#132636") : "transparent"
                         Behavior on color {
                             ColorAnimation {
                                 duration: 160
@@ -168,7 +171,7 @@ ApplicationWindow {
                             height: 18
                             width: 3
                             radius: 2
-                            color: "#70ebcf"
+                            color: ZTheme.color("#70ebcf")
                         }
                     }
                     contentItem: Row {
@@ -184,7 +187,7 @@ ApplicationWindow {
                             text: modelData.label
                             anchors.verticalCenter: parent.verticalCenter
                             font.pixelSize: 13
-                            color: "#cad7e6"
+                            color: ZTheme.color("#cad7e6")
                         }
                     }
                     onClicked: window.page = modelData.name
@@ -196,11 +199,12 @@ ApplicationWindow {
             anchors.bottom: parent.bottom
             anchors.bottomMargin: 24
             width: parent.width - 36
-            spacing: 14
+            spacing: 10
             ZText {
+                visible: window.height > 800
                 text: "Une partie.\nUne chose à retenir."
                 font.pixelSize: 15
-                color: "#c3d3e3"
+                color: ZTheme.color("#c3d3e3")
                 font.italic: true
                 width: parent.width
             }
@@ -219,9 +223,29 @@ ApplicationWindow {
                 width: parent.width
                 onClicked: window.reduceMotion = !window.reduceMotion
             }
+            Row {
+                width: parent.width
+                spacing: 6
+                ZButton {
+                    objectName: "belvethThemeButton"
+                    width: (parent.width - 6) / 2
+                    height: 36
+                    text: "Bel’Veth"
+                    selected: ZTheme.belveth
+                    onClicked: ZTheme.belveth = true
+                }
+                ZButton {
+                    objectName: "turquoiseThemeButton"
+                    width: (parent.width - 6) / 2
+                    height: 36
+                    text: "Turquoise"
+                    selected: !ZTheme.belveth
+                    onClicked: ZTheme.belveth = false
+                }
+            }
             ZText {
                 text: "●  Données locales"
-                color: "#7ee4cb"
+                color: ZTheme.color("#7ee4cb")
                 font.pixelSize: 11
             }
         }
@@ -252,7 +276,7 @@ ApplicationWindow {
                 ZText {
                     text: window.page === "match" ? "Le résultat est un point de départ. Le prochain réflexe, la suite." : dashboard.count + " parties locales · Classé solo / duo"
                     font.pixelSize: 12
-                    color: "#96adc5"
+                    color: ZTheme.color("#96adc5")
                 }
             }
             ZButton {
@@ -263,7 +287,7 @@ ApplicationWindow {
             Rectangle {
                 width: 1
                 height: 32
-                color: "#314356"
+                color: ZTheme.color("#314356")
                 Layout.leftMargin: 12
                 Layout.rightMargin: 12
             }
@@ -277,7 +301,7 @@ ApplicationWindow {
                 ZText {
                     text: dashboard.player.rank || "Données locales"
                     font.pixelSize: 11
-                    color: "#9db3c9"
+                    color: ZTheme.color("#9db3c9")
                 }
             }
         }
@@ -306,7 +330,7 @@ ApplicationWindow {
                 Surface {
                     Layout.fillWidth: true
                     implicitHeight: 264
-                    tint: "#183a4b"
+                    tint: ZTheme.color("#183a4b")
                     clip: true
                     Rectangle {
                         x: parent.width - 320
@@ -314,8 +338,8 @@ ApplicationWindow {
                         width: 440
                         height: 440
                         radius: 220
-                        color: "#10376379"
-                        border.color: "#355b70"
+                        color: ZTheme.color("#10376379")
+                        border.color: ZTheme.color("#355b70")
                         border.width: 1
                         rotation: 12
                     }
@@ -325,8 +349,8 @@ ApplicationWindow {
                         width: 330
                         height: 330
                         radius: 165
-                        color: "#13394a61"
-                        border.color: "#447d87"
+                        color: ZTheme.color("#13394a61")
+                        border.color: ZTheme.color("#447d87")
                     }
                     Rectangle {
                         x: parent.width - 215
@@ -334,8 +358,8 @@ ApplicationWindow {
                         width: 228
                         height: 228
                         radius: 114
-                        color: "#22456d78"
-                        border.color: "#5192a0"
+                        color: ZTheme.color("#22456d78")
+                        border.color: ZTheme.color("#5192a0")
                     }
                     Image {
                         x: parent.width - 170
@@ -367,8 +391,8 @@ ApplicationWindow {
                         width: parent.width - 360
                         spacing: 12
                         ZText {
-                            text: "LE PETIT DÉCLIC APRÈS LA GAME"
-                            color: "#75e7d0"
+                            text: ZTheme.belveth ? "APPRENDRE. S’ADAPTER. ÉVOLUER." : "LE PETIT DÉCLIC APRÈS LA GAME"
+                            color: ZTheme.color("#75e7d0")
                             font.pixelSize: 11
                             font.letterSpacing: 2
                         }
@@ -381,7 +405,7 @@ ApplicationWindow {
                         }
                         ZText {
                             text: "Revois les moments utiles, comprends tes achats\net repars avec une idée concrète à tester."
-                            color: "#b2c7d9"
+                            color: ZTheme.color("#b2c7d9")
                             Layout.fillWidth: true
                         }
                         ZButton {
@@ -407,7 +431,7 @@ ApplicationWindow {
                                 spacing: 6
                                 ZText {
                                     text: modelData.label
-                                    color: "#a4bad0"
+                                    color: ZTheme.color("#a4bad0")
                                     font.pixelSize: 12
                                 }
                                 ZText {
@@ -418,7 +442,7 @@ ApplicationWindow {
                                 ZText {
                                     text: modelData.hint
                                     font.pixelSize: 11
-                                    color: "#8ca4bb"
+                                    color: ZTheme.color("#8ca4bb")
                                     width: parent.width
                                 }
                             }
@@ -445,7 +469,7 @@ ApplicationWindow {
                 ZText {
                     visible: dashboard.matches.length === 0
                     text: "Ton historique est encore vide. Connecte ton compte dans Réglages pour importer tes parties."
-                    color: "#adc3d6"
+                    color: ZTheme.color("#adc3d6")
                     Layout.fillWidth: true
                 }
             }
@@ -474,16 +498,16 @@ ApplicationWindow {
                     objectName: "matchSearch"
                     Layout.fillWidth: true
                     implicitHeight: 44
-                    color: "#edf3fa"
+                    color: ZTheme.color("#edf3fa")
                     placeholderText: "Rechercher un champion, un rôle…"
-                    placeholderTextColor: "#8aa3bd"
+                    placeholderTextColor: ZTheme.color("#8aa3bd")
                     font.family: "Segoe UI"
                     font.pixelSize: 14
                     leftPadding: 16
                     background: Rectangle {
                         radius: 12
-                        color: "#152638"
-                        border.color: parent.activeFocus ? "#65d8c5" : "#30485d"
+                        color: ZTheme.color("#152638")
+                        border.color: parent.activeFocus ? ZTheme.color("#65d8c5") : ZTheme.color("#30485d")
                     }
                     onTextChanged: window.query = text.toLowerCase()
                 }
@@ -524,7 +548,7 @@ ApplicationWindow {
                     anchors.centerIn: parent
                     visible: historyList.count === 0
                     text: "Aucune partie ne correspond à cette recherche."
-                    color: "#a6bdd3"
+                    color: ZTheme.color("#a6bdd3")
                 }
             }
         }
@@ -552,7 +576,7 @@ ApplicationWindow {
                 spacing: 20
                 ZText {
                     text: "Tes 20 dernières parties au maximum"
-                    color: "#9fb7cc"
+                    color: ZTheme.color("#9fb7cc")
                     Layout.fillWidth: true
                 }
                 RowLayout {
@@ -570,7 +594,7 @@ ApplicationWindow {
                                 spacing: 12
                                 ZText {
                                     text: modelData.label
-                                    color: "#a7bcd0"
+                                    color: ZTheme.color("#a7bcd0")
                                 }
                                 ZText {
                                     text: modelData.value
@@ -599,7 +623,7 @@ ApplicationWindow {
                         }
                         ZText {
                             text: "La barre représente le nombre de parties, pas une note de performance."
-                            color: "#9fb7cc"
+                            color: ZTheme.color("#9fb7cc")
                             font.pixelSize: 12
                             Layout.fillWidth: true
                         }
@@ -621,7 +645,7 @@ ApplicationWindow {
                                     Layout.fillWidth: true
                                     height: 10
                                     radius: 5
-                                    color: "#233a4c"
+                                    color: ZTheme.color("#233a4c")
                                     Rectangle {
                                         width: parent.width * modelData.games / Math.max(1, ...dashboard.champions.map(c => c.games))
                                         height: parent.height
@@ -630,11 +654,11 @@ ApplicationWindow {
                                             orientation: Gradient.Horizontal
                                             GradientStop {
                                                 position: 0
-                                                color: "#3885b7"
+                                                color: ZTheme.color("#3885b7")
                                             }
                                             GradientStop {
                                                 position: 1
-                                                color: "#76e7cf"
+                                                color: ZTheme.color("#76e7cf")
                                             }
                                         }
                                     }
@@ -642,19 +666,19 @@ ApplicationWindow {
                                 ZText {
                                     text: modelData.games + " parties"
                                     Layout.preferredWidth: 80
-                                    color: "#b1c6d9"
+                                    color: ZTheme.color("#b1c6d9")
                                 }
                                 ZText {
                                     text: modelData.rate + " victoires"
                                     Layout.preferredWidth: 130
-                                    color: "#78e4ce"
+                                    color: ZTheme.color("#78e4ce")
                                 }
                             }
                         }
                         ZText {
                             visible: dashboard.champions.length === 0
                             text: "Importe tes premières parties pour voir ta progression."
-                            color: "#a8bfd3"
+                            color: ZTheme.color("#a8bfd3")
                         }
                     }
                 }
@@ -686,7 +710,7 @@ ApplicationWindow {
                 Surface {
                     Layout.fillWidth: true
                     implicitHeight: 154
-                    tint: game.result === "WIN" ? "#1c3d45" : "#2b2d43"
+                    tint: game.result === "WIN" ? ZTheme.color("#1c3d45") : ZTheme.color("#2b2d43")
                     RowLayout {
                         anchors.fill: parent
                         anchors.margins: 24
@@ -703,7 +727,7 @@ ApplicationWindow {
                             ZText {
                                 text: (game.resultText || "") + "  ·  " + (game.role || "")
                                 font.pixelSize: 12
-                                color: game.result === "WIN" ? "#7de8cf" : "#f4a2b4"
+                                color: game.result === "WIN" ? ZTheme.color("#7de8cf") : ZTheme.color("#f4a2b4")
                                 font.letterSpacing: 1
                             }
                             ZText {
@@ -713,7 +737,7 @@ ApplicationWindow {
                             }
                             ZText {
                                 text: (game.duration || "") + " · " + (game.date || "") + " · Patch " + (game.patch || "")
-                                color: "#a6bfd2"
+                                color: ZTheme.color("#a6bfd2")
                                 font.pixelSize: 12
                             }
                         }
@@ -726,7 +750,7 @@ ApplicationWindow {
                             }
                             ZText {
                                 text: (game.cs || "—") + " CS · " + (game.cspm || "—") + " / min"
-                                color: "#acc4d7"
+                                color: ZTheme.color("#acc4d7")
                                 font.pixelSize: 12
                             }
                         }
@@ -735,7 +759,7 @@ ApplicationWindow {
                             Layout.leftMargin: 12
                             ZText {
                                 text: "BUILD FINAL"
-                                color: "#99b1c8"
+                                color: ZTheme.color("#99b1c8")
                                 font.pixelSize: 10
                                 font.letterSpacing: 2
                             }
@@ -833,7 +857,7 @@ ApplicationWindow {
                                 }
                                 ZText {
                                     text: "Écart d’or des équipes · PO"
-                                    color: "#9fb7cf"
+                                    color: ZTheme.color("#9fb7cf")
                                     font.pixelSize: 12
                                 }
                                 GoldChart {
@@ -843,8 +867,8 @@ ApplicationWindow {
                                     Layout.fillHeight: true
                                 }
                                 ZText {
-                                    text: "Vert : ton équipe devant · Rose : derrière"
-                                    color: "#aac1d6"
+                                    text: ZTheme.belveth ? "Doré : ton équipe devant · Rose : derrière" : "Vert : ton équipe devant · Rose : derrière"
+                                    color: ZTheme.color("#aac1d6")
                                     font.pixelSize: 11
                                     Layout.fillWidth: true
                                 }
@@ -868,7 +892,7 @@ ApplicationWindow {
                                     margins: 18
                                 }
                                 text: game.coachEmpty || "Pas assez d’informations pour un conseil fiable."
-                                color: "#a8c0d4"
+                                color: ZTheme.color("#a8c0d4")
                             }
                         }
                     }
@@ -885,7 +909,7 @@ ApplicationWindow {
                     }
                     ZText {
                         text: "Les conseils s’appuient uniquement sur les observations étayées de cette partie."
-                        color: "#9fb7ce"
+                        color: ZTheme.color("#9fb7ce")
                         Layout.fillWidth: true
                     }
                     Repeater {
@@ -899,7 +923,7 @@ ApplicationWindow {
                     ZText {
                         visible: (game.focuses || []).length === 0
                         text: game.coachEmpty || "Pas de conseil fiable disponible."
-                        color: "#b1c5d8"
+                        color: ZTheme.color("#b1c5d8")
                         Layout.fillWidth: true
                     }
                 }
@@ -908,7 +932,7 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     spacing: 18
                     Surface {
-                        tint: "#1a3940"
+                        tint: ZTheme.color("#1a3940")
                         Layout.fillWidth: true
                         implicitHeight: buildContent.implicitHeight + 48
                         ColumnLayout {
@@ -929,13 +953,13 @@ ApplicationWindow {
                             ZText {
                                 visible: coach && coach.busy
                                 text: "J’examine les achats possibles et les adversaires à ce moment de la partie…"
-                                color: "#afc9d4"
+                                color: ZTheme.color("#afc9d4")
                                 Layout.fillWidth: true
                             }
                             ZText {
                                 visible: coach && !coach.busy && build.status !== "SUPPORTED_HEURISTIC"
                                 text: build.reason || "Je n’ai pas assez d’informations pour proposer un objet précis."
-                                color: "#bad0de"
+                                color: ZTheme.color("#bad0de")
                                 Layout.fillWidth: true
                             }
                             ColumnLayout {
@@ -962,7 +986,7 @@ ApplicationWindow {
                                         }
                                         ZText {
                                             text: "Contexte observé à " + (build.snapshot_label || "—") + " · Patch " + (build.patch || "—")
-                                            color: "#9fbfcd"
+                                            color: ZTheme.color("#9fbfcd")
                                             Layout.fillWidth: true
                                         }
                                     }
@@ -973,7 +997,7 @@ ApplicationWindow {
                                         ZText {
                                             text: "Pertinence indicative"
                                             font.pixelSize: 10
-                                            color: "#a1c3ca"
+                                            color: ZTheme.color("#a1c3ca")
                                         }
                                     }
                                 }
@@ -982,7 +1006,7 @@ ApplicationWindow {
                                     ZText {
                                         required property string modelData
                                         text: "•  " + modelData
-                                        color: "#c4d8e3"
+                                        color: ZTheme.color("#c4d8e3")
                                         Layout.fillWidth: true
                                     }
                                 }
@@ -1012,7 +1036,7 @@ ApplicationWindow {
                                             ZText {
                                                 text: modelData.champion + "\n" + (modelData.health_max === null ? "PV inconnus" : Math.round(modelData.health_max) + " PV") + " · armure " + (modelData.armor === null ? "—" : Math.round(modelData.armor))
                                                 font.pixelSize: 11
-                                                color: "#a6c2d3"
+                                                color: ZTheme.color("#a6c2d3")
                                             }
                                         }
                                     }
@@ -1036,14 +1060,14 @@ ApplicationWindow {
                                         }
                                         ZText {
                                             text: modelData.name + " · " + modelData.cost + " PO à payer à ce moment"
-                                            color: "#b4cfdd"
+                                            color: ZTheme.color("#b4cfdd")
                                             Layout.fillWidth: true
                                         }
                                     }
                                 }
                                 ZText {
                                     text: "Ce conseil est une piste contextuelle, pas un build optimal garanti. Il utilise les données de ce moment, pas l’inventaire final."
-                                    color: "#98b8c6"
+                                    color: ZTheme.color("#98b8c6")
                                     font.pixelSize: 12
                                     Layout.fillWidth: true
                                 }
@@ -1087,7 +1111,7 @@ ApplicationWindow {
                                         ZText {
                                             required property string modelData
                                             text: modelData
-                                            color: "#a2bdd2"
+                                            color: ZTheme.color("#a2bdd2")
                                             font.pixelSize: 12
                                             Layout.fillWidth: true
                                         }
@@ -1113,7 +1137,7 @@ ApplicationWindow {
                     }
                     ZText {
                         text: "Contexte d’équipe : ces événements ne sont pas, à eux seuls, des erreurs personnelles."
-                        color: "#a6bfd3"
+                        color: ZTheme.color("#a6bfd3")
                         Layout.fillWidth: true
                     }
                     Repeater {
@@ -1127,7 +1151,7 @@ ApplicationWindow {
                                 anchors.margins: 18
                                 ZText {
                                     text: modelData.time
-                                    color: "#75e0ca"
+                                    color: ZTheme.color("#75e0ca")
                                     Layout.preferredWidth: 68
                                 }
                                 ZText {
@@ -1136,7 +1160,7 @@ ApplicationWindow {
                                 }
                                 ZText {
                                     text: "Équipe " + (modelData.team_id || "non précisée")
-                                    color: "#97b2c9"
+                                    color: ZTheme.color("#97b2c9")
                                     font.pixelSize: 12
                                 }
                             }
@@ -1145,7 +1169,7 @@ ApplicationWindow {
                     ZText {
                         visible: (game.events || []).length === 0
                         text: "Aucun objectif enregistré dans les données disponibles."
-                        color: "#a1b9d0"
+                        color: ZTheme.color("#a1b9d0")
                     }
                 }
             }
@@ -1161,7 +1185,7 @@ ApplicationWindow {
             Layout.fillWidth: true
             implicitHeight: 110
             height: implicitHeight
-            tint: hover.hovered ? "#20384a" : "#162a3b"
+            tint: hover.hovered ? ZTheme.color("#20384a") : ZTheme.color("#162a3b")
             Behavior on tint {
                 ColorAnimation {
                     duration: 160
@@ -1182,14 +1206,14 @@ ApplicationWindow {
             activeFocusOnTab: true
             Keys.onReturnPressed: window.openMatch(modelData.id)
             Keys.onSpacePressed: window.openMatch(modelData.id)
-            border.color: activeFocus ? "#7ce8d5" : "#304458"
+            border.color: activeFocus ? ZTheme.color("#7ce8d5") : ZTheme.color("#304458")
             Rectangle {
                 x: 1
                 y: 25
                 width: 3
                 height: parent.height - 50
                 radius: 2
-                color: modelData.result === "WIN" ? "#66e3c8" : modelData.result === "LOSS" ? "#ef91a7" : "#8daac4"
+                color: modelData.result === "WIN" ? ZTheme.color("#66e3c8") : modelData.result === "LOSS" ? ZTheme.color("#ef91a7") : ZTheme.color("#8daac4")
             }
             RowLayout {
                 anchors.fill: parent
@@ -1211,12 +1235,12 @@ ApplicationWindow {
                     }
                     ZText {
                         text: modelData.resultText + " · " + modelData.role
-                        color: modelData.result === "WIN" ? "#74dec9" : "#ed9bb0"
+                        color: modelData.result === "WIN" ? ZTheme.color("#74dec9") : ZTheme.color("#ed9bb0")
                         font.pixelSize: 11
                     }
                     ZText {
                         text: modelData.duration + " · " + modelData.date.slice(5, 10)
-                        color: "#8fa9c2"
+                        color: ZTheme.color("#8fa9c2")
                         font.pixelSize: 11
                     }
                 }
@@ -1230,7 +1254,7 @@ ApplicationWindow {
                     }
                     ZText {
                         text: modelData.cs + " CS · " + modelData.cspm + " / min"
-                        color: "#9db8cf"
+                        color: ZTheme.color("#9db8cf")
                         font.pixelSize: 11
                     }
                 }
@@ -1276,14 +1300,14 @@ ApplicationWindow {
                                 version: card.modelData.version
                                 width: 25
                                 radius: 4
-                                border.color: "#856273"
+                                border.color: ZTheme.color("#856273")
                             }
                         }
                     }
                 }
                 ZText {
                     text: "↗"
-                    color: "#71d7ca"
+                    color: ZTheme.color("#71d7ca")
                     font.pixelSize: 23
                     Layout.leftMargin: 4
                 }

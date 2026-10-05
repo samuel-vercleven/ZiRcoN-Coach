@@ -19,6 +19,11 @@ accessible dans le même processus, avec un bouton de retour.
 C’est une exploration visuelle, pas le remplacement complet de la V1.
 Le ZIP rc3 déjà livré reste inchangé. Voir [QML_PREVIEW.md](QML_PREVIEW.md).
 
+Variante Bel’Veth : fermer la fenêtre ZiRcoN actuelle, puis double-cliquer
+**Essayer-theme-Belveth.vbs**. Violet profond, lavande et reflets dorés.
+Les boutons **Bel’Veth / Turquoise** dans la barre latérale permettent de comparer
+les couleurs sans relancer la fenêtre ni recalculer les conseils.
+
 ## Essayer la V1 candidate
 
 Le [guide de démarrage](RELEASE_GUIDE.md) décrit la version portable, la connexion

@@ -1,5 +1,11 @@
 BUILD OPTIMIZER v1 — CONTEXTUAL RECOMMENDATION PASS
 
+BEL'VETH QML COLOR TRIAL — user request, 2026-10-05
+
+[x] Add reversible violet/lavender/gold palette without changing analysis
+[x] Compare themes live without recreating windows or recomputing coaching
+[x] Validate real match pages and desktop/minimum captures
+
 QT QUICK / QML EXPLORATION — user request, 2026-10-05
 
 [x] Implement a modern alternative native UI reusing actual local services

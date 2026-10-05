@@ -55,6 +55,12 @@ class QuickApplication:
         self.warnings = []
         self.engine.warnings.connect(self._qml_warnings)
         self.engine.rootContext().setContextProperty('coach', self.bridge)
+        self.theme = 'turquoise'
+        if '--theme' in sys.argv:
+            self.theme = sys.argv[sys.argv.index('--theme') + 1]
+        if self.theme not in ('turquoise', 'belveth'):
+            raise ValueError('Unknown QML theme')
+        self.engine.rootContext().setContextProperty('initialTheme', self.theme)
         self.engine.rootContext().setContextProperty('resourceRoot', QUrl.fromLocalFile(str(PROJECT_ROOT / 'resources')).toString())
         self.engine.addImageProvider('cached', CachedImages(self.context.assets))
         self.engine.load(QUrl.fromLocalFile(str(PROJECT_ROOT / 'ui' / 'quick' / 'qml' / 'Main.qml')))
@@ -116,6 +122,8 @@ class QuickApplication:
         from PySide6.QtTest import QTest
         from PySide6.QtCore import QObject, QPoint, Qt
         directory = DATA_ROOT / '.cache' / 'zircon' / 'quick-visual-check'
+        if self.theme == 'belveth':
+            directory = directory / 'belveth'
         directory.mkdir(parents=True, exist_ok=True)
         captures = []
         def settle():
@@ -178,6 +186,25 @@ class QuickApplication:
             # Reselecting the same game reuses the existing optimizer result.
             assert self.bridge.openMatch(match_id) and not self.bridge.busy
         assert len(self.engine.rootObjects()) == 1, 'Navigation recreated the window'
+        initial_mode = self.window.property('belvethMode')
+        if selected:
+            # Prefer the cached reviewed Viego game so live comparison includes
+            # the actual recommendation gauge, not only an abstention card.
+            assert self.bridge.openMatch(selected[0]) and not self.bridge.busy
+            self.window.setProperty('matchTab', 0)
+        settle()
+        before_color = self.window.grabWindow().pixelColor(210, 12)
+        state_before = self.bridge.detail.copy(), self.bridge.build.copy()
+        click('turquoiseThemeButton' if initial_mode else 'belvethThemeButton')
+        assert self.window.property('belvethMode') != initial_mode
+        assert self.window.grabWindow().pixelColor(210, 12) != before_color, 'Theme failed to repaint'
+        assert state_before == (self.bridge.detail, self.bridge.build), 'Theme mutated match analysis'
+        capture('theme-comparison')
+        if selected:
+            self.window.setProperty('matchTab', 2)
+            capture('theme-comparison-build')
+        click('belvethThemeButton' if initial_mode else 'turquoiseThemeButton')
+        assert self.window.property('belvethMode') == initial_mode
         self._open_classic(True)
         assert self.classic.settings_page is not None
         assert not self.window.isVisible() and self.classic.isVisible()
@@ -186,7 +213,7 @@ class QuickApplication:
         self.classic.close()
         assert not self.warnings, '\n'.join(self.warnings)
         assert not self.callback_errors, '\n'.join(self.callback_errors)
-        result = {'passed': True, 'presentation': 'Qt Quick / QML exploration', 'matches': len(selected),
+        result = {'passed': True, 'presentation': 'Qt Quick / QML exploration', 'theme': self.theme, 'matches': len(selected),
                   'captures': captures, 'qml_warnings': self.warnings,
                   'database_path': str(self.context.local_data.db_path)}
         if '--smoke-output' in sys.argv:
