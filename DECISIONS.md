@@ -686,3 +686,14 @@ Rules:
 
 Status:
 FROZEN.
+
+# Qt Quick exploration boundary — 2026-10-05
+
+The user explicitly requested an original modern Qt Quick/QML trial. This is an
+opt-in presentation (`--qml`), not an unrequested replacement of the existing
+desktop architecture. Both presentations share AppContext services, the same
+account scope, exact catalogs, historical-only scoring and single-instance lock.
+QML receives explicit player-facing projections; final-match rosters are never
+substituted for the optimizer's dated enemy snapshot. No analyzer is reopened.
+Classic settings/imports/notes remain available within the same process until a
+complete migration is separately accepted. Human review, no automatic freeze.

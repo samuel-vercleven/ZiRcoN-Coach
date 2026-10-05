@@ -1,5 +1,12 @@
 BUILD OPTIMIZER v1 — CONTEXTUAL RECOMMENDATION PASS
 
+QT QUICK / QML EXPLORATION — user request, 2026-10-05
+
+[x] Implement a modern alternative native UI reusing actual local services
+[x] Retain the classic UI, strict optimizer gates and missing-data semantics
+[x] Validate navigation, real coaching/build output and desktop/minimum captures
+[ ] Human comparison on the user's display; NO FREEZE
+
 [x] User follow-up: omit empty item/trinket slots in history, scoreboard and match build strips
 
 USER READABILITY / CURRENT PATCH FOLLOW-UP — 2026-10-05

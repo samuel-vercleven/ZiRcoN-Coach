@@ -4,7 +4,8 @@ root = Path(SPECPATH).parent
 staging = root / 'build' / 'release-resources'
 a = Analysis([str(root / 'run_app.py')], pathex=[str(root)],
              datas=[(str(staging / 'catalogs'), 'resources/catalogs'),
-                    (str(root / 'resources' / '*.svg'), 'resources')],
+                    (str(root / 'resources' / '*.svg'), 'resources'),
+                    (str(root / 'ui' / 'quick' / 'qml'), 'ui/quick/qml')],
              hiddenimports=[], hookspath=[], runtime_hooks=[], excludes=['pytest'], noarchive=False)
 # Release inputs must be project assets, the chosen Python runtime or Windows.
 import os

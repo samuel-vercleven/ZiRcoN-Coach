@@ -48,7 +48,7 @@ def main():
     modules += ['app.v01_alpha_checks', 'app.v01_account_scope_check', 'app.v01_ui_semantics_check',
                 'app.v01_death_adapter_check', 'app.v01_remaining_adapters_check', 'app.v01_alpha_smoke']
     if label == 'final':
-        modules += ['app.stabilization_regressions', 'app.stabilization_golden_checks']
+        modules += ['app.stabilization_regressions', 'app.stabilization_golden_checks', 'app.quick_checks']
     results = []
     paths = [p for p in subprocess.check_output(['git', 'ls-files', '--cached', '--others', '--exclude-standard', '*.py'], cwd=ROOT, text=True).splitlines() if (ROOT / p).is_file()]
     subprocess.run([sys.executable, '-m', 'py_compile', *paths], cwd=ROOT, check=True)

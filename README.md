@@ -3,6 +3,22 @@
 Un coach League of Legends après-match, local sur Windows : retrouver sa partie,
 comprendre les observations disponibles et choisir une habitude à tester.
 
+## Nouvelle interface Qt Quick / QML — aperçu à essayer
+
+Dans le dossier du projet, double-cliquer **Essayer-interface-QML.vbs**, ou lancer
+`python run_app.py --qml`. Pas de nouvelle bibliothèque à installer dans
+l’environnement existant. L’aperçu utilise les vraies données et les mêmes
+services de coaching / conseil d’objets, sans modifier les moteurs.
+
+Bleu nuit, turquoise, surfaces en relief, transitions, historique 5v5,
+résumé avec courbe d’or, conseils dépliables et pertinence en anneau.
+Les animations peuvent être désactivées dans la barre latérale.
+Les réglages/imports et les notes détaillées restent dans l’interface classique,
+accessible dans le même processus, avec un bouton de retour.
+
+C’est une exploration visuelle, pas le remplacement complet de la V1.
+Le ZIP rc3 déjà livré reste inchangé. Voir [QML_PREVIEW.md](QML_PREVIEW.md).
+
 ## Essayer la V1 candidate
 
 Le [guide de démarrage](RELEASE_GUIDE.md) décrit la version portable, la connexion

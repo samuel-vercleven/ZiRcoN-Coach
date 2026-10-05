@@ -1,5 +1,24 @@
 # ZiRcoN Coach - Project State
 
+## Opt-in Qt Quick / QML exploration — 2026-10-05
+
+- User-authorized alternative frontend: `run_app.py --qml` or
+  `Essayer-interface-QML.vbs`. Classic startup remains unchanged.
+- Native midnight/teal surfaces, floating hover, fades, restrained brand motion,
+  optional reduced motion, virtualized history and actual 5v5 compositions.
+- Match summary, signed gold curve/gaps, supported coaching, prefix-only build
+  advice and alternatives compose the existing services without new scores.
+- Explicit GUI-thread worker delivery; results cached per match and invalidated
+  on refresh/account changes. Late results cannot replace another match/account.
+- Settings/imports, notes and detailed legacy analyses use the classic window
+  within the same process/instance lock, with a return button.
+- Source regression 44/44 suites including nine new QML bridge checks and real
+  main.py PASS; all 89 FROZEN paths unchanged. QML desktop/minimum captures and
+  fresh-profile smoke are recorded in LAST_RUN.md and local logs.
+- Experimental frontend, not a completed UI migration. Prior portable rc3 ZIP
+  unchanged; new QML packaging inputs added, bundle not rebuilt/validated here.
+  Human display/GPU/gameplay review remains REVIEW_REQUIRED / NO FREEZE.
+
 ## Windows V1 candidate 1.0.0-rc3 — 2026-10-05
 
 - Empty item/trinket slots no longer draw squares in the scoreboard, history,
