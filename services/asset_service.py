@@ -5,7 +5,7 @@ import re
 
 import requests
 
-from app.paths import PROJECT_ROOT
+from app.paths import CACHE_ROOT
 
 
 class AssetService:
@@ -14,7 +14,7 @@ class AssetService:
     DEFAULT_VERSION = "16.16.1"
 
     def __init__(self, cache_dir: Path | str | None = None, session=None):
-        self.cache_dir = Path(cache_dir or PROJECT_ROOT / ".cache" / "zircon" / "assets")
+        self.cache_dir = Path(cache_dir or CACHE_ROOT / "assets")
         self.session = session or requests.Session()
 
     @staticmethod

@@ -1,5 +1,32 @@
 # ZiRcoN native UI/UX redesign
 
+## Current candidate — 2026-10-05
+
+Version 1.0.0-rc1 retains native PySide6/QSS; no external theme engine.
+The current five tabs are Résumé, Coach, Objets, Déroulé and Notes.
+Résumé selects one supported focus; Coach keeps three varied priorities and
+collapsed detailed themes. Source buttons open the matching theme, and explicit
+event timestamps select an hour in Déroulé without inventing a phase timestamp.
+
+Charts now have units, readable axes and chronological context. Gold uses actual
+timestamps; missing observations break lines. Progress win rate is labeled as a
+rolling window of up to five games, not an individual-match result. Tooltips show
+observed samples, not interpolated evidence. Gauges still show the existing
+comparative value, never a success probability.
+
+Minimum-size scoreboard reflows rather than hiding the enemy team. SVG sidebar
+icons, readable first-start states, account setup and visible import feedback
+complete the candidate. Source visual checks generate 24 current captures at
+1600x900 and 1180x720, including an expanded Coach and time jump; representative
+captures were inspected. Historical counts below describe earlier passes only.
+The packaged executable additionally generates 13 fresh/local-history captures.
+Offscreen tests load fonts installed by Windows; no Microsoft font is bundled.
+
+Full source regression is 43/43 PASS; packaged clean-profile and three-match
+copy checks PASS. Packaged offscreen checks deliberately do not download images,
+so uncached portraits render placeholders until a normal connected launch.
+Real DPI/accessibility and gameplay review remain open. No automatic freeze.
+
 Player coaching v1 adds player-facing review cards to Match Overview and Coach.
 Each card separates the observed signal, why it is worth revisiting, a replay or
 next-game experiment, and event/phase evidence. Wording is tailored to death,

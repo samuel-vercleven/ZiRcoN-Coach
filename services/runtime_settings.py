@@ -7,7 +7,7 @@ from pathlib import Path
 
 from dotenv import dotenv_values, set_key
 
-from app.paths import PROJECT_ROOT
+from app.paths import DATA_ROOT, CACHE_ROOT
 
 
 @dataclass(frozen=True)
@@ -22,8 +22,8 @@ class RiotIdentity:
 
 class RuntimeSettingsService:
     def __init__(self, env_path: Path | str | None = None, settings_path: Path | str | None = None):
-        self.env_path = Path(env_path or PROJECT_ROOT / ".env")
-        self.settings_path = Path(settings_path or PROJECT_ROOT / ".cache" / "zircon" / "settings.json")
+        self.env_path = Path(env_path or DATA_ROOT / ".env")
+        self.settings_path = Path(settings_path or CACHE_ROOT / "settings.json")
         self._runtime_key: str | None = None
         self._active_api_status: str | None = None
         self._current_profile_puuid: str | None = None

@@ -8,10 +8,12 @@ from ui.components.empty_state import EmptyState
 from ui.components.match_card import MatchCard
 from ui.components.stat_card import StatCard
 from ui.components.status_badge import StatusBadge
+from ui.player_labels import player_label
 
 
 class DashboardPage(QWidget):
     open_match = Signal(str)
+    configure_requested = Signal()
 
     def __init__(self, service: LocalDataService, assets: AssetService, parent=None):
         super().__init__(parent); self.service, self.assets = service, assets
@@ -42,9 +44,9 @@ class DashboardPage(QWidget):
             player, progress, matches = self.service.player(), self.service.progress(), self.service.matches()[:6]
         except Exception:
             self.match_layout.addWidget(EmptyState("Données locales indisponibles", "Les réglages restent accessibles ; aucun réseau n’est requis pour ouvrir l’application.")); return
-        self.player_name.setText(player.riot_id); self.rank.setText(f"{player.rank}{f' • {player.lp} LP' if player.lp is not None else ''}")
+        self.player_name.setText(player_label(player.riot_id)); self.rank.setText(f"{player_label(player.rank, 'Classement indisponible')}{f' • {player.lp} LP' if player.lp is not None else ''}")
         ranked_total = (player.ranked_wins or 0) + (player.ranked_losses or 0)
-        ranked_record = "Classement W/L indisponible" if not ranked_total else f"{player.ranked_wins} V / {player.ranked_losses} D · {player.ranked_wins / ranked_total * 100:.1f}% WR"
+        ranked_record = "Bilan classé indisponible" if not ranked_total else f"{player.ranked_wins} victoires / {player.ranked_losses} défaites · {player.ranked_wins / ranked_total * 100:.1f}% de victoires"
         self.profile_meta.setText(ranked_record)
         self.profile_icon.load("profileicon", player.profile_icon_id, fallback=player.riot_id)
         values = [str(progress.total_games), "—" if progress.win_rate is None else f"{progress.win_rate:.1f}%", "—" if progress.kda is None else f"{progress.kda:.2f}", "—" if progress.cs_per_min is None else f"{progress.cs_per_min:.1f}", "—" if progress.deaths_per_match is None else f"{progress.deaths_per_match:.1f}"]
@@ -55,11 +57,11 @@ class DashboardPage(QWidget):
             latest = matches[0]
             result = 'Victoire' if latest.result == 'WIN' else 'Défaite' if latest.result == 'LOSS' else 'Partie'
             self.next_action.setText(f"{latest.champion} • {result}\nAnalyse détaillée disponible. Ouvre la partie pour revoir les moments importants.")
-            self.review_latest.setVisible(True)
+            self.review_latest.setText('Voir l’analyse'); self.review_latest.setVisible(True)
         else:
-            self.next_action.setText('Synchronise tes parties pour obtenir une prochaine action locale.'); self.review_latest.setVisible(False)
+            self.next_action.setText('Bienvenue dans ZiRcoN Coach. Configure ton compte Riot, puis importe tes parties pour retrouver ton bilan et tes pistes de progression.'); self.review_latest.setText('Configurer mon compte'); self.review_latest.setVisible(True)
         if not matches:
-            self.match_layout.addWidget(EmptyState("Aucune donnée SoloQ pour le compte actif", "1. Configurez le Riot ID  2. Ajoutez la clé dans Réglages  3. Synchronisez"))
+            self.match_layout.addWidget(EmptyState("Tes premières parties apparaîtront ici", "Configure ton compte dans Réglages, puis clique sur Importer mes parties."))
         try:
             compositions = self.service.match_compositions(match.match_id for match in matches)
         except Exception:
@@ -69,3 +71,4 @@ class DashboardPage(QWidget):
 
     def _open_latest(self):
         if self._latest_id: self.open_match.emit(self._latest_id)
+        else: self.configure_requested.emit()

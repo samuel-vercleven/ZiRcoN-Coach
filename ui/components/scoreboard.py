@@ -2,9 +2,10 @@
 from html import escape
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QVBoxLayout
+from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QVBoxLayout, QWidget, QSizePolicy
 
 from ui.components.asset_icon import AssetIcon
+from ui.player_labels import role_label
 
 
 def shown(value):
@@ -15,6 +16,8 @@ class Scoreboard(QFrame):
     def __init__(self, roster, assets, match, parent=None):
         super().__init__(parent)
         self.setObjectName('Scoreboard')
+        self._row_layouts = []
+        self._compact = None
         root = QVBoxLayout(self)
         root.setContentsMargins(20, 16, 20, 16)
         root.setSpacing(8)
@@ -49,27 +52,52 @@ class Scoreboard(QFrame):
             grid.setColumnStretch(column, 1)
         root.addLayout(grid)
 
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        compact = self.width() < 1050
+        if compact == self._compact:
+            return
+        self._compact = compact
+        for card, layout, parts, mirrored in self._row_layouts:
+            for part in parts:
+                layout.removeWidget(part)
+            portrait, identity, stats, items = parts
+            card.setFixedHeight(116 if compact else 80)
+            if compact:
+                layout.addWidget(portrait, 0, 2 if mirrored else 0)
+                layout.addWidget(identity, 0, 0 if mirrored else 1, 1, 2)
+                layout.addWidget(stats, 1, 1 if mirrored else 0, 1, 2)
+                layout.addWidget(items, 1, 0 if mirrored else 2)
+            else:
+                for column, part in enumerate(reversed(parts) if mirrored else parts):
+                    layout.addWidget(part, 0, column)
+            for column in range(4):
+                layout.setColumnStretch(column, 1 if column in (1, 2) else 0)
+
     def _player(self, row, assets, version, total_kills, mirrored):
         card = QFrame()
         card.setObjectName('ScoreboardRow')
         card.setProperty('isPlayer', row['is_player'])
         card.setFixedHeight(80)
-        layout = QHBoxLayout(card)
+        layout = QGridLayout(card)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(10)
         portrait = AssetIcon(assets, 46)
         portrait.load('champion', row['champion'], version, row['champion'])
-        identity = QVBoxLayout()
+        identity_host = QWidget(); identity = QVBoxLayout(identity_host); identity.setContentsMargins(0, 0, 0, 0)
         name = QLabel(row.get('display_name') or row['champion'])
         name.setTextFormat(Qt.TextFormat.PlainText)
         name.setObjectName('ScoreboardName')
         name.setToolTip(name.text())
         name.setMaximumWidth(160)
-        detail = QLabel(f"{row['champion']} · {row['position'].title()}")
+        name.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        detail = QLabel(f"{row['champion']} · {role_label(row['position'])}")
+        detail.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        detail.setToolTip(detail.text())
         detail.setObjectName('Muted')
         identity.addWidget(name)
         identity.addWidget(detail)
-        stats = QVBoxLayout()
+        stats_host = QWidget(); stats = QVBoxLayout(stats_host); stats.setContentsMargins(0, 0, 0, 0); stats.setSpacing(1)
         kda = QLabel(' / '.join(f'<span style="color:{color}">{escape(shown(row[key]))}</span>' for key, color in [('kills', '#40e6b0'), ('deaths', '#ff818b'), ('assists', '#efbf73')]))
         kda.setObjectName('MatchMetric')
         gold = '—' if row['gold'] is None else f"{row['gold']/1000:.1f}k"
@@ -81,7 +109,7 @@ class Scoreboard(QFrame):
         for label in (kda, farm, vision):
             label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             stats.addWidget(label)
-        items = QGridLayout()
+        items_host = QWidget(); items = QGridLayout(items_host); items.setContentsMargins(0, 0, 0, 0)
         items.setSpacing(3)
         inventory = list(row['items'])[:6]
         for index in range(6):
@@ -91,14 +119,8 @@ class Scoreboard(QFrame):
         trinket = AssetIcon(assets, 25)
         trinket.load('item', row.get('trinket'), version, '·')
         items.addWidget(trinket, 0, 3)
-        if mirrored:
-            layout.addLayout(items)
-            layout.addLayout(stats, 1)
-            layout.addLayout(identity, 1)
-            layout.addWidget(portrait)
-        else:
-            layout.addWidget(portrait)
-            layout.addLayout(identity, 1)
-            layout.addLayout(stats, 1)
-            layout.addLayout(items)
+        parts = (portrait, identity_host, stats_host, items_host)
+        self._row_layouts.append((card, layout, parts, mirrored))
+        for column, part in enumerate(reversed(parts) if mirrored else parts):
+            layout.addWidget(part, 0, column)
         return card

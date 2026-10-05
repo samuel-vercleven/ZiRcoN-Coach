@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 from PySide6.QtCore import QThreadPool
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QToolButton, QScrollArea
 
 from app.bootstrap import build_app_context
 from app.paths import PROJECT_ROOT
@@ -45,8 +45,10 @@ def main() -> None:
         app.processEvents()
         for width, height, size_name in sizes:
             window.resize(width, height)
+            for _ in range(4): app.processEvents()
             for tab_index in range(window.match_detail_page.tabs.count()):
                 window.match_detail_page.tabs.setCurrentIndex(tab_index); app.processEvents()
+                for _ in range(4): app.processEvents()
                 if window.match_detail_page.tabs.tabText(tab_index) == "Objets":
                     assert QThreadPool.globalInstance().waitForDone(30000), "Build Optimizer UI worker timed out"
                     app.processEvents()
@@ -62,6 +64,29 @@ def main() -> None:
                     )), "Technical wording leaked into player view"
                 assert window.grab().save(str(target / f"post-game-{tab_index}-{size_name}.png"))
                 post_game_captures += 1
+            tabs = window.match_detail_page.tabs
+            tabs.setCurrentIndex(0); app.processEvents()
+            summary = tabs.currentWidget()
+            assert isinstance(summary, QScrollArea)
+            assert summary.horizontalScrollBar().maximum() == 0, 'Match summary overflows horizontally'
+            tabs.setCurrentIndex(1); app.processEvents()
+            toggles = [button for button in tabs.currentWidget().findChildren(QToolButton) if button.objectName() == 'CoachSectionToggle']
+            if toggles:
+                toggle = toggles[0]
+                if not toggle.isChecked(): toggle.click()
+                app.processEvents()
+                tabs.currentWidget().ensureWidgetVisible(toggle)
+                app.processEvents()
+                jumps = [button for button in tabs.currentWidget().findChildren(QToolButton) if button.objectName() == 'TimelineJumpButton']
+                if jumps:
+                    tabs.currentWidget().ensureWidgetVisible(jumps[0])
+                    for _ in range(4): app.processEvents()
+                assert window.grab().save(str(target / f'coach-expanded-{size_name}.png')); post_game_captures += 1
+                if jumps:
+                    jumps[0].click(); app.processEvents()
+                    assert tabs.tabText(tabs.currentIndex()) == 'Déroulé'
+                    assert window.match_detail_page._story_chart.focus_timestamp is not None
+                    assert window.grab().save(str(target / f'coach-timeline-jump-{size_name}.png')); post_game_captures += 1
         death_match = next((match for match in matches if match.deaths is not None and match.deaths > 0), None)
         if death_match:
             window.open_match(death_match.match_id); window.match_detail_page.tabs.setCurrentIndex(1)

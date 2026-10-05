@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QToolButton, QVBoxLayout, QWidget
@@ -18,6 +19,19 @@ PLAYER_TITLES = {
     "RESETS": "Retours à la base",
     "BUILD": "Objets",
 }
+_EVENT_CLOCK = re.compile(r"(?<!\d)(\d{1,2}):([0-5]\d)(?!\d)")
+
+
+def event_timestamp_seconds(event: dict) -> int | None:
+    """Read an explicit event clock; never invent a timestamp for a broad phase."""
+    for value in (event.get("title"), event.get("subtitle")):
+        match = _EVENT_CLOCK.search(str(value or ""))
+        if match:
+            return int(match.group(1)) * 60 + int(match.group(2))
+    raw = event.get("timestamp")
+    if isinstance(raw, (int, float)) and raw >= 0:
+        return int(raw // 1000)
+    return None
 
 
 def player_insight_title(insight: InsightViewModel) -> str:
@@ -84,7 +98,7 @@ def _player_text(value: object) -> str:
     )
     for old, new in replacements:
         text = text.replace(old, new)
-    return re.sub(r"\bv\d+\b", "", text).strip()
+    return re.sub(r"/100\b", "", re.sub(r"\bv\d+\b", "", text)).strip()
 
 
 class InsightCard(QFrame):
@@ -104,7 +118,8 @@ class InsightCard(QFrame):
 class AnalyzerEventCard(QFrame):
     """Structured event/phase projection; raw keys remain behind details."""
 
-    def __init__(self, event: dict, assets: AssetService, game_version: str = "", parent=None):
+    def __init__(self, event: dict, assets: AssetService, game_version: str = "", parent=None,
+                 *, on_timeline: Callable[[int, str], None] | None = None):
         super().__init__(parent)
         self.setObjectName("EventCard")
         root = QVBoxLayout(self); root.setContentsMargins(16, 14, 16, 14); root.setSpacing(10)
@@ -114,6 +129,14 @@ class AnalyzerEventCard(QFrame):
         head.addLayout(title_box, 1); severity = str(event.get("severity") or "INFO")
         if severity != "INFO": head.addWidget(SeverityBadge(severity))
         head.addWidget(StatusBadge(str(event.get("status") or "UNKNOWN"))); root.addLayout(head)
+
+        timestamp = event_timestamp_seconds(event)
+        if on_timeline is not None and timestamp is not None:
+            clock = f"{timestamp // 60:02d}:{timestamp % 60:02d}"
+            jump = QToolButton(); jump.setText(f"Voir {clock} dans le déroulé")
+            jump.setObjectName("TimelineJumpButton"); jump.setCursor(Qt.CursorShape.PointingHandCursor)
+            jump.clicked.connect(lambda _checked=False, at=timestamp, label=_player_text(event.get("title") or "Moment observé"): on_timeline(at, label))
+            root.addWidget(jump, 0, Qt.AlignmentFlag.AlignLeft)
 
         item_ids = [value for value in event.get("item_ids") or [] if value]
         if item_ids:

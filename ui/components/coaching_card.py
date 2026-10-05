@@ -20,7 +20,7 @@ def _player_text(value: str) -> str:
         ("pathing", "déplacements"),
     ):
         text = text.replace(old, new).replace(old.upper(), new)
-    return re.sub(r"\bv\d+\b", "", text).strip()
+    return re.sub(r"/100\b", "", re.sub(r"\bv\d+\b", "", text)).strip()
 
 
 class CoachingCard(QFrame):
@@ -34,7 +34,7 @@ class CoachingCard(QFrame):
         layout.setContentsMargins(16, 13, 16, 13)
         layout.setSpacing(6)
 
-        heading = QLabel("À revoir" if compact else "Piste de coaching")
+        heading = QLabel("À retenir" if compact else "Piste de coaching")
         heading.setObjectName("SectionTitle")
         layout.addWidget(heading)
         title = QLabel(focus.title)
@@ -70,7 +70,7 @@ class CoachingCard(QFrame):
             limitation.setWordWrap(True)
             layout.addWidget(limitation)
         if open_source is not None:
-            action = QPushButton("Ouvrir l’analyse coach" if compact else "Revoir les moments associés")
+            action = QPushButton("Ouvrir Coach" if compact else "Revoir les moments associés")
             action.setObjectName("GhostButton")
             action.setCursor(Qt.CursorShape.PointingHandCursor)
             action.clicked.connect(open_source)

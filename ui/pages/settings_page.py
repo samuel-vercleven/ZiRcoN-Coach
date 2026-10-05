@@ -6,6 +6,8 @@ from services.riot_sync import RiotSyncService
 from services.runtime_settings import RuntimeSettingsService
 from ui.components.status_badge import StatusBadge
 from ui.workers import FunctionWorker
+from app.version import VERSION
+from ui.player_labels import player_label
 
 
 def _player_sync_message(message: str) -> str:
@@ -46,6 +48,7 @@ class SettingsPage(QWidget):
         api = QFrame(); api.setObjectName("Card"); layout = QVBoxLayout(api)
         heading = QHBoxLayout(); name = QLabel("Connexion à Riot Games"); name.setObjectName("SectionTitle"); heading.addWidget(name); heading.addStretch(); heading.addWidget(QLabel("ÉTAT")); self.api_badge = StatusBadge("UNKNOWN"); heading.addWidget(self.api_badge); layout.addLayout(heading)
         note = QLabel("Renseigne ton identifiant Riot et une clé d’accès pour importer tes parties. La clé reste masquée et enregistrée sur cet ordinateur."); note.setObjectName("Muted"); note.setWordWrap(True); layout.addWidget(note)
+        help_text = QLabel('Compte EUW · identifiant sous la forme Pseudo#TAG.<br>Tu peux obtenir ta clé personnelle sur le <a href="https://developer.riotgames.com/">portail Riot</a>. Si elle expire, remplace-la ici.'); help_text.setOpenExternalLinks(True); help_text.setObjectName("Muted"); help_text.setWordWrap(True); layout.addWidget(help_text)
         form = QFormLayout(); self.riot_id = QLineEdit(); self.key = QLineEdit(); self.key.setEchoMode(QLineEdit.EchoMode.Password); self.key.setPlaceholderText("Colle ta clé Riot ici — elle restera masquée")
         self.scope = QComboBox(); [self.scope.addItem(str(value), value) for value in (20, 50, 100)]; form.addRow("Riot ID", self.riot_id); form.addRow("Clé d’accès", self.key); form.addRow("Parties à importer", self.scope); layout.addLayout(form)
         candidate = QHBoxLayout(); candidate.addWidget(QLabel("VÉRIFICATION DE LA CLÉ")); self.candidate_badge = StatusBadge("NOT_TESTED"); candidate.addWidget(self.candidate_badge); candidate.addStretch(); layout.addLayout(candidate)
@@ -56,15 +59,16 @@ class SettingsPage(QWidget):
         self.data_form = QFormLayout(); labels = ("Parties enregistrées", "Détails de partie disponibles", "Parties analysées", "Partie la plus récente", "Dernière mise à jour", "Résultat de l’import", "Clé enregistrée")
         self.fields = {label: QLabel() for label in labels}
         for label, field in self.fields.items(): field.setWordWrap(True); self.data_form.addRow(label, field)
-        dl.addLayout(self.data_form); root.addWidget(data); root.addStretch()
+        dl.addLayout(self.data_form); root.addWidget(data)
+        about = QLabel(f"ZiRcoN Coach {VERSION} · Analyse après-match · SoloQ EUW\nLes conseils servent à revoir tes décisions et à tester une habitude à la prochaine partie.\nZiRcoN Coach n’est pas affilié à Riot Games et ne reflète pas les opinions de Riot Games. Riot Games et League of Legends sont des marques de Riot Games."); about.setObjectName("Muted"); about.setWordWrap(True); root.addWidget(about); root.addStretch()
         self.account_save.clicked.connect(self._save_account); self.validate.clicked.connect(lambda: self._start_validation(False)); self.save.clicked.connect(lambda: self._start_validation(True)); self.refresh()
 
     def _save_account(self):
         try:
             self.settings.save_identity(self.riot_id.text().strip(), int(self.scope.currentData()))
             self.message.setText("Compte actif et périmètre enregistrés localement."); self.settings_changed.emit()
-        except ValueError as error:
-            self.message.setText(str(error))
+        except ValueError:
+            self.message.setText("Renseigne ton identifiant sous la forme Pseudo#TAG.")
 
     def _start_validation(self, save: bool):
         key = self.key.text().strip() or self.settings.api_key(); riot_id = self.riot_id.text().strip()
@@ -86,4 +90,4 @@ class SettingsPage(QWidget):
     def refresh(self):
         player = self.local.player(); identity = self.settings.identity(); self.riot_id.setText(identity.riot_id if identity else player.riot_id if "#" in player.riot_id else "")
         index = self.scope.findData(self.settings.sync_scope()); self.scope.setCurrentIndex(max(0, index)); status = self.local.status(); self.api_badge.set_status(status.api_status)
-        self.fields["Parties enregistrées"].setText(str(status.match_count)); self.fields["Détails de partie disponibles"].setText(str(status.timeline_count)); self.fields["Parties analysées"].setText(str(status.analyzed_match_count)); self.fields["Partie la plus récente"].setText(status.latest_match_date); self.fields["Dernière mise à jour"].setText(status.last_sync_at); self.fields["Résultat de l’import"].setText(_player_sync_message(status.sync_message)); self.fields["Clé enregistrée"].setText("Oui" if self.settings.masked_key() else "Non")
+        self.fields["Parties enregistrées"].setText(str(status.match_count)); self.fields["Détails de partie disponibles"].setText(str(status.timeline_count)); self.fields["Parties analysées"].setText(str(status.analyzed_match_count)); self.fields["Partie la plus récente"].setText(player_label(status.latest_match_date)); self.fields["Dernière mise à jour"].setText(player_label(status.last_sync_at)); self.fields["Résultat de l’import"].setText(_player_sync_message(status.sync_message)); self.fields["Clé enregistrée"].setText("Oui" if self.settings.api_key() else "Non")

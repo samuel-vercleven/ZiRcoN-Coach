@@ -1,5 +1,20 @@
 BUILD OPTIMIZER v1 — CONTEXTUAL RECOMMENDATION PASS
 
+POST-GAME V1 CANDIDATE — user-authorized completion, 2026-10-05
+
+[x] One supported “À retenir” summary, expandable Coach themes and source navigation
+[x] Explicit event clocks open Déroulé with the selected time highlighted
+[x] Readable factual chart axes/units/chronology/tooltips/missing-value gaps
+[x] Adaptive match scoreboard, sidebar icons and first-start account setup
+[x] Visible import progress/results and accurate saved-key state
+[x] Windows portable executable, durable user data and credential-free delivery
+[x] Fresh-profile and real-history-copy packaged smoke checks
+[x] Full source regression, real main.py, 24 captures and seven build gates
+[x] Player guide, release limits and runtime diagnostics
+[ ] Human pilot review: wording, usefulness, display scaling and accessibility
+[ ] Public release prerequisites: production Riot access, license/source compliance and signing
+[ ] Freeze decision remains project review only — NO FREEZE
+
 [x] User reference follow-up: mirrored match scoreboard and compact history compositions
 
 PLAYER COACHING V1 — 2026-09-24

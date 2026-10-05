@@ -8,14 +8,14 @@ from unittest.mock import Mock
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QTabWidget, QWidget
+from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QTabWidget, QToolButton, QWidget
 
 from services.runtime_settings import RuntimeSettingsService
 from services.build_optimizer_presentation import player_facing_reasons
 from services.riot_client import DynamicRiotClient, RiotResult, RiotStatus
 from ui.components.status_badge import StatusBadge
 from ui.components.coaching_card import CoachingCard
-from ui.components.insight_card import AnalyzerEventCard, InsightCard
+from ui.components.insight_card import AnalyzerEventCard, InsightCard, event_timestamp_seconds
 from ui.components.trend_chart import TrendChart
 from ui.components.relevance_gauge import RelevanceGauge, relevance_color
 from ui.pages.match_detail_page import MatchDetailPage, coach_summary_empty_message, coach_summary_lines
@@ -133,9 +133,36 @@ def main() -> None:
 
     compact = CoachingCard(focus, compact=True, open_source=MatchDetailPage._open_tab(tabs, "Coach"))
     compact_action = compact.findChild(QPushButton, "GhostButton")
-    assert compact_action is not None and compact_action.text() == "Ouvrir l’analyse coach"
+    assert compact_action is not None and compact_action.text() == "Ouvrir Coach"
     compact_action.click()
     assert tabs.currentWidget() is coach_tab
+
+    local_story = Mock()
+    local_story.match_story.return_value = {'points': [{'timestamp': 0, 'delta': 0}, {'timestamp': 1200000, 'delta': 1000}], 'events': []}
+    detail_page = MatchDetailPage(local_story, Mock(), Mock(), Mock())
+    detail_page.tabs = QTabWidget()
+    synthetic_match = SimpleNamespace(match_id='m', game_version='16.18.1')
+    detail_page._coach_tab(detail_page.tabs, synthetic_match, death_report)
+    detail_page._story_tab(detail_page.tabs, synthetic_match)
+    section_toggle = detail_page.tabs.widget(0).findChild(QToolButton, 'CoachSectionToggle')
+    section_details = detail_page.tabs.widget(0).findChild(QWidget, 'CoachSectionDetails')
+    assert section_toggle is not None and section_details.isHidden()
+    source_jump = detail_page.tabs.widget(0).findChild(QPushButton, 'GhostButton')
+    source_jump.click(); app.processEvents()
+    assert section_toggle.isChecked() and not section_details.isHidden()
+    section_toggle.click()
+    section_toggle.click()
+    assert not section_details.isHidden()
+    jump = section_details.findChild(QToolButton, 'TimelineJumpButton')
+    assert jump is not None and '18:42' in jump.text()
+    jump.click()
+    assert detail_page.tabs.currentWidget() is detail_page._story_scroll
+    assert detail_page._story_chart.focus_timestamp == 18 * 60 + 42
+    assert '18:42' in detail_page._story_selection.text()
+    assert event_timestamp_seconds({'title': 'Mort à 18:42', 'timestamp': 9999999}) == 1122
+    assert event_timestamp_seconds({'title': 'Moment', 'timestamp': 42000}) == 42
+    assert event_timestamp_seconds({'title': 'Phase early'}) is None
+    assert event_timestamp_seconds({'timestamp': 'unknown'}) is None
 
     assert relevance_color(82).green() > relevance_color(10).green()
     assert relevance_color(-10) == relevance_color(0)

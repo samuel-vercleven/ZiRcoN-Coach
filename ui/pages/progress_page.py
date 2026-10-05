@@ -26,9 +26,11 @@ class ProgressPage(QWidget):
         cards = QGridLayout(); self.cards = [StatCard("TAUX DE VICTOIRE"), StatCard("KDA"), StatCard("CS / MIN"), StatCard("MORTS / PARTIE")]
         for index, card in enumerate(self.cards): cards.addWidget(card, 0, index)
         self.layout.addLayout(cards); self.comparison = QLabel(); self.comparison.setObjectName("Muted"); self.comparison.setWordWrap(True); self.layout.addWidget(self.comparison)
-        charts = QHBoxLayout(); self.result_chart = TrendChart(color="#55d6be"); self.cs_chart = TrendChart(color="#55aee8"); self.death_chart = TrendChart(color="#ef7b80")
-        for title_text, chart in (("Taux de victoire glissant (5)", self.result_chart), ("Évolution CS/min", self.cs_chart), ("Évolution des morts", self.death_chart)):
-            box = QFrame(); box.setObjectName("Card"); layout = QVBoxLayout(box); label = QLabel(title_text); label.setObjectName("SectionTitle"); layout.addWidget(label); layout.addWidget(chart); charts.addWidget(box)
+        chart_help = QLabel("Lis les courbes de gauche à droite, des anciennes parties aux plus récentes. Survole un point pour retrouver la partie et sa valeur. Un espace indique une information manquante."); chart_help.setObjectName("Muted"); chart_help.setWordWrap(True); self.layout.addWidget(chart_help)
+        charts = QHBoxLayout(); self.result_chart = TrendChart(color="#55d6be", unit="%", fixed_range=(0, 100)); self.cs_chart = TrendChart(color="#55aee8", unit="CS/min"); self.death_chart = TrendChart(color="#ef7b80", unit="morts")
+        for title_text, description, chart in (("Victoires récentes", "Pourcentage sur jusqu’à 5 parties à chaque point.", self.result_chart), ("Farm par minute", "CS/min pour chaque partie, à comparer selon le rôle.", self.cs_chart), ("Morts par partie", "Nombre observé : la courbe seule ne juge pas tes décisions.", self.death_chart)):
+            box = QFrame(); box.setObjectName("Card"); layout = QVBoxLayout(box); label = QLabel(title_text); label.setObjectName("SectionTitle"); label.setWordWrap(True); layout.addWidget(label)
+            note = QLabel(description); note.setObjectName("Muted"); note.setWordWrap(True); layout.addWidget(note); layout.addWidget(chart); charts.addWidget(box)
         self.layout.addLayout(charts); pool = QLabel("Pool de champions — fenêtre sélectionnée"); pool.setObjectName("SectionTitle"); self.layout.addWidget(pool)
         self.pool_host = QWidget(); self.pool = QVBoxLayout(self.pool_host); self.pool.setContentsMargins(0, 0, 0, 0); self.layout.addWidget(self.pool_host); self.layout.addStretch(); scroll.setWidget(host); root.addWidget(scroll); self.refresh()
 
@@ -40,13 +42,15 @@ class ProgressPage(QWidget):
                 widget.hide(); widget.setParent(None); widget.deleteLater()
         window = self.window.currentData(); data = self.service.progress(window); matches = self.service.matches(); selected = matches[:window] if window else matches
         values = [data.win_rate, data.kda, data.cs_per_min, data.deaths_per_match]
-        for card, value in zip(self.cards, values): card.set_value("—" if value is None else f"{value:.1f}")
+        for index, (card, value) in enumerate(zip(self.cards, values)):
+            card.set_value("—" if value is None else f"{value:.1f}" + (" %" if index == 0 else ""))
         self.comparison.setText(data.recent_comparison)
-        ordered = list(reversed(selected)); self.result_chart.set_values(rolling_win_rate(ordered)); self.cs_chart.set_values([match.cs_per_min for match in ordered]); self.death_chart.set_values([float(match.deaths) if match.deaths is not None else None for match in ordered])
+        ordered = list(reversed(selected)); labels = [f"{match.champion} · {match.played_at}" for match in ordered]
+        self.result_chart.set_values(rolling_win_rate(ordered), labels); self.cs_chart.set_values([match.cs_per_min for match in ordered], labels); self.death_chart.set_values([float(match.deaths) if match.deaths is not None else None for match in ordered], labels)
         for row in data.champion_rows[:12]:
             card = QFrame(); card.setObjectName("MatchCard"); line = QHBoxLayout(card); icon = AssetIcon(self.assets, 36); icon.load("champion", row["champion"], fallback=row["champion"]); line.addWidget(icon)
             name = QLabel(row["champion"]); name.setObjectName("MatchChampion"); line.addWidget(name, 2)
             def metric(key, precision):
                 return '—' if row[key] is None else format(row[key], precision)
-            for text in (f"{row['games']} parties", f"{metric('win_rate', '.0f')}% WR", f"{metric('kda', '.2f')} KDA", f"{metric('cs_per_min', '.1f')} CS/min"): line.addWidget(QLabel(text), 1)
+            for text in (f"{row['games']} parties", f"{metric('win_rate', '.0f')}% victoires", f"{metric('kda', '.2f')} KDA", f"{metric('cs_per_min', '.1f')} CS/min"): line.addWidget(QLabel(text), 1)
             self.pool.addWidget(card)

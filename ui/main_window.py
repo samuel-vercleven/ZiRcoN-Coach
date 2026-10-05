@@ -1,18 +1,21 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QThreadPool
+from PySide6.QtCore import QThreadPool, QSize
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QFrame, QHBoxLayout, QLabel, QMainWindow, QProgressBar, QPushButton,
     QSizePolicy, QStackedWidget, QVBoxLayout, QWidget,
 )
 
 from app.bootstrap import AppContext
+from app.paths import PROJECT_ROOT
 from ui.pages.dashboard_page import DashboardPage
 from ui.pages.match_detail_page import MatchDetailPage
 from ui.pages.matches_page import MatchesPage
 from ui.pages.progress_page import ProgressPage
 from ui.pages.settings_page import SettingsPage
 from ui.workers import FunctionWorker
+from ui.player_labels import player_label
 
 
 class MainWindow(QMainWindow):
@@ -49,6 +52,7 @@ class MainWindow(QMainWindow):
         self.progress.setRange(0, 100)
         self.progress.setVisible(False)
         work.addWidget(self.progress)
+        self.notice = QLabel(); self.notice.setObjectName("ContextLine"); self.notice.setWordWrap(True); self.notice.hide(); work.addWidget(self.notice)
         self.stack = QStackedWidget()
         work.addWidget(self.stack, 1)
         outer.addWidget(workspace, 1)
@@ -81,6 +85,8 @@ class MainWindow(QMainWindow):
         for label, index in (("Tableau de bord", 0), ("Historique", 1), ("Progression", 2), ("Réglages", 3)):
             button = QPushButton(label)
             button.setObjectName("NavButton")
+            button.setIcon(QIcon(str(PROJECT_ROOT / 'resources' / ('nav-' + ('home', 'history', 'progress', 'settings')[index] + '.svg'))))
+            button.setIconSize(QSize(20, 20))
             button.setCheckable(True)
             button.setMinimumHeight(44)
             button.clicked.connect(lambda checked=False, page=index: self.navigate(page))
@@ -135,6 +141,7 @@ class MainWindow(QMainWindow):
         if index == self.PAGE_DASHBOARD:
             page = DashboardPage(self.context.local_data, self.context.assets)
             page.open_match.connect(self.open_match)
+            page.configure_requested.connect(lambda: self.navigate(self.PAGE_SETTINGS))
             self.dashboard_page = page
         elif index == self.PAGE_MATCHES:
             page = MatchesPage(self.context.local_data, self.context.assets)
@@ -163,11 +170,11 @@ class MainWindow(QMainWindow):
     def refresh_header(self) -> None:
         try:
             player, status = self.context.local_data.player(), self.context.local_data.status()
-            self.player.setText(player.riot_id)
+            self.player.setText(player_label(player.riot_id))
             self.api.set_status(status.api_status)
             self.sync_badge.set_status(status.sync_status)
             self.statusBar().showMessage(
-                f"{status.match_count} partie(s) SoloQ · dernière partie {status.latest_match_date}"
+                f"{status.match_count} partie(s) SoloQ · dernière partie {player_label(status.latest_match_date, 'pas encore importée')}"
             )
         except Exception:
             self.player.setText("Joueur local indisponible")
@@ -191,6 +198,10 @@ class MainWindow(QMainWindow):
 
     def start_sync(self) -> None:
         if self.sync_worker:
+            return
+        if not self.context.settings.api_key():
+            self.navigate(self.PAGE_SETTINGS)
+            self.settings_page.message.setText("Ajoute ton Riot ID et ta clé d’accès, puis clique sur Enregistrer et activer avant d’importer tes parties.")
             return
         self.sync_button.setEnabled(False)
         self.progress.setVisible(True)
@@ -223,6 +234,7 @@ class MainWindow(QMainWindow):
         else:
             readable = "Import de tes parties en cours…"
         self.sync_text.setText(readable)
+        self.notice.setText(readable); self.notice.show()
         self.progress.setValue(value)
 
     def _sync_result(self, result):
@@ -236,11 +248,13 @@ class MainWindow(QMainWindow):
             self.sync_text.setText("L’import n’a pas abouti. Vérifie ta connexion et les réglages du compte Riot.")
         self.sync_badge.set_status(status)
         self.api.set_status(self.context.settings.api_status())
+        self.notice.setText(self.sync_text.text()); self.notice.show()
 
     def _sync_failed(self, message):
         self.sync_text.setText("L’import a échoué. Vérifie ta connexion et réessaie.")
         self.sync_badge.set_status("ERROR")
         self.api.set_status(self.context.settings.api_status())
+        self.notice.setText(self.sync_text.text()); self.notice.show()
 
     def _sync_finished(self):
         self.sync_worker = None

@@ -1,5 +1,17 @@
 # ZiRcoN Coach - Decisions Log
 
+## Windows candidate data isolation — 2026-10-05
+
+- A packaged application keeps writable history/settings/cache/logs in the user's
+  LocalAppData/ZiRcoN-Coach, separate from replaceable bundled assets/catalogs.
+- Source execution retains existing development paths. No automatic migration,
+  overwrite or replacement of a user's source history/credentials.
+- Release verification uses isolated temporary copies via ZIRCON_DATA_DIR.
+  Public artifacts must exclude accounts, credentials and player databases.
+- Version 1.0.0-rc1 is a local after-match candidate, not a new analytical freeze
+  or authorization to distribute publicly. Riot access, licensing and player
+  usefulness still require their own review.
+
 ## Development philosophy
 Develop and validate major analyzers one by one.
 Freeze when measurement semantics are coherent, real-game audit is plausible, no major correctness bug remains, validation is appropriate, and limitations are documented.

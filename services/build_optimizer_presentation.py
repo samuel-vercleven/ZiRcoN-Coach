@@ -11,7 +11,7 @@ from pathlib import Path
 import re
 import sqlite3
 
-from app.paths import PROJECT_ROOT
+from app.paths import CATALOG_ROOT
 from build_optimizer.catalog import CatalogView, patch_of
 from build_optimizer.context import build_context
 from build_optimizer.engine import BuildOptimizer
@@ -23,7 +23,7 @@ from services.game_context import ContextUnavailable, load_game_context
 from services.local_data import LocalDataService
 
 
-CATALOGS = PROJECT_ROOT / '.cache' / 'zircon' / 'stabilization-catalogs'
+CATALOGS = CATALOG_ROOT
 
 
 def _clock(timestamp: int) -> str:

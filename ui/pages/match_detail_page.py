@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, QThreadPool, Signal
-from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QPlainTextEdit, QPushButton, QScrollArea, QTabWidget, QVBoxLayout, QWidget
+from PySide6.QtCore import Qt, QThreadPool, QTimer, Signal
+from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QPlainTextEdit, QPushButton, QScrollArea, QTabWidget, QToolButton, QVBoxLayout, QWidget
 
 from services.asset_service import AssetService
 from services.local_data import LocalDataService
@@ -55,6 +55,10 @@ class MatchDetailPage(QWidget):
         self.load_empty()
 
     def _clear(self):
+        self._optimizer_version += 1
+        self._optimizer_layout = None
+        self._optimizer_preview_layout = None
+        self._optimizer_preview_match_id = None
         while self.content.count():
             item = self.content.takeAt(0)
             widget = item.widget()
@@ -187,7 +191,9 @@ class MatchDetailPage(QWidget):
             title = QLabel('Déroulé de la partie'); title.setObjectName('SectionTitle'); box.addWidget(title)
             note = QLabel("Écart d’or entre les équipes : au-dessus de zéro, ton équipe avait l’avantage. Cette courbe montre l’évolution de la partie, pas ce qui l’a causée.")
             note.setObjectName('Muted'); note.setWordWrap(True); box.addWidget(note)
+            self._story_selection = QLabel(); self._story_selection.setObjectName('ContextLine'); self._story_selection.setWordWrap(True); self._story_selection.hide(); box.addWidget(self._story_selection)
             chart = GoldTimeline(); chart.set_points(story.get('points')); box.addWidget(chart)
+            self._story_chart = chart
             layout.addWidget(card)
             events = story.get('events') or ()
             if events:
@@ -197,7 +203,16 @@ class MatchDetailPage(QWidget):
                     seconds = int(event.get('timestamp', 0) // 1000)
                     label = QLabel(f"{seconds // 60:02d}:{seconds % 60:02d}  ·  {event.get('label', 'Événement')}"); label.setObjectName('ContextLine'); line.addWidget(label)
                 layout.addWidget(milestones)
-        tabs.addTab(self._scroll_panel(build), 'Déroulé')
+        self._story_scroll = self._scroll_panel(build)
+        tabs.addTab(self._story_scroll, 'Déroulé')
+
+    def _open_story_moment(self, seconds: int, label: str):
+        """Select a factual clock on the post-game chart, without creating an event."""
+        self.tabs.setCurrentWidget(self._story_scroll)
+        self._story_selection.setText(f"Moment sélectionné · {seconds // 60:02d}:{seconds % 60:02d} · {label}\nLe trait jaune indique cette heure. Survole la courbe pour lire un relevé d’or disponible.")
+        self._story_selection.show()
+        self._story_chart.set_focus(seconds)
+        QTimer.singleShot(0, lambda: self._story_scroll.ensureWidgetVisible(self._story_selection))
 
     def _journal_tab(self, tabs, match):
         cache = self.service.cache
@@ -275,33 +290,48 @@ class MatchDetailPage(QWidget):
         layout.addWidget(card); layout.addStretch()
 
     def _coach_tab(self, tabs, match, report):
+        sections = {}
+        def open_section(title):
+            section = sections.get(title)
+            if section:
+                toggle, group = section
+                toggle.setChecked(True)
+                QTimer.singleShot(0, lambda: scroll.ensureWidgetVisible(group, 0, 15))
         def build(layout):
             summary_card = QFrame(); summary_card.setObjectName("CoachCard"); summary_layout = QVBoxLayout(summary_card); summary_layout.setContentsMargins(17, 14, 17, 14); summary_layout.setSpacing(7)
             summary_title = QLabel("Synthèse coach"); summary_title.setObjectName("SectionTitle"); summary_layout.addWidget(summary_title)
             focuses = coaching_focuses(report)
             if focuses:
                 for focus in focuses:
-                    summary_layout.addWidget(CoachingCard(focus, open_source=self._open_tab(tabs, "Coach")))
+                    summary_layout.addWidget(CoachingCard(focus, open_source=lambda checked=False, title=focus.source_tab_title: open_section(title)))
             else:
                 label = QLabel(coaching_empty_message(report)); label.setWordWrap(True); label.setObjectName("Muted"); summary_layout.addWidget(label)
             boundary = QLabel("Ces pistes aident à revoir la partie et à tester une habitude. Ce ne sont pas des explications certaines du résultat."); boundary.setObjectName("MicroLabel"); boundary.setWordWrap(True); summary_layout.addWidget(boundary)
             layout.addWidget(summary_card)
 
-            insight_grid = QGridLayout(); insight_grid.setHorizontalSpacing(12); insight_grid.setVerticalSpacing(12)
-            for index, insight in enumerate(report.insights):
-                insight_grid.addWidget(InsightCard(insight), index // 2, index % 2)
-            layout.addLayout(insight_grid)
-
-            detailed = [insight for insight in report.insights if insight.events]
-            if detailed:
-                heading = QLabel("Moments associés"); heading.setObjectName("SectionTitle"); layout.addWidget(heading)
-            for current in detailed:
-                header = QFrame(); header.setObjectName("AnalyzerHeader"); h = QVBoxLayout(header); h.setContentsMargins(14, 11, 14, 11)
-                top = QHBoxLayout(); name = QLabel(player_insight_title(current)); name.setObjectName("SectionTitle"); top.addWidget(name); top.addStretch(); top.addWidget(StatusBadge(current.status)); h.addLayout(top)
-                summary = QLabel(player_insight_summary(current)); summary.setWordWrap(True); summary.setObjectName("Muted"); h.addWidget(summary); layout.addWidget(header)
+            heading = QLabel("Détails par thème"); heading.setObjectName("SectionTitle"); layout.addWidget(heading)
+            for current in report.insights:
+                group = QFrame(); group.setObjectName("AnalyzerHeader"); group_layout = QVBoxLayout(group); group_layout.setContentsMargins(14, 11, 14, 11)
+                top = QHBoxLayout()
+                toggle = QToolButton(); toggle.setObjectName("CoachSectionToggle")
+                toggle.setText(f"{player_insight_title(current)} · {len(current.events)} moment(s)")
+                toggle.setCheckable(True); toggle.setArrowType(Qt.ArrowType.RightArrow)
+                toggle.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+                toggle.setCursor(Qt.CursorShape.PointingHandCursor); top.addWidget(toggle, 1)
+                top.addWidget(StatusBadge(current.status)); group_layout.addLayout(top)
+                details = QWidget(); details.setObjectName("CoachSectionDetails"); h = QVBoxLayout(details); h.setContentsMargins(0, 8, 0, 0)
+                summary = QLabel(player_insight_summary(current)); summary.setWordWrap(True); summary.setObjectName("Muted"); h.addWidget(summary)
                 for event in current.events:
-                    layout.addWidget(AnalyzerEventCard(event, self.assets, match.game_version))
-        tabs.addTab(self._scroll_panel(build), "Coach")
+                    h.addWidget(AnalyzerEventCard(event, self.assets, match.game_version, on_timeline=self._open_story_moment))
+                if not current.events:
+                    h.addWidget(EmptyState("Aucun moment disponible", "Les informations de ce thème ne permettent pas de détailler un moment précis."))
+                group_layout.addWidget(details); details.hide()
+                toggle.toggled.connect(details.setVisible)
+                toggle.toggled.connect(lambda checked, target=toggle: target.setArrowType(Qt.ArrowType.DownArrow if checked else Qt.ArrowType.RightArrow))
+                sections[current.title] = (toggle, group)
+                layout.addWidget(group)
+        scroll = self._scroll_panel(build)
+        tabs.addTab(scroll, "Coach")
 
     def load_match(self, match_id: str):
         self._clear()

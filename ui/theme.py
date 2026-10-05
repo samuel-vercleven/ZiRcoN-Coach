@@ -21,6 +21,16 @@ TOKENS = {
 def apply_zircon_theme(app) -> None:
     """Apply the native ZiRcoN design system without a theme engine."""
     app.setStyle("Fusion")
+    from PySide6.QtGui import QFont, QFontDatabase
+    import os
+    from pathlib import Path
+    # The offscreen platform does not always discover installed Windows fonts.
+    # Read the OS fonts for visual QA; never redistribute Microsoft's font files.
+    if os.getenv('QT_QPA_PLATFORM', '').lower() == 'offscreen' and os.name == 'nt':
+        fonts = Path(os.environ['SystemRoot']) / 'Fonts'
+        for name in ('segoeui.ttf', 'segoeuib.ttf'):
+            if (fonts / name).is_file(): QFontDatabase.addApplicationFont(str(fonts / name))
+    app.setFont(QFont("Segoe UI", 10))
     app.setStyleSheet(APP_STYLESHEET)
 
 
@@ -104,6 +114,9 @@ QLabel#MetricValue { color: #dfe7f1; font-weight: 600; }
 QLabel#ContextLine { color: #cbd7e5; background: #182838; border-radius: 7px; padding: 6px 9px; }
 QLabel#TechnicalDetails { color: #8f9daf; background: #0d131b; border-radius: 7px; padding: 9px; font-family: Consolas, monospace; font-size: 11px; }
 QToolButton { color: #75c9d5; background: transparent; border: none; padding: 4px 0; font-weight: 650; }
+QToolButton#CoachSectionToggle { color: #dfe7f1; padding: 8px; font-size: 14px; text-align: left; }
+QToolButton#CoachSectionToggle:hover { background: #182838; border-radius: 7px; }
+QToolButton#TimelineJumpButton { color: #72dfc8; padding: 6px 8px; background: #17343a; border-radius: 6px; }
 QPushButton { min-height: 20px; background: transparent; border: 1px solid transparent; border-radius: 8px; padding: 9px 12px; color: #91A5BB; text-align: left; }
 QPushButton:hover { background: #192A3C; color: #F3F6FA; }
 QPushButton:checked { background: #12313A; color: #52DDC5; font-weight: 600; }

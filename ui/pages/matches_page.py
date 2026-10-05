@@ -39,7 +39,7 @@ class MatchesPage(QWidget):
         controls.setSpacing(8)
         self.search = QLineEdit()
         self.search.setPlaceholderText("Rechercher un champion…")
-        self.search.setMinimumWidth(280)
+        self.search.setMinimumWidth(220)
         self.search.setMaximumWidth(430)
         self.role = QComboBox()
         self.role.addItem("Tous les rôles", "ALL")
@@ -54,7 +54,7 @@ class MatchesPage(QWidget):
         self.starred.addItem("Favoris", True)
         controls.addWidget(self.search, 1)
         for control in (self.role, self.patch, self.result, self.starred):
-            control.setMinimumWidth(145)
+            control.setMinimumWidth(110)
             controls.addWidget(control)
         controls.addStretch()
         root.addLayout(controls)
