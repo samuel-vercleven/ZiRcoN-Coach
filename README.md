@@ -7,11 +7,12 @@ comprendre les observations disponibles et choisir une habitude à tester.
 
 Le [guide de démarrage](RELEASE_GUIDE.md) décrit la version portable, la connexion
 Riot et les limites. Extraire le ZIP complet puis ouvrir `ZiRcoN-Coach.exe`.
-La version candidate est `1.0.0-rc2` ; aucun historique ni identifiant n’est livré.
+La version candidate est `1.0.0-rc3` ; aucun historique ni identifiant n’est livré.
 
 Cette révision ajoute la courbe d’or au résumé, des objectifs cliquables sans
 chevauchement, des conseils plus courts et la compatibilité objets avec le patch
 26.19 (catalogue 16.19.1). « Comprendre ce conseil » ouvre les explications.
+Les emplacements sans objet sont invisibles dans l’historique et les vues de partie.
 
 Les cinq sections d’une partie sont **Résumé**, **Coach**, **Objets**, **Déroulé**
 et **Notes**. Les conseils reposent sur des observations explicites, pas sur une

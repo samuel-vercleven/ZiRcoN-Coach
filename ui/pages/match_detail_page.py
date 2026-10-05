@@ -145,6 +145,8 @@ class MatchDetailPage(QWidget):
             build_note = QLabel('Objets à la fin de la partie'); build_note.setObjectName('Muted'); build_box.addWidget(build_note)
             item_row = QHBoxLayout(); item_row.setSpacing(6)
             for item_id in match.items[:6]:
+                if not item_id:
+                    continue
                 icon = AssetIcon(self.assets, 38); icon.load('item', item_id, match.game_version); item_row.addWidget(icon)
             item_row.addStretch(); build_box.addLayout(item_row)
             runes = QLabel('Runes : informations non disponibles'); runes.setObjectName('MicroLabel'); runes.setWordWrap(True); build_box.addWidget(runes); dashboard.addWidget(build, 0, 1)
@@ -359,6 +361,8 @@ class MatchDetailPage(QWidget):
         inventory = list(detail.items)
         if match.trinket_id in inventory: inventory.remove(match.trinket_id)
         for item_id in inventory[:6]:
+            if not item_id:
+                continue
             item = AssetIcon(self.assets, 32); item.load("item", item_id, match.game_version); items.addWidget(item)
         if match.trinket_id:
             items.addSpacing(8); item = AssetIcon(self.assets, 32); item.load("item", match.trinket_id, match.game_version); items.addWidget(item)

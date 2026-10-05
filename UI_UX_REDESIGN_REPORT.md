@@ -2,7 +2,9 @@
 
 ## Current candidate — 2026-10-05
 
-Version 1.0.0-rc2 retains native PySide6/QSS; no external theme engine.
+Version 1.0.0-rc3 retains native PySide6/QSS; no external theme engine.
+Empty inventory slots and missing trinkets now draw nothing across history,
+scoreboard and match build strips; actual items retain their image fallback.
 The current five tabs are Résumé, Coach, Objets, Déroulé and Notes.
 Résumé selects one supported focus; Coach keeps three varied priorities and
 collapsed detailed themes. Source buttons open the matching theme, and explicit

@@ -112,13 +112,16 @@ class Scoreboard(QFrame):
         items_host = QWidget(); items = QGridLayout(items_host); items.setContentsMargins(0, 0, 0, 0)
         items.setSpacing(3)
         inventory = list(row['items'])[:6]
-        for index in range(6):
+        for index, item_id in enumerate(inventory):
+            if not item_id:
+                continue
             icon = AssetIcon(assets, 25)
-            icon.load('item', inventory[index] if index < len(inventory) else None, version, '·')
+            icon.load('item', item_id, version)
             items.addWidget(icon, index // 3, index % 3)
-        trinket = AssetIcon(assets, 25)
-        trinket.load('item', row.get('trinket'), version, '·')
-        items.addWidget(trinket, 0, 3)
+        if row.get('trinket'):
+            trinket = AssetIcon(assets, 25)
+            trinket.load('item', row['trinket'], version)
+            items.addWidget(trinket, 0, 3)
         parts = (portrait, identity_host, stats_host, items_host)
         self._row_layouts.append((card, layout, parts, mirrored))
         for column, part in enumerate(reversed(parts) if mirrored else parts):

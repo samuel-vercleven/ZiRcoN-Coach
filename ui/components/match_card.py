@@ -80,14 +80,11 @@ class MatchCard(QFrame):
         if match.trinket_id in inventory:
             inventory.remove(match.trinket_id)
         for item_id in inventory[:6]:
+            if not item_id:
+                continue
             item = AssetIcon(assets, 30)
             item.load("item", item_id, match.game_version, "")
             items.addWidget(item)
-        for _empty in range(max(0, 6 - len(inventory[:6]))):
-            slot = QFrame()
-            slot.setFixedSize(30, 30)
-            slot.setStyleSheet("background:#0B1521;border:1px solid #1A2B3D;border-radius:6px;")
-            items.addWidget(slot)
         if match.trinket_id:
             items.addSpacing(4)
             trinket = AssetIcon(assets, 30)

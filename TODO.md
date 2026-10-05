@@ -1,5 +1,7 @@
 BUILD OPTIMIZER v1 — CONTEXTUAL RECOMMENDATION PASS
 
+[x] User follow-up: omit empty item/trinket slots in history, scoreboard and match build strips
+
 USER READABILITY / CURRENT PATCH FOLLOW-UP — 2026-10-05
 
 [x] Show the actual gold curve in Résumé with readable colors, units and missing-data gaps

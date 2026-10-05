@@ -1,6 +1,10 @@
 # ZiRcoN Coach - Project State
 
-## Windows V1 candidate 1.0.0-rc2 — 2026-10-05
+## Windows V1 candidate 1.0.0-rc3 — 2026-10-05
+
+- Empty item/trinket slots no longer draw squares in the scoreboard, history,
+  header or final-build strips. Real items with unavailable images retain a
+  placeholder. Latest UI semantics, alpha smoke and 33-render check PASS.
 
 - Local after-match candidate, not a publicly approved release. Five match tabs:
   Résumé, Coach, Objets, Déroulé, Notes; pre-game/live-game remain out of scope.
@@ -21,7 +25,8 @@
   but no key, account or history. Packaged writable data uses
   %LOCALAPPDATA%/ZiRcoN-Coach; source development paths are unchanged.
   Existing source history is neither migrated nor overwritten automatically.
-- Source regression 43/43, real main.py, 33 visual captures and 16 contextual
+- Last complete backend run (rc2): source regression 43/43, real main.py,
+  33 visual captures and 16 contextual
   scenario tests PASS. All eight final optimizer command gates PASS; see LAST_RUN.md.
   Packaged fresh-profile and three-match local-copy smoke tests PASS.
   89 FROZEN paths unchanged. Final delivery provenance/SHA-256 is in dist/*.json.

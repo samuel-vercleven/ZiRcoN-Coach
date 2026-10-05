@@ -1,82 +1,59 @@
 # LAST RUN
 
 ## Status
-TECHNICAL PASS / REVIEW_REQUIRED — NO FREEZE
+TECHNICAL PASS / REVIEW_REQUIRED for gameplay review — NO FREEZE
 
 ## Date
-2026-10-05 20:54 Europe/Paris
+2026-10-05 Europe/Paris
 
 ## Command
-- python -m build_optimizer.validation (includes full source regression and real main.py)
+- python -m app.v01_ui_semantics_check
+- python -m app.v01_alpha_smoke
 - python -m app.v01_visual_check
 - python -m app.build_release
 
 ## Runtime
-- Source regression: 43/43 command suites PASS, including real main.py.
-- Focused UI semantics, service checks and 16 contextual optimizer tests PASS.
-- Final eight-command optimizer run: 8/8 PASS, about 10 minutes.
-- Windows portable candidate 1.0.0-rc2 built and executed successfully.
-- No live Riot import was performed. Raw main output: logs/latest_full_run.txt.
+- UI semantics and application smoke PASS.
+- Visual render PASS: 33 captures; desktop and minimum match views inspected.
+- Real main.py and the eight optimizer gates were not rerun for this presentation-only fix.
+  Their last complete passing run is recorded in commit 28f6155.
+- Portable release builder records the fresh-profile/local-history smoke results
+  and final source provenance in dist/ZiRcoN-Coach-1.0.0-rc3-Windows-x64.json.
 
 ## Files changed
-- ui/components/{gold_timeline,moments_timeline,coaching_card}.py and match detail:
-  actual gold curve in Résumé, collision-free objective entries, collapsible evidence.
-- ui/player_coach.py and ui/theme.py: concise observations/actions and clearer hierarchy.
-- services/local_data.py: missing gold remains missing; complete chronological objective list.
-- build_optimizer/{catalog,profiles,contextual_checks,catalog_checks,validation}.py:
-  exact 16.19.1 support, complete semantic fingerprints and new-patch checks.
-- App checks/version, README, release guide, project state, TODO, decisions and audits.
+- ui/components/scoreboard.py: no item widget for an empty slot or absent trinket.
+- ui/components/match_card.py: remove decorative empty slots from history/dashboard.
+- ui/pages/match_detail_page.py: omit empty entries from summary and header strips.
+- app/version.py: portable candidate 1.0.0-rc3.
+- README, TODO, PROJECT_STATE and UI_UX_REDESIGN_REPORT updated.
 
 ## Tests executed
-- Source 43/43, real main.py, UI semantics and service checks PASS.
-- 33 source renders: desktop 1600x900, minimum 1180x720, dense objective layouts
-  360/650/1100 px, summary curves and expanded coaching explanations.
-- Representative source captures inspected: curve is visible, legends do not overlap,
-  collapsed advice stays readable, and evidence expands correctly.
-- Contextual tests: 16 PASS, including six controlled 16.19 champion scenarios,
-  alternatives, independent recipe legality and future mutation invariance.
-- New patch recipe audit: 2,795 controlled cases / 4,513 recipe steps PASS.
-- New-patch semantics: all 20 reviewed item records unchanged from 16.18.1;
-  173 champion catalog records admit a reviewed or generic profile.
-- Same-price semantic mutations and previous-patch baseline borrowing are rejected.
-- Packaged clean-profile and three-match local-history-copy checks PASS, 13 captures.
-- Ten exact catalogs bundled; no account, key or player database included.
-- FROZEN guard: 89 protected paths unchanged. Secret/whitespace checks PASS.
+- UI semantics, alpha smoke and 33-render visual check PASS.
+- Inspected scoreboard capture: partial builds have only actual item icons.
+- Missing images for actual items retain an informative placeholder.
+- FROZEN guard PASS: all 89 paths unchanged.
+- Secret scan and git diff whitespace check PASS.
 
 ## Errors encountered
-- New expansion test exposed a newly parented objective button remaining hidden;
-  corrected widget ownership and visibility order, then UI checks passed.
-- The new isolated service fixture initially omitted its SQLite commit; corrected
-  the fixture and reran successfully. Production history was not changed.
+- None in executed application checks.
 
 ## Main analyzer results
-- No production analyzer, scoring formula, threshold or historical rule changed.
-- Contextual replay: 143 games / 572 snapshots / 172 nonempty recommendations /
-  400 abstentions. Zero invalid purchases, temporal leaks, score recomposition
-  errors or untraceable explanations. Viego: 60 emitted recommendations.
-- Patch 26.19 corresponds to Data Dragon 16.19.1. There are no actual 16.19
-  matches in the local history: new-patch checks are controlled scenarios only.
-- Full-record fingerprints additionally protect new-patch semantic admission.
-- Insufficient same-patch history still produces a clear abstention.
+- This task changes presentation only. Analytics, inventories and recommendations
+  retain the previous implementation and validation results.
 
 ## Suspicious findings
-- Generic class-based advice is less individualized than reviewed champion profiles.
-- No optimal-build or match-result causality claim.
+- None introduced by this display correction.
 
 ## Methodological concerns
-- Missing observations do not become zero-valued evidence.
-- Gold and objectives are factual post-game context, not personal blame.
-- Gameplay quality and real-display accessibility still need human review.
+- None; no scoring or temporal rules changed.
 
 ## Remaining issues
-- Local personal candidate; public release conditions remain in RELEASE_GUIDE.md.
-- New-patch recommendations need sufficient prior games on that same patch.
-- Previous reported temporary test-copy cleanup issue is not in delivery or Git.
-- Final release provenance/SHA-256 is recorded in dist/*.json after commit.
+- Human gameplay/real-display review remains open.
+- Public release conditions remain documented in RELEASE_GUIDE.md.
 
 ## Codex technical recommendation
-Use the corrected after-match candidate and review recommendation usefulness.
+Use the updated application to verify the cleaner item grids.
 
 ## Review request
-REVIEW_REQUIRED for gameplay usefulness and real-display review; NO FREEZE.
-Commit/push only feature/build-optimizer after final gates pass.
+REVIEW_REQUIRED only for existing gameplay/product review; NO FREEZE.
+Commit/push on feature/build-optimizer only.
