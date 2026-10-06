@@ -57,6 +57,8 @@ ApplicationWindow {
         anchors.centerIn: parent
         title: "Une note n’est pas enregistrée"
         modal: true
+        background: Rectangle { radius: 16; color: ZTheme.color("#152638"); border.color: ZTheme.color("#30485d") }
+        header: ZText { text: noteDialog.title; font.pixelSize: 18; font.weight: Font.DemiBold; padding: 18 }
         contentItem: ColumnLayout {
             ZText {
                 text: "Enregistre ta note avant de quitter si tu veux la retrouver à la prochaine ouverture."
@@ -71,6 +73,7 @@ ApplicationWindow {
                 }
             }
             ZButton {
+                objectName: "discardDraftButton"
                 text: "Quitter sans enregistrer"
                 onClicked: {
                     window.allowDiscard = true;
@@ -88,6 +91,8 @@ ApplicationWindow {
         title: "Opération en cours"
         modal: true
         standardButtons: Dialog.Ok
+        background: Rectangle { radius: 16; color: ZTheme.color("#152638"); border.color: ZTheme.color("#30485d") }
+        header: ZText { text: waitDialog.title; font.pixelSize: 18; font.weight: Font.DemiBold; padding: 18 }
         contentItem: ZText {
             text: "Attends la fin de la demande avant de fermer ZiRcoN, pour préserver l’import en cours."
             width: 350

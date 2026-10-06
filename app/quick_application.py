@@ -266,6 +266,13 @@ class QuickApplication:
         capture('settings-validation-message')
         self.bridge.dismissNotice()
         assert self.classic is None
+        if selected:
+            editor = find(self.window.contentItem(), 'matchNoteEditor')
+            editor.setProperty('text', 'GUARDED_DRAFT_QML_CHECK')
+            assert self.window.close() is False, 'Unsaved note did not guard close'
+            capture('unsaved-note-dialog')
+            click('discardDraftButton')
+            assert not self.window.isVisible()
         assert not self.warnings, '\n'.join(self.warnings)
         assert not self.callback_errors, '\n'.join(self.callback_errors)
         result = {'passed': True, 'presentation': 'Qt Quick / QML exploration', 'theme': self.theme, 'matches': len(selected),

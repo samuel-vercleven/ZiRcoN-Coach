@@ -16,7 +16,7 @@ TECHNICAL PASS / REVIEW_REQUIRED for human display/gameplay review — NO FREEZE
 ## Runtime
 - Full source:44/44 suites and real main.py PASS. Raw output:logs/latest_full_run.txt.
 - Focused current QML contracts:19/19 PASS, with simulated Riot responses only.
-- Native default:three actual games, five tabs, 51 captures at 1600×960 and
+- Native default:three actual games, five tabs, 52 captures at 1600×960 and
   1120×720, horizontal text-boundary audit, zero QML/callback warnings.
 - Fresh-profile QML smoke PASS on isolated data, ten captures.
 - Diagnostic portable build passes fresh/history-copy QML and classic fallback;
@@ -46,6 +46,8 @@ TECHNICAL PASS / REVIEW_REQUIRED for human display/gameplay review — NO FREEZE
 - Session draft retained across game navigation and same-player data refresh;
   key/account changes guarded while notes are pending.
 - Expanded coach themes and their bottom sections are captured at both sizes.
+- An actual close attempt with a draft is rejected; the themed warning is
+  captured and the explicit discard action closes cleanly without writing notes.
 - Asset downloads use a separate bounded pool, so they cannot queue-block
   credential validation, imports or recommendations.
 - Progress chronological rolling results, units and missing-value gaps; explicit

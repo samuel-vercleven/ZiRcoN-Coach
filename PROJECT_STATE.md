@@ -15,7 +15,7 @@
   Long profile names elide; native initial dimensions respect available screen
   space within supported minimums. Missing fields/gaps and empty item omission remain.
 - Full source 44/44 suites plus real main.py PASS; focused tests 19/19 PASS.
-  Default native UI: three real matches, 51 captures, zero QML/callback warnings.
+  Default native UI: three real matches, 52 captures, zero QML/callback warnings.
   Fresh profile and both packaged QML/classic modes pass on isolated data.
 - Final clean-source ZIP/provenance is recorded by app.build_release in dist/rc4
   manifests. Diagnostic dirty builds are not delivery provenance.
