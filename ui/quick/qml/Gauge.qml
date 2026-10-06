@@ -26,7 +26,9 @@ Item {
     onValueChanged: ring.requestPaint()
     Connections {
         target: ZTheme
-        function onBelvethChanged() { ring.requestPaint() }
+        function onBelvethChanged() {
+            ring.requestPaint();
+        }
     }
     ZText {
         anchors.centerIn: parent

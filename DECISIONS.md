@@ -697,3 +697,17 @@ QML receives explicit player-facing projections; final-match rosters are never
 substituted for the optimizer's dated enemy snapshot. No analyzer is reopened.
 Classic settings/imports/notes remain available within the same process until a
 complete migration is separately accepted. Human review, no automatic freeze.
+
+## Complete QML post-game presentation — 2026-10-06
+
+The user has explicitly requested completion of the new interface. QML becomes
+the normal desktop entry point, default Bel’Veth, with --classic retaining the
+old frontend as a deliberate fallback. This is not a website/cloud migration.
+Native settings/import/journal and detailed coaching reuse existing services;
+no analytical thresholds, recipes, inventory semantics or scores are redefined.
+Key testing and activation remain separate; failed candidates do not replace
+active credentials, and page DTOs contain only key status, never key values.
+Draft notes are session-only until saved to the existing journal, scoped to
+the active player and guarded before account changes or process exit.
+Portable delivery remains credential/history-free with existing isolated data
+paths. Technical validation does not approve gameplay quality or a freeze.

@@ -1,5 +1,28 @@
 # ZiRcoN Coach - Project State
 
+## Complete QML post-game candidate rc4 — 2026-10-06
+
+- QML is normal run_app.py/executable startup, default Bel’Veth; turquoise toggle
+  retained. Classic remains an explicit --classic fallback, not the normal flow.
+- Native settings, account/key validation and activation, import progress/results,
+  notes/favorites, all five match tabs, full cached coach event details and progress
+  windows/trends replace the preview's classic-screen dependencies.
+- Same services and strict optimizer contracts. No analyzer/recipe/score changes.
+  Rejected/test-only keys never replace the active key; no key is in page DTOs.
+- Notes persist through the existing local journal; session drafts survive normal
+  navigation/same-account refresh, are guarded on close and before account change.
+- Layouts verified at 1600×960 / 1120×720 with a horizontal-text-boundary audit.
+  Long profile names elide; native initial dimensions respect available screen
+  space within supported minimums. Missing fields/gaps and empty item omission remain.
+- Full source 44/44 suites plus real main.py PASS; focused tests 19/19 PASS.
+  Default native UI: three real matches, 51 captures, zero QML/callback warnings.
+  Fresh profile and both packaged QML/classic modes pass on isolated data.
+- Final clean-source ZIP/provenance is recorded by app.build_release in dist/rc4
+  manifests. Diagnostic dirty builds are not delivery provenance.
+- All 89 FROZEN paths unchanged. No main merge; NO FREEZE. Live Riot import is
+  simulated in these new UI tests, not freshly validated against the real API.
+  Human display/DPI/gameplay review and public release conditions remain open.
+
 ## Bel’Veth visual trial — 2026-10-05
 
 - Opt-in violet/plum/lavender/gold QML palette, matching SVG brand variant and

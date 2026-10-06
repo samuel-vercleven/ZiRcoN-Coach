@@ -55,7 +55,7 @@ class QuickApplication:
         self.warnings = []
         self.engine.warnings.connect(self._qml_warnings)
         self.engine.rootContext().setContextProperty('coach', self.bridge)
-        self.theme = 'turquoise'
+        self.theme = 'belveth'
         if '--theme' in sys.argv:
             self.theme = sys.argv[sys.argv.index('--theme') + 1]
         if self.theme not in ('turquoise', 'belveth'):
@@ -67,6 +67,10 @@ class QuickApplication:
         if not self.engine.rootObjects():
             raise RuntimeError('The QML window could not be loaded')
         self.window = self.engine.rootObjects()[0]
+        if not smoke and app.primaryScreen():
+            available = app.primaryScreen().availableGeometry()
+            self.window.resize(max(1120, min(1600, available.width() - 48)),
+                               max(720, min(960, available.height() - 48)))
         self.classic = None
         self.bridge.classicRequested.connect(self._open_classic)
         try:
@@ -120,7 +124,7 @@ class QuickApplication:
 
     def _smoke(self, app):
         from PySide6.QtTest import QTest
-        from PySide6.QtCore import QObject, QPoint, Qt
+        from PySide6.QtCore import QObject, QPoint, QPointF, Qt
         directory = DATA_ROOT / '.cache' / 'zircon' / 'quick-visual-check'
         if self.theme == 'belveth':
             directory = directory / 'belveth'
@@ -131,19 +135,28 @@ class QuickApplication:
             app.processEvents()
         def capture(name):
             settle()
+            def audit(item):
+                if item.isVisible() and item.metaObject().className().startswith('QQuickText'):
+                    point = item.mapToScene(QPointF(0, 0))
+                    # Vertical overflow inside a scroll page is intentional;
+                    # text containers must never escape the horizontal viewport.
+                    assert point.x() >= -2 and point.x() + item.width() <= self.window.width() + 2, f'Horizontal overflow: {name} / {item.objectName()}'
+                for child in item.childItems():
+                    audit(child)
+            audit(self.window.contentItem())
             path = directory / (name + '.png')
             assert self.window.grabWindow().save(str(path)), 'QML capture failed'
             captures.append(str(path))
+        def find(item, name):
+            if item.objectName() == name:
+                return item
+            for child in item.childItems():
+                found = find(child, name)
+                if found is not None:
+                    return found
+            return None
         def click(name):
-            def find(item):
-                if item.objectName() == name:
-                    return item
-                for child in item.childItems():
-                    found = find(child)
-                    if found is not None:
-                        return found
-                return None
-            button = find(self.window.contentItem())
+            button = find(self.window.contentItem(), name)
             assert button is not None, name
             position = button.mapToScene(button.boundingRect().center()).toPoint()
             QTest.mouseClick(self.window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, position)
@@ -158,6 +171,10 @@ class QuickApplication:
             click('progressButton')
             assert self.window.property('page') == 'progress'
             capture(f'{width}-progress')
+            click('settingsButton')
+            assert self.window.property('page') == 'settings'
+            capture(f'{width}-settings')
+            assert find(self.window.contentItem(), 'keyField').property('passwordProtected') is True
         matches = self.bridge.state['matches']
         selected = []
         if '--smoke-match' in sys.argv:
@@ -180,17 +197,54 @@ class QuickApplication:
             for width, height in ((1600, 960), (1120, 720)):
                 self.window.resize(width, height)
                 self.window.setProperty('page', 'match')
-                for index, name in enumerate(('summary', 'coach', 'build', 'timeline')):
+                for index, name in enumerate(('summary', 'coach', 'build', 'timeline', 'notes')):
                     self.window.setProperty('matchTab', index)
                     capture(f'{width}-{match_id}-{name}')
+                scroll = find(self.window.contentItem(), 'detailScroll')
+                flick = scroll.property('contentItem')
+                flick.setProperty('contentY', max(0, flick.property('contentHeight') - flick.height()))
+                capture(f'{width}-{match_id}-notes-bottom')
+                flick.setProperty('contentY', 0)
+                if match_id == selected[0]:
+                    self.window.setProperty('matchTab', 1); settle()
+                    group = find(self.window.contentItem(), 'coachGroup0')
+                    if group is not None:
+                        point = group.mapToScene(QPointF(0, 0))
+                        flick.setProperty('contentY', max(0, point.y() - 350)); settle()
+                        click('coachGroup0')
+                        capture(f'{width}-{match_id}-coach-expanded')
+                        flick.setProperty('contentY', max(0, flick.property('contentHeight') - flick.height()))
+                        capture(f'{width}-{match_id}-coach-details-bottom')
+                        flick.setProperty('contentY', 0)
+            # Drafts survive ordinary match navigation, without writing user data.
+            editor = find(self.window.contentItem(), 'matchNoteEditor')
+            original_note = editor.property('text')
+            editor.setProperty('text', 'DRAFT_QML_CHECK')
+            self.bridge.openMatch(selected[0])
+            self.bridge.wait_for_workers(); settle()
+            self.bridge.openMatch(match_id); settle()
+            assert editor.property('text') == 'DRAFT_QML_CHECK'
+            editor.setProperty('text', original_note)
             # Reselecting the same game reuses the existing optimizer result.
             assert self.bridge.openMatch(match_id) and not self.bridge.busy
         assert len(self.engine.rootObjects()) == 1, 'Navigation recreated the window'
+        if selected:
+            editor = find(self.window.contentItem(), 'matchNoteEditor')
+            original_note = editor.property('text')
+            editor.setProperty('text', 'DRAFT_REFRESH_QML_CHECK')
+            last_match = self.bridge.detail['id']
+            self.bridge.refresh(); settle()
+            self.bridge.openMatch(last_match); self.bridge.wait_for_workers(); settle()
+            assert editor.property('text') == 'DRAFT_REFRESH_QML_CHECK', 'Refresh lost a same-account draft'
+            editor.setProperty('text', original_note)
         initial_mode = self.window.property('belvethMode')
         if selected:
             # Prefer the cached reviewed Viego game so live comparison includes
             # the actual recommendation gauge, not only an abstention card.
-            assert self.bridge.openMatch(selected[0]) and not self.bridge.busy
+            assert self.bridge.openMatch(selected[0])
+            self.bridge.wait_for_workers(); settle()
+            assert not self.bridge.busy
+            self.window.setProperty('page', 'match')
             self.window.setProperty('matchTab', 0)
         settle()
         before_color = self.window.grabWindow().pixelColor(210, 12)
@@ -205,15 +259,18 @@ class QuickApplication:
             capture('theme-comparison-build')
         click('belvethThemeButton' if initial_mode else 'turquoiseThemeButton')
         assert self.window.property('belvethMode') == initial_mode
-        self._open_classic(True)
-        assert self.classic.settings_page is not None
-        assert not self.window.isVisible() and self.classic.isVisible()
-        self._return_quick()
-        assert self.window.isVisible() and not self.classic.isVisible()
-        self.classic.close()
+        # Main flows never need a classic window. Invalid account input is safe
+        # to exercise without touching credentials or contacting Riot.
+        click('settingsButton')
+        assert not self.bridge.saveAccount('invalid-format', 20)
+        capture('settings-validation-message')
+        self.bridge.dismissNotice()
+        assert self.classic is None
         assert not self.warnings, '\n'.join(self.warnings)
         assert not self.callback_errors, '\n'.join(self.callback_errors)
         result = {'passed': True, 'presentation': 'Qt Quick / QML exploration', 'theme': self.theme, 'matches': len(selected),
+                  'version': VERSION,
+                  'initialized_pages': 5, 'matches_opened': len(selected),
                   'captures': captures, 'qml_warnings': self.warnings,
                   'database_path': str(self.context.local_data.db_path)}
         if '--smoke-output' in sys.argv:

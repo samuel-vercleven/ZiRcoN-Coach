@@ -34,5 +34,5 @@ Rectangle {
     }
     ToolTip.visible: hover.hovered
     ToolTip.delay: 400
-    ToolTip.text: description
+    ToolTip.text: kind === "item" && description === identity ? "Objet de la partie" : description
 }

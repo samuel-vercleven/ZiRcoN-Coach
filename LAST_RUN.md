@@ -1,72 +1,89 @@
 # LAST RUN
 
 ## Status
-TECHNICAL PASS / REVIEW_REQUIRED for human visual preference — NO FREEZE
+TECHNICAL PASS / REVIEW_REQUIRED for human display/gameplay review — NO FREEZE
 
 ## Date
-2026-10-05 23:21 Europe/Paris
+2026-10-06 Europe/Paris
 
 ## Command
+- python -m app.stabilization_checks final (includes real main.py)
 - python -X faulthandler -m app.quick_checks
-- python run_app.py --qml --theme belveth --smoke-check --smoke-output logs/qml-belveth-smoke.json
-- python run_app.py --qml --smoke-check --smoke-output logs/qml-turquoise-smoke.json
-- FROZEN guard, secret scan, syntax compile and git diff --check
+- python run_app.py --smoke-check --smoke-output logs/qml-final-layout.json
+- Same smoke with --theme turquoise and isolated fresh ZIRCON_DATA_DIR
+- python -m app.build_release (fresh/history copy, QML and classic fallback)
 
 ## Runtime
-- Both themes PASS: three actual matches, 32 captures per mode at 1600×960 and
-  1120×720, zero QML warnings/Python callback errors including shutdown.
-- Live theme comparison repaints the background, chart and ring; match/report
-  DTOs remain exactly unchanged. No new window or optimizer recalculation.
-- Ten focused checks PASS, including GUI-thread/missing-data/account contracts,
-  live QML palette bindings and three representative contrast pairs ≥4.5:1.
-- Full backend/main.py and eight optimizer gates not rerun for this color-only
-  task. Previous full 44/44 source run passed at 2c936f8; its forensic log remains.
-- All 89 FROZEN paths unchanged. Secret scan and whitespace checks PASS.
+- Full source:44/44 suites and real main.py PASS. Raw output:logs/latest_full_run.txt.
+- Focused current QML contracts:19/19 PASS, with simulated Riot responses only.
+- Native default:three actual games, five tabs, 51 captures at 1600×960 and
+  1120×720, horizontal text-boundary audit, zero QML/callback warnings.
+- Fresh-profile QML smoke PASS on isolated data, ten captures.
+- Diagnostic portable build passes fresh/history-copy QML and classic fallback;
+  final delivery is rebuilt from the committed clean source. Consult dist/rc4
+  manifests for its definitive SHA/provenance rather than the dirty diagnostic.
+- 89 FROZEN paths unchanged; secrets/whitespace checks PASS.
+- Eight optimizer gates not rerun: no optimizer/analyzer/recipe/temporal rules
+  changed. The previous complete accepted engine run remains authoritative.
 
 ## Files changed
-- ui/quick/qml/ZTheme.qml + qmldir: centralized reversible display palette.
-- QML components: themed surfaces/text/buttons/graphs, live palette controls.
-- resources/zircon-void.svg: variant of the existing vector logo system.
-- app/quick_application.py: theme argument and live-comparison smoke assertions.
-- app/quick_checks.py: native QML binding and contrast regression.
-- Essayer-theme-Belveth.vbs: dedicated violet launch, same instance lock.
-- README, QML_PREVIEW, PROJECT_STATE and TODO updated.
+- ui/quick/bridge.py: native settings/import, safe candidate activation, journal,
+  progress and detailed-event projections over existing services.
+- New QML settings, notes, detailed coaching, progress plots and input controls.
+- Main.qml: ordered four-page navigation/five tabs, messages, filters, draft
+  protection, responsive profile header and full native flow.
+- app/quick_application.py: expanded smoke, draft/geometry checks and screen-fit.
+- run_app.py/app/version.py: default QML rc4, explicit --classic fallback.
+- app/build_release.py: packaged QML/classic verification, capture provenance.
+- Lancer-ZiRcoN-Coach.vbs and existing theme launchers; documentation updated.
+- ui/theme.py: OS symbol font discovery for accurate offscreen glyph QA only.
 
 ## Tests executed
-- Both theme captures: home, history, progress, summary, coach, objects,
-  observed objectives, plus live comparison summary/build.
-- Bel’Veth real match summary and real Viego build view inspected at normal and
-  minimum widths. No item/stat overlap introduced.
-- Sampled contrast pairs: main text, muted text and primary button text.
-- Switching themes does not mutate gold observations, reports, purchases or
-  dated opponent context. Unsupported builds still abstain.
+- Masked key field; rejected/test-only candidates preserve the active key.
+- Verified activation, invalid format/empty data guards, busy-account guard,
+  import success/failure/progress messaging tested with fake network responses.
+- Notes/favorites round trip in a temporary database; foreign match write rejected.
+- Session draft retained across game navigation and same-player data refresh;
+  key/account changes guarded while notes are pending.
+- Expanded coach themes and their bottom sections are captured at both sizes.
+- Asset downloads use a separate bounded pool, so they cannot queue-block
+  credential validation, imports or recommendations.
+- Progress chronological rolling results, units and missing-value gaps; explicit
+  event clocks, no invented clock for a clockless phase.
+- Desktop/minimum/empty settings, history, three real match builds and notes
+  bottoms rendered. Source text containers cannot escape horizontal viewport.
+- Theme changes preserve analytical DTOs; full five-tab/native-settings flow
+  never instantiates the classic window.
 
 ## Errors encountered
-- Initial singleton name collided with Qt's built-in Palette; renamed ZTheme.
-- One residual reference found by QML warnings corrected.
-- Native inline-QML test cleanup initially had an access violation; the probe
-  now has explicit engine ownership. Ten checks rerun successfully with
-  faulthandler; final application teardown also passes for both themes.
+- Development dialog implicit-width loop fixed with explicit dimensions.
+- Qt enum conversion in the masking assertion replaced by a typed QML boolean.
+- Refresh correctly invalidates recommendation caches; the smoke now waits for
+  recomputation before comparing themes, instead of assuming a stale cache.
+- Null optional event collections handled like the existing widget presentation.
 
 ## Main analyzer results
-Unchanged; this is a presentation-only color trial, not Bel’Veth-specific advice.
+Unchanged. Same account scope, historical-only advice, exact catalogs and strict
+inventory/legality gates; unsupported recommendations still abstain.
 
 ## Suspicious findings
-None in final checks.
+No final application error. Better presentation is not evidence of better scores.
 
 ## Methodological concerns
-No analytical, temporal, inventory or score changes.
+No frozen or analytical changes. Team events and gold remain context, not blame.
 
 ## Remaining issues
-- Existing user window left running; close and relaunch to load new QML sources.
-- Theme preference is per launch/session, not persisted to account settings.
-- Human visual/accessibility review remains; sampled contrasts are not a complete
-  accessibility certification.
-- Previous portable ZIP remains unchanged; source preview only.
+- Human gameplay, real-screen/DPI and full accessibility review remain.
+- New credential/import UI is tested with mocks, not fresh live Riot access.
+- Session drafts must be explicitly saved to persist across process restart.
+- Portable/source histories use their existing separate locations; no automatic
+  migration, keys/history never distributed.
+- Public Riot access, licensing/source compliance and signing remain prerequisites.
 
 ## Codex technical recommendation
-Try Essayer-theme-Belveth.vbs; compare with Turquoise using the sidebar buttons.
+Use Lancer-ZiRcoN-Coach.vbs with current source history, or extract the complete
+rc4 ZIP for the standalone candidate. Close an old instance before relaunching.
 
 ## Review request
-Human theme preference only. NO FREEZE, no main merge.
-Commit/push on feature/build-optimizer after final checks.
+REVIEW_REQUIRED for human product/display/gameplay acceptance. NO FREEZE.
+Commit/push only feature/build-optimizer; no main merge.

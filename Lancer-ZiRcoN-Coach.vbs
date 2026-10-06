@@ -1,6 +1,6 @@
-' Dedicated visible UI launch, with no terminal window or restart loop.
+' Normal application entry point, without a terminal or restart loop.
 Option Explicit
-Dim shell, fs, root, python, arguments
+Dim shell, fs, root, python
 Set shell = CreateObject("WScript.Shell")
 Set fs = CreateObject("Scripting.FileSystemObject")
 root = fs.GetParentFolderName(WScript.ScriptFullName)
@@ -10,5 +10,4 @@ If Not fs.FileExists(python) Then
     WScript.Quit 1
 End If
 shell.CurrentDirectory = root
-arguments = """" & python & """ """ & root & "\run_app.py"" --qml --theme turquoise"
-shell.Run arguments, 1, False
+shell.Run """" & python & """ """ & root & "\run_app.py""", 1, False

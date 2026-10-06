@@ -3,59 +3,52 @@
 Un coach League of Legends après-match, local sur Windows : retrouver sa partie,
 comprendre les observations disponibles et choisir une habitude à tester.
 
-## Nouvelle interface Qt Quick / QML — aperçu à essayer
+## Nouvelle interface complète — V1 candidate 1.0.0-rc4
 
-Dans le dossier du projet, double-cliquer **Essayer-interface-QML.vbs**, ou lancer
-`python run_app.py --qml`. Pas de nouvelle bibliothèque à installer dans
-l’environnement existant. L’aperçu utilise les vraies données et les mêmes
-services de coaching / conseil d’objets, sans modifier les moteurs.
+Dans le projet, double-cliquer **Lancer-ZiRcoN-Coach.vbs**, ou lancer
+`python run_app.py`. L’interface QML Bel’Veth est maintenant le lancement normal :
+violet profond, lavande et doré. Turquoise reste disponible dans la barre latérale.
+Fermer une ancienne fenêtre ZiRcoN avant de relancer : une seule instance est autorisée.
 
-Bleu nuit, turquoise, surfaces en relief, transitions, historique 5v5,
-résumé avec courbe d’or, conseils dépliables et pertinence en anneau.
-Les animations peuvent être désactivées dans la barre latérale.
-Les réglages/imports et les notes détaillées restent dans l’interface classique,
-accessible dans le même processus, avec un bouton de retour.
+Le parcours courant est entièrement dans QML :
 
-C’est une exploration visuelle, pas le remplacement complet de la V1.
-Le ZIP rc3 déjà livré reste inchangé. Voir [QML_PREVIEW.md](QML_PREVIEW.md).
+- Accueil et historique avec les deux équipes, recherche, rôle, patch et favoris.
+- Résumé de partie, coaching et ses détails dépliables, conseil d’objets contextuel,
+  déroulé et notes personnelles.
+- Progression sur 10/20/50 parties ou tout l’historique, courbes avec unités,
+  relevés au survol et informations manquantes conservées.
+- Réglages, compte Riot, clé masquée, vérification/activation et import avec suivi.
+- Notes/favoris enregistrés localement, brouillons conservés pendant la navigation
+  et avertissement avant de quitter avec une note non enregistrée.
 
-Variante Bel’Veth : fermer la fenêtre ZiRcoN actuelle, puis double-cliquer
-**Essayer-theme-Belveth.vbs**. Violet profond, lavande et reflets dorés.
-Les boutons **Bel’Veth / Turquoise** dans la barre latérale permettent de comparer
-les couleurs sans relancer la fenêtre ni recalculer les conseils.
+Les moteurs, recettes, règles temporelles et fondations FROZEN sont inchangés.
+Les conseils ne prouvent pas qu’une décision a causé le résultat ; des données
+insuffisantes conduisent à une abstention. Avant-match/live-game restent hors scope.
 
-## Essayer la V1 candidate
+## Version Windows autonome
 
-Le [guide de démarrage](RELEASE_GUIDE.md) décrit la version portable, la connexion
-Riot et les limites. Extraire le ZIP complet puis ouvrir `ZiRcoN-Coach.exe`.
-La version candidate est `1.0.0-rc3` ; aucun historique ni identifiant n’est livré.
+Extraire entièrement le ZIP rc4, puis ouvrir `ZiRcoN-Coach.exe`.
+Python/Qt et les catalogues exacts sont inclus, sans clé, compte ni historique.
+Le [guide de démarrage](RELEASE_GUIDE.md) décrit les réglages et les limites.
+Le manifeste dans `dist/` donne le SHA source, les vérifications et le SHA-256 du ZIP.
 
-Cette révision ajoute la courbe d’or au résumé, des objectifs cliquables sans
-chevauchement, des conseils plus courts et la compatibilité objets avec le patch
-26.19 (catalogue 16.19.1). « Comprendre ce conseil » ouvre les explications.
-Les emplacements sans objet sont invisibles dans l’historique et les vues de partie.
+## Développement et vérification
 
-Les cinq sections d’une partie sont **Résumé**, **Coach**, **Objets**, **Déroulé**
-et **Notes**. Les conseils reposent sur des observations explicites, pas sur une
-preuve qu’une décision a causé le résultat. Les données insuffisantes conduisent
-à une abstention. Les phases avant-match et pendant-match ne sont pas incluses.
+Python 3.13, `requirements.txt`, puis `python run_app.py`.
+Repli classique : `python run_app.py --classic`. Thème turquoise :
+`python run_app.py --theme turquoise`. Les chemins de données source restent
+inchangés ; aucune migration automatique de l’historique.
 
-## Développement
+Contrôles : `python -m app.quick_checks`,
+`python run_app.py --smoke-check --smoke-output logs/qml-final-layout.json`,
+`python -m app.stabilization_checks final`.
+Le smoke vérifie aussi le cadrage horizontal, les clés masquées et les brouillons.
+Les tests de connexion utilisent des réponses simulées, sans contacter Riot.
 
-Sous Windows, avec Python 3.13 : créer un environnement virtuel, installer
-`requirements.txt`, puis lancer `python run_app.py`. La version source conserve
-ses chemins locaux et ne migre pas automatiquement les données.
+Construction Windows : `requirements-build.txt`, puis
+`python -m app.build_release`. Vérifie QML et le repli classique sur un profil
+vierge et une copie isolée de l’historique, sans fournir de clé.
 
-Validation : `python -m app.stabilization_checks final`,
-`python -m app.v01_visual_check`, puis `python -m build_optimizer.validation`.
-Le dernier programme retourne intentionnellement 2 quand les gates techniques
-passent mais que la revue humaine demeure requise. Lire son `zero_gate.json`.
-
-Construction Windows : installer `requirements-build.txt`, puis
-`python -m app.build_release`. Le constructeur teste un profil vierge et une
-copie temporaire de l’historique local avant de produire le ZIP et son SHA-256.
-
-État et résultats : [PROJECT_STATE.md](PROJECT_STATE.md), [LAST_RUN.md](LAST_RUN.md).
-Les fondations FROZEN restent protégées ; aucune fusion dans `main` ni aucun
-freeze automatique. La diffusion publique exige les démarches Riot et le dossier
-de licences décrits dans les documents de livraison.
+[Guide QML](QML_PREVIEW.md), [état du projet](PROJECT_STATE.md),
+[dernier bilan](LAST_RUN.md). Candidate personnelle, pas une publication approuvée :
+revue humaine, conditions Riot/licences/signature et NO FREEZE restent explicites.

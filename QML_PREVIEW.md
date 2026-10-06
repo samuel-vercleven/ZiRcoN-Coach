@@ -1,71 +1,58 @@
-# Qt Quick / QML — aperçu ZiRcoN
+# Interface QML ZiRcoN — V1 candidate rc4
 
-## Essayer
+## Lancer
 
-Double-cliquer `Essayer-interface-QML.vbs` dans le projet. Le lanceur utilise
-l’environnement Python existant, sans console ni boucle de relancement.
-Alternative : `.venv\Scripts\python.exe run_app.py --qml`.
+Dans le projet : **Lancer-ZiRcoN-Coach.vbs** ou `python run_app.py`.
+Dans le paquet Windows : extraire tout le ZIP, ouvrir `ZiRcoN-Coach.exe`.
+Fermer une éventuelle ancienne fenêtre avant de lancer ; la protection contre
+les doubles ouvertures est commune aux deux interfaces.
 
-La protection contre les doubles ouvertures est partagée avec la version
-classique : fermer une éventuelle fenêtre ZiRcoN déjà ouverte avant le lancement.
+Bel’Veth est le thème initial. **Bel’Veth / Turquoise** change instantanément
+les couleurs, sans ouvrir une autre fenêtre ou refaire une analyse.
+L’ancien lanceur Essayer-interface-QML.vbs force turquoise ;
+Essayer-theme-Belveth.vbs force violet. Repli technique : `--classic`.
 
-### Variante Bel’Veth
+## Parcours, dans l’ordre
 
-Double-cliquer `Essayer-theme-Belveth.vbs` après avoir fermé la fenêtre actuelle.
-Alternative : `.venv\Scripts\python.exe run_app.py --qml --theme belveth`.
-Violet/prune, lavande, touches dorées, logo assorti. **Bel’Veth / Turquoise**
-permet de changer instantanément la palette dans la barre latérale, sans refaire
-les analyses ni ouvrir une autre fenêtre. L’ancien lanceur reste turquoise.
-Ce thème n’applique aucun traitement différent aux champions ou aux builds.
-La courbe utilise doré pour une avance d’or et rose pour un retard, avec la
-légende mise à jour. Les couleurs de l’anneau de pertinence restent sémantiques.
+1. **Accueil** : dernier match à revoir et repères des 20 dernières parties.
+2. **Mes parties** : compositions 5v5, objets réels sans emplacements vides,
+   recherche par champion/rôle, filtres résultat/rôle/patch/favoris.
+3. Une partie ouvre **Résumé**, **Coach**, **Objets**, **Déroulé**, **Notes**.
+   Les équipes/statistiques finales restent séparées du contexte daté du build.
+4. **Progression** : fenêtre 10/20/50 ou tout, agrégats, trois courbes et pool.
+5. **Réglages** : compte EUW, clé masquée, vérification, activation et import.
 
-Les deux modes sont vérifiés sur trois vraies parties, à 1600×960 / 1120×720 :
-32 captures par mode, changement de thème en direct et arrêt sans avertissement.
-Les dix tests ciblés couvrent aussi les bindings de palette et trois contrastes
-texte/fond ≥ 4,5:1. Ce n’est pas une certification globale d’accessibilité.
+Le parcours courant ne bascule plus vers l’ancienne fenêtre. Les clés ne sont
+exposées ni dans les modèles de page, ni dans les messages/journaux affichés.
+Une vérification seule n’active pas une clé ; une clé refusée conserve l’ancienne.
 
-## Ce qui fonctionne
+## Lire le bilan
 
-- Accueil, historique filtrable avec les deux équipes, progression réelle.
-- Partie : Résumé, Coach, Objets, Déroulé des objectifs enregistrés.
-- Inventaires sans cases vides, compositions, KDA, CS, or, courbe signée.
-  Survol d’un participant : dégâts, vision et rôle disponibles.
-- Conseils issus des observations étayées, détails dépliables.
-- Conseil d’achat, adversaires observés à son instant, achats conditionnels,
-  alternatives, anneau de pertinence sans `/100`.
-- Navigation dans une seule fenêtre ; chargement du build en arrière-plan.
-- Interface classique dans le même processus pour les réglages, imports,
-  notes et analyses détaillées. Bouton pour revenir à l’aperçu.
-- Animations désactivables, accès clavier aux boutons et aux parties.
+La courbe d’or compare les équipes : doré/rose en violet, vert/rose en turquoise.
+Une coupure est une information manquante, pas un zéro. Axes : temps et PO.
+Les courbes de progression sont ordonnées par partie, des anciennes aux récentes ;
+elles ne représentent pas le temps écoulé entre les games.
+Le taux de victoire est glissant sur jusqu’à cinq parties à chaque relevé.
 
-## Limites explicites
+Coach : les pistes soutenues d’abord, puis les détails par thème, dépliables.
+Les heures explicitement présentes donnent un repère dans Déroulé ; pas d’heure
+inventée pour un contexte sans instant précis.
+Objets : recommandations/alternatives existantes, achats conditionnels et adversaires
+au moment du conseil. Anneau indicatif, sans probabilité ni garantie d’optimalité.
 
-Exploration native Qt Quick, pas une interface 3D ni une migration complète.
-Les surfaces/éclairages et animations sont natifs, sans nouveau moteur de thème.
-La progression présente les agrégats et le nombre de parties par champion ;
-les tendances avancées existantes restent accessibles dans la version classique.
-Images manquantes : fond de secours ; pas de données ou de conseils inventés.
-La formulation et les seuils analytiques existants restent inchangés.
+Notes : maximum 1000 caractères. Enregistrer pour conserver entre les ouvertures.
+Les brouillons survivent à la navigation et aux mises à jour du même compte.
+Enregistrer une note avant de changer de compte ; un avertissement protège la
+fermeture avec des brouillons. Ils ne remplacent pas les analyses.
 
-Le ZIP `1.0.0-rc3` livré précédemment n’a pas été reconstruit pour cet aperçu.
-La recette de construction inclut maintenant les sources QML, mais le nouveau
-bundle Qt Quick n’a pas été validé ici. Essayer la version source ci-dessus.
+## Cadrage et limites
 
-## Vérification
+Viewport vérifié : 1600×960 et 1120×720. La taille initiale s’ajuste à l’espace
+disponible du moniteur dans ces limites ; les longs identifiants sont élidés.
+Les pages longues défilent verticalement. Contrôle automatique du débordement
+horizontal des conteneurs de texte, plus inspection des captures représentatives.
+Les animations peuvent être désactivées ; boutons utilisables au clavier.
 
-`python -m app.quick_checks` : contrats de présentation, données manquantes,
-contexte temporel conservé, livraison sur le thread graphique, cache et comptes.
-
-`python run_app.py --qml --smoke-check --smoke-output logs/qml-smoke.json` :
-navigation réelle, trois parties locales lorsque présentes, quatre onglets,
-captures 1600×960 / 1120×720, passage classique et retour, arrêt propre.
-Captures locales dans `.cache/zircon/quick-visual-check`.
-Le mode de vérification n’effectue pas de téléchargement d’images QML.
-
-Le profil vierge utilise un dossier de données séparé, sans remplacer l’historique.
-Vérifications automatisées sur le rendu logiciel ; lancement Windows normal et
-capture d’accueil aussi inspectés. Revue complète sur écran / rendu GPU,
-contraste et mise à l’échelle Windows à poursuivre avec l’utilisateur.
-
-TECHNICAL PASS / REVIEW_REQUIRED pour le produit — NO FREEZE.
+Revue humaine sur le matériel réel, DPI, accessibilité complète et utilité des
+conseils toujours requise. Les contrastes testés ne sont pas une certification.
+Aucun moteur/analyzer n’est modifié ou automatiquement FROZEN.

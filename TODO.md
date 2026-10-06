@@ -1,5 +1,13 @@
 BUILD OPTIMIZER v1 — CONTEXTUAL RECOMMENDATION PASS
 
+COMPLETE QML POST-GAME INTERFACE — user request, 2026-10-05
+
+[x] Native settings, credential validation/import, notes/favorites and full coach details
+[x] Progress windows/trends, ordered navigation, history filters and responsive framing
+[x] Default QML startup with classic fallback and self-contained Windows candidate
+[x] Focused/full regression, real main.py, desktop/minimum/empty/packaged UI checks
+[ ] Human product review remains required; NO FREEZE
+
 BEL'VETH QML COLOR TRIAL — user request, 2026-10-05
 
 [x] Add reversible violet/lavender/gold palette without changing analysis

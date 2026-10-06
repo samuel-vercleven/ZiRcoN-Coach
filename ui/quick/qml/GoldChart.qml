@@ -23,7 +23,9 @@ Item {
     onHeightChanged: plot.requestPaint()
     Connections {
         target: ZTheme
-        function onBelvethChanged() { plot.requestPaint() }
+        function onBelvethChanged() {
+            plot.requestPaint();
+        }
     }
     Canvas {
         id: plot

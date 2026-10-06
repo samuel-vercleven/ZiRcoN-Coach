@@ -86,7 +86,7 @@ def main():
             if mode == 'local-history' and replay.exists():
                 rows = json.loads(replay.read_text(encoding='utf-8')).get('rows', [])
                 if rows: args.extend(['--smoke-match', rows[0]['match_id']])
-            run = subprocess.run(args, env=env, cwd=data, timeout=120)
+            run = subprocess.run(args, env=env, cwd=data, timeout=240)
             result = json.loads(output.read_text(encoding='utf-8'))
             if run.returncode or not result.get('passed'):
                 raise RuntimeError(f'Release {mode} smoke failed: {result.get("error", "unknown error")}')
@@ -94,9 +94,18 @@ def main():
             assert Path(result['database_path']).is_relative_to(data)
             captures = PROJECT_ROOT / 'logs' / 'release' / VERSION / mode
             captures.mkdir(parents=True, exist_ok=True)
-            for capture in (data / 'smoke-captures').glob('*.png'):
+            for capture_path in result.get('captures', []):
+                capture = Path(capture_path)
+                assert capture.resolve().is_relative_to(data.resolve())
                 shutil.copy2(capture, captures / capture.name)
-            results.append({'mode': mode, 'passed': True, 'matches_opened': result.get('matches_opened', 0)})
+            classic_output = data / 'classic-result.json'
+            classic_args = [str(executable), '--classic', '--smoke-check', '--smoke-output', str(classic_output)]
+            classic_run = subprocess.run(classic_args, env=env, cwd=data, timeout=240)
+            classic_result = json.loads(classic_output.read_text(encoding='utf-8'))
+            assert not classic_run.returncode and classic_result.get('passed'), 'Packaged classic fallback smoke failed'
+            results.append({'mode': mode, 'passed': True, 'presentation': result.get('presentation'),
+                            'captures': len(result.get('captures', [])), 'classic_fallback': True,
+                            'matches_opened': result.get('matches_opened', 0)})
     for path in bundle.rglob('*'):
         if path.is_file():
             assert path.name not in ('.env', 'settings.json') and path.suffix != '.db', f'Private file in release: {path.name}'

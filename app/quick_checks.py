@@ -3,6 +3,9 @@ import os
 os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 from types import SimpleNamespace
 import unittest
+import tempfile
+import sqlite3
+from pathlib import Path
 from unittest.mock import Mock
 
 from PySide6.QtCore import QThread
@@ -12,6 +15,9 @@ from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QApplication
 from ui.quick.bridge import QuickBridge
 from viewmodels import MatchSummaryViewModel, MatchDetailViewModel, CoachingReport, PlayerViewModel, ProgressViewModel
+from services.runtime_settings import RuntimeSettingsService
+from services.cache_repository import CacheRepository
+from services.riot_client import RiotResult, RiotStatus
 
 
 class QuickChecks(unittest.TestCase):
@@ -104,6 +110,98 @@ class QuickChecks(unittest.TestCase):
         self.assertEqual(self.bridge.assetUrl('item', '0', '16.18'), '')
         self.assertEqual(self.bridge.assetUrl('item', '', '16.18'), '')
         self.assertFalse(self.bridge._workers)
+
+    def configured(self, directory):
+        root = Path(directory)
+        self.context.settings = RuntimeSettingsService(root / '.env', root / 'settings.json')
+        self.context.settings.save_identity('Test#EUW', 20)
+        self.context.settings.save_api_key('ACTIVE_TEST_KEY')
+        self.context.sync = Mock()
+        self.context.local_data.status.return_value = SimpleNamespace(api_status='VALID', match_count=1, timeline_count=1, analyzed_match_count=1, latest_match_date='2026-09-01 12:00', last_sync_at='UNAVAILABLE')
+
+    def test_rejected_candidate_does_not_replace_key_or_account(self):
+        with tempfile.TemporaryDirectory() as directory:
+            self.configured(directory)
+            self.context.sync.validate_key.return_value = RiotResult(RiotStatus.UNAUTHORIZED)
+            self.bridge.validateKey('REJECTED_TEST_KEY', 'Other#EUW', 50, True)
+            self.finish()
+            self.assertEqual(self.context.settings.api_key(), 'ACTIVE_TEST_KEY')
+            self.assertEqual(self.context.settings.identity().riot_id, 'Test#EUW')
+            self.assertFalse(self.bridge.operation['working'])
+
+    def test_validating_only_never_activates_candidate(self):
+        with tempfile.TemporaryDirectory() as directory:
+            self.configured(directory)
+            self.context.sync.validate_key.return_value = RiotResult(RiotStatus.VALID)
+            self.bridge.validateKey('NEW_TEST_KEY', 'Other#EUW', 50, False)
+            self.finish()
+            self.assertEqual(self.context.settings.api_key(), 'ACTIVE_TEST_KEY')
+            self.assertEqual(self.context.settings.identity().riot_id, 'Test#EUW')
+
+    def test_verified_key_activation_stays_private(self):
+        with tempfile.TemporaryDirectory() as directory:
+            self.configured(directory)
+            self.context.sync.validate_key.return_value = RiotResult(RiotStatus.VALID)
+            self.bridge.validateKey('NEW_TEST_KEY', 'Other#EUW', 50, True)
+            self.finish()
+            self.assertEqual(self.context.settings.api_key(), 'NEW_TEST_KEY')
+            self.assertEqual(self.context.settings.identity().riot_id, 'Other#EUW')
+            self.assertNotIn('NEW_TEST_KEY', repr(self.bridge.state))
+            self.assertNotIn('NEW_TEST_KEY', self.bridge.notice)
+
+    def test_busy_settings_actions_cannot_change_account(self):
+        with tempfile.TemporaryDirectory() as directory:
+            self.configured(directory)
+            self.bridge._operation['working'] = True
+            self.assertFalse(self.bridge.saveAccount('Other#EUW', 20))
+            self.bridge.validateKey('NEW_TEST_KEY', 'Other#EUW', 20, True)
+            self.context.sync.validate_key.assert_not_called()
+            self.assertEqual(self.context.settings.identity().riot_id, 'Test#EUW')
+
+    def test_invalid_account_and_empty_key_skip_network(self):
+        with tempfile.TemporaryDirectory() as directory:
+            self.configured(directory)
+            self.bridge.validateKey('NEW_TEST_KEY', 'invalid', 20, True)
+            self.context.sync.validate_key.assert_not_called()
+            self.assertFalse(self.bridge.saveAccount('invalid', 20))
+
+    def test_import_progress_completion_and_failure_are_readable(self):
+        with tempfile.TemporaryDirectory() as directory:
+            self.configured(directory)
+            def fake_sync(progress):
+                progress('Downloading match 1/2', 40)
+                return {'status': 'COMPLETE', 'new_matches': 2, 'existing_matches': 3}
+            self.context.sync.sync.side_effect = fake_sync
+            self.bridge.importMatches(); self.finish()
+            self.assertFalse(self.bridge.operation['working'])
+            self.assertIn('2 nouvelle', self.bridge.notice)
+            self.assertIn('3 déjà', self.bridge.notice)
+            self.bridge._sync_done({'status': 'NETWORK_ERROR', 'message': 'PRIVATE_DEBUG_TEXT'})
+            self.assertNotIn('PRIVATE_DEBUG_TEXT', self.bridge.notice)
+
+    def test_journal_round_trip_and_foreign_match_guard(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'test.db'
+            sqlite3.connect(path).close()
+            self.context.cache = CacheRepository(path)
+            self.bridge.openMatch('M1'); self.finish()
+            self.assertTrue(self.bridge.saveJournal('M1', True, 'Mon prochain réflexe'))
+            self.bridge.openMatch('M1')
+            self.assertEqual(self.bridge.detail['journal'], {'starred': True, 'note': 'Mon prochain réflexe'})
+            self.assertTrue(self.bridge.state['matches'][0]['starred'])
+            self.assertFalse(self.bridge.saveJournal('OTHER_ACCOUNT_GAME', True, 'No'))
+
+    def test_progress_is_chronological_and_preserves_missing_values(self):
+        self.context.local_data.matches.return_value = [self.match, MatchSummaryViewModel('M2', 'Viego', 'WIN', 1, 0, 2, 100, 600, '2026-08-01', 'Solo')]
+        self.bridge.setProgressWindow(10)
+        self.assertEqual(self.bridge.progressData['labels'][0], 'Viego · 2026-08-01')
+        self.assertEqual(self.bridge.progressData['deaths'], [0, None])
+        self.assertEqual(self.bridge.progressData['victories'], [100, None])
+
+    def test_event_clock_is_not_invented_for_a_phase(self):
+        self.assertIsNone(self.bridge._event({'title': 'Une phase sans heure'})['seconds'])
+        self.assertEqual(self.bridge._event({'title': 'Mort à 07:05'})['seconds'], 425)
+        self.assertEqual(self.bridge._event({'item_ids': None, 'metrics': None, 'context': None})['items'], [])
 
     def test_theme_binding_switches_without_new_components(self):
         from app.paths import PROJECT_ROOT

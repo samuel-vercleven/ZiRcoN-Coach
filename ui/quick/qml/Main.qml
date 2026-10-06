@@ -26,6 +26,73 @@ ApplicationWindow {
     property var build: coach ? coach.build : ({})
     property string query: ""
     property string resultFilter: "ALL"
+    property string roleFilter: "ALL"
+    property string patchFilter: "ALL"
+    property bool favoritesOnly: false
+    property int selectedMoment: -1
+    property bool allowDiscard: false
+    Connections {
+        target: coach
+        function onSettingsRequested() {
+            window.page = "settings";
+        }
+        function onRefreshed() {
+            if (window.page === "match")
+                window.page = "history";
+        }
+    }
+    onClosing: close => {
+        if (coach && coach.operation.working) {
+            close.accepted = false;
+            waitDialog.open();
+        } else if (notesPanel.hasDrafts && !allowDiscard) {
+            close.accepted = false;
+            noteDialog.open();
+        }
+    }
+    Dialog {
+        id: noteDialog
+        width: 450
+        implicitWidth: 450
+        anchors.centerIn: parent
+        title: "Une note n’est pas enregistrée"
+        modal: true
+        contentItem: ColumnLayout {
+            ZText {
+                text: "Enregistre ta note avant de quitter si tu veux la retrouver à la prochaine ouverture."
+                Layout.fillWidth: true
+            }
+            ZButton {
+                text: "Revenir à la note"
+                onClicked: {
+                    noteDialog.close();
+                    window.openMatch(notesPanel.lastDraft);
+                    window.matchTab = 4;
+                }
+            }
+            ZButton {
+                text: "Quitter sans enregistrer"
+                onClicked: {
+                    window.allowDiscard = true;
+                    noteDialog.close();
+                    window.close();
+                }
+            }
+        }
+    }
+    Dialog {
+        id: waitDialog
+        width: 420
+        implicitWidth: 420
+        anchors.centerIn: parent
+        title: "Opération en cours"
+        modal: true
+        standardButtons: Dialog.Ok
+        contentItem: ZText {
+            text: "Attends la fin de la demande avant de fermer ZiRcoN, pour préserver l’import en cours."
+            width: 350
+        }
+    }
     property bool reduceMotion: false
     property bool buildReasonsExpanded: false
     function shortReasons(reasons) {
@@ -37,6 +104,7 @@ ApplicationWindow {
     function openMatch(id) {
         if (coach.openMatch(id)) {
             matchTab = 0;
+            selectedMoment = -1;
             buildReasonsExpanded = false;
             page = "match";
             detailScroll.contentItem.contentY = 0;
@@ -147,6 +215,11 @@ ApplicationWindow {
                         label: "Progression",
                         name: "progress",
                         icon: "nav-progress"
+                    },
+                    {
+                        label: "Réglages",
+                        name: "settings",
+                        icon: "nav-settings"
                     }
                 ]
                 AbstractButton {
@@ -201,22 +274,12 @@ ApplicationWindow {
             width: parent.width - 36
             spacing: 10
             ZText {
-                visible: window.height > 800
+                visible: window.height > 880
                 text: "Une partie.\nUne chose à retenir."
                 font.pixelSize: 15
                 color: ZTheme.color("#c3d3e3")
                 font.italic: true
                 width: parent.width
-            }
-            ZButton {
-                text: "Réglages"
-                width: parent.width
-                onClicked: coach.openClassic(true)
-            }
-            ZButton {
-                text: "Interface classique"
-                width: parent.width
-                onClicked: coach.openClassic(false)
             }
             ZButton {
                 text: window.reduceMotion ? "Animations : coupées" : "Animations : actives"
@@ -269,7 +332,7 @@ ApplicationWindow {
                 spacing: 4
                 Layout.fillWidth: true
                 ZText {
-                    text: window.page === "home" ? "L’après-match, autrement." : window.page === "history" ? "Tes parties" : window.page === "progress" ? "Ta progression" : "Retour sur ta partie"
+                    text: window.page === "home" ? "L’après-match, autrement." : window.page === "history" ? "Tes parties" : window.page === "progress" ? "Ta progression" : window.page === "settings" ? "Tes réglages" : "Retour sur ta partie"
                     font.pixelSize: 24
                     font.weight: Font.DemiBold
                 }
@@ -282,6 +345,7 @@ ApplicationWindow {
             ZButton {
                 text: "Importer des parties"
                 primary: true
+                enabled: coach && !coach.operation.working
                 onClicked: coach.importMatches()
             }
             Rectangle {
@@ -293,23 +357,62 @@ ApplicationWindow {
             }
             ColumnLayout {
                 spacing: 3
+                Layout.maximumWidth: 200
+                Layout.preferredWidth: 200
                 ZText {
                     text: dashboard.player.name || "Ton compte"
+                    Layout.fillWidth: true
+                    wrapMode: Text.NoWrap
+                    elide: Text.ElideRight
                     font.weight: Font.DemiBold
                     font.pixelSize: 13
                 }
                 ZText {
-                    text: dashboard.player.rank || "Données locales"
+                    text: (dashboard.player.rank || "Données locales") + (dashboard.player.lp && dashboard.player.lp !== "—" ? " · " + dashboard.player.lp : "")
+                    Layout.fillWidth: true
+                    wrapMode: Text.NoWrap
+                    elide: Text.ElideRight
                     font.pixelSize: 11
                     color: ZTheme.color("#9db3c9")
                 }
             }
         }
 
+        Rectangle {
+            id: feedback
+            anchors.top: header.bottom
+            width: parent.width
+            height: coach && (coach.notice || coach.operation.working) ? 70 : 0
+            visible: height > 0
+            radius: 12
+            color: ZTheme.color("#19393e")
+            RowLayout {
+                anchors.fill: parent
+                anchors.margins: 12
+                spacing: 12
+                ZText {
+                    text: coach ? (coach.operation.working ? coach.operation.text : coach.notice) : ""
+                    Layout.fillWidth: true
+                    font.pixelSize: 13
+                }
+                ZButton {
+                    visible: coach && !coach.operation.working
+                    text: "Fermer"
+                    onClicked: coach.dismissNotice()
+                }
+            }
+            Rectangle {
+                visible: coach && coach.operation.working
+                anchors.bottom: parent.bottom
+                width: parent.width * (coach ? coach.operation.progress : 0) / 100
+                height: 3
+                color: ZTheme.color("#70ebcf")
+            }
+        }
         ScrollView {
             id: homeScroll
             anchors {
-                top: header.bottom
+                top: feedback.bottom
                 bottom: parent.bottom
                 left: parent.left
                 right: parent.right
@@ -411,7 +514,7 @@ ApplicationWindow {
                         ZButton {
                             text: dashboard.matches.length ? "Revoir ma dernière partie   →" : "Connecter mon compte   →"
                             primary: true
-                            onClicked: dashboard.matches.length ? window.openMatch(dashboard.matches[0].id) : coach.openClassic(true)
+                            onClicked: dashboard.matches.length ? window.openMatch(dashboard.matches[0].id) : window.page = "settings"
                         }
                     }
                 }
@@ -477,7 +580,7 @@ ApplicationWindow {
 
         ColumnLayout {
             anchors {
-                top: header.bottom
+                top: feedback.bottom
                 bottom: parent.bottom
                 left: parent.left
                 right: parent.right
@@ -534,6 +637,25 @@ ApplicationWindow {
                     }
                 }
             }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 10
+                ZSelect {
+                    Layout.fillWidth: true
+                    model: ["Tous les rôles"].concat(dashboard.roles || [])
+                    onActivated: window.roleFilter = currentIndex === 0 ? "ALL" : currentText
+                }
+                ZSelect {
+                    Layout.fillWidth: true
+                    model: ["Tous les patchs"].concat(dashboard.patches || [])
+                    onActivated: window.patchFilter = currentIndex === 0 ? "ALL" : currentText
+                }
+                ZButton {
+                    text: window.favoritesOnly ? "★ Mes favoris" : "☆ Favoris"
+                    selected: window.favoritesOnly
+                    onClicked: window.favoritesOnly = !window.favoritesOnly
+                }
+            }
             ListView {
                 id: historyList
                 objectName: "historyList"
@@ -541,7 +663,7 @@ ApplicationWindow {
                 Layout.fillHeight: true
                 clip: true
                 spacing: 12
-                model: dashboard.matches.filter(m => (window.resultFilter === "ALL" || m.result === window.resultFilter) && (m.champion + " " + m.role).toLowerCase().includes(window.query))
+                model: dashboard.matches.filter(m => (window.resultFilter === "ALL" || m.result === window.resultFilter) && (window.roleFilter === "ALL" || m.role === window.roleFilter) && (window.patchFilter === "ALL" || m.patch === window.patchFilter) && (!window.favoritesOnly || m.starred) && (m.champion + " " + m.role).toLowerCase().includes(window.query))
                 delegate: matchRow
                 ScrollBar.vertical: ScrollBar {}
                 ZText {
@@ -556,7 +678,7 @@ ApplicationWindow {
         ScrollView {
             id: progressScroll
             anchors {
-                top: header.bottom
+                top: feedback.bottom
                 bottom: parent.bottom
                 left: parent.left
                 right: parent.right
@@ -565,122 +687,31 @@ ApplicationWindow {
             visible: window.page === "progress"
             clip: true
             contentWidth: availableWidth
-            opacity: visible ? 1 : 0
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: window.reduceMotion ? 0 : 220
-                }
-            }
-            ColumnLayout {
+            ProgressPage {
                 width: progressScroll.availableWidth
-                spacing: 20
-                ZText {
-                    text: "Tes 20 dernières parties au maximum"
-                    color: ZTheme.color("#9fb7cc")
-                    Layout.fillWidth: true
-                }
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 16
-                    Repeater {
-                        model: dashboard.metrics
-                        Surface {
-                            required property var modelData
-                            Layout.fillWidth: true
-                            implicitHeight: 130
-                            Column {
-                                x: 24
-                                y: 24
-                                spacing: 12
-                                ZText {
-                                    text: modelData.label
-                                    color: ZTheme.color("#a7bcd0")
-                                }
-                                ZText {
-                                    text: modelData.value
-                                    font.pixelSize: 32
-                                }
-                            }
-                        }
-                    }
-                }
-                Surface {
-                    Layout.fillWidth: true
-                    implicitHeight: champions.implicitHeight + 52
-                    ColumnLayout {
-                        id: champions
-                        anchors {
-                            top: parent.top
-                            left: parent.left
-                            right: parent.right
-                            margins: 26
-                        }
-                        spacing: 18
-                        ZText {
-                            text: "Les champions que tu joues"
-                            font.pixelSize: 22
-                            font.weight: Font.DemiBold
-                        }
-                        ZText {
-                            text: "La barre représente le nombre de parties, pas une note de performance."
-                            color: ZTheme.color("#9fb7cc")
-                            font.pixelSize: 12
-                            Layout.fillWidth: true
-                        }
-                        Repeater {
-                            model: dashboard.champions
-                            RowLayout {
-                                required property var modelData
-                                Layout.fillWidth: true
-                                spacing: 18
-                                Portrait {
-                                    identity: modelData.champion
-                                    width: 42
-                                }
-                                ZText {
-                                    text: modelData.champion
-                                    Layout.preferredWidth: 120
-                                }
-                                Rectangle {
-                                    Layout.fillWidth: true
-                                    height: 10
-                                    radius: 5
-                                    color: ZTheme.color("#233a4c")
-                                    Rectangle {
-                                        width: parent.width * modelData.games / Math.max(1, ...dashboard.champions.map(c => c.games))
-                                        height: parent.height
-                                        radius: 5
-                                        gradient: Gradient {
-                                            orientation: Gradient.Horizontal
-                                            GradientStop {
-                                                position: 0
-                                                color: ZTheme.color("#3885b7")
-                                            }
-                                            GradientStop {
-                                                position: 1
-                                                color: ZTheme.color("#76e7cf")
-                                            }
-                                        }
-                                    }
-                                }
-                                ZText {
-                                    text: modelData.games + " parties"
-                                    Layout.preferredWidth: 80
-                                    color: ZTheme.color("#b1c6d9")
-                                }
-                                ZText {
-                                    text: modelData.rate + " victoires"
-                                    Layout.preferredWidth: 130
-                                    color: ZTheme.color("#78e4ce")
-                                }
-                            }
-                        }
-                        ZText {
-                            visible: dashboard.champions.length === 0
-                            text: "Importe tes premières parties pour voir ta progression."
-                            color: ZTheme.color("#a8bfd3")
-                        }
-                    }
+                progress: coach ? coach.progressData : ({})
+            }
+        }
+
+        ScrollView {
+            id: settingsScroll
+            anchors {
+                top: feedback.bottom
+                bottom: parent.bottom
+                left: parent.left
+                right: parent.right
+                bottomMargin: 20
+            }
+            visible: window.page === "settings"
+            clip: true
+            contentWidth: availableWidth
+            SettingsPage {
+                width: settingsScroll.availableWidth
+                connection: dashboard.connection || ({})
+                pendingNotes: notesPanel.hasDrafts
+                onNoteRequested: {
+                    window.openMatch(notesPanel.lastDraft);
+                    window.matchTab = 4;
                 }
             }
         }
@@ -689,7 +720,7 @@ ApplicationWindow {
             id: detailScroll
             objectName: "detailScroll"
             anchors {
-                top: header.bottom
+                top: feedback.bottom
                 bottom: parent.bottom
                 left: parent.left
                 right: parent.right
@@ -788,7 +819,7 @@ ApplicationWindow {
                         Layout.rightMargin: 12
                     }
                     Repeater {
-                        model: ["Résumé", "Coach", "Objets", "Déroulé"]
+                        model: ["Résumé", "Coach", "Objets", "Déroulé", "Notes"]
                         ZButton {
                             required property string modelData
                             required property int index
@@ -918,6 +949,16 @@ ApplicationWindow {
                             required property var modelData
                             coaching: modelData
                             Layout.fillWidth: true
+                        }
+                    }
+                    CoachDetails {
+                        Layout.fillWidth: true
+                        sections: game.sections || []
+                        version: game.version || ""
+                        onMomentSelected: seconds => {
+                            window.selectedMoment = seconds;
+                            window.matchTab = 3;
+                            detailScroll.contentItem.contentY = 0;
                         }
                     }
                     ZText {
@@ -1136,6 +1177,30 @@ ApplicationWindow {
                         font.weight: Font.DemiBold
                     }
                     ZText {
+                        visible: window.selectedMoment >= 0
+                        text: "Moment à revoir : " + Math.floor(window.selectedMoment / 60) + ":" + ("0" + window.selectedMoment % 60).slice(-2) + " · repère dans la partie, pas une preuve de causalité"
+                        color: ZTheme.color("#75e7d0")
+                        Layout.fillWidth: true
+                    }
+                    Surface {
+                        Layout.fillWidth: true
+                        implicitHeight: 282
+                        ColumnLayout {
+                            anchors.fill: parent
+                            anchors.margins: 20
+                            ZText {
+                                text: "Écart d’or des équipes · PO"
+                                font.pixelSize: 18
+                                font.weight: Font.DemiBold
+                            }
+                            GoldChart {
+                                points: game.points || []
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                            }
+                        }
+                    }
+                    ZText {
                         text: "Contexte d’équipe : ces événements ne sont pas, à eux seuls, des erreurs personnelles."
                         color: ZTheme.color("#a6bfd3")
                         Layout.fillWidth: true
@@ -1159,7 +1224,7 @@ ApplicationWindow {
                                     Layout.fillWidth: true
                                 }
                                 ZText {
-                                    text: "Équipe " + (modelData.team_id || "non précisée")
+                                    text: modelData.sideLabel || "Équipe non précisée"
                                     color: ZTheme.color("#97b2c9")
                                     font.pixelSize: 12
                                 }
@@ -1171,6 +1236,12 @@ ApplicationWindow {
                         text: "Aucun objectif enregistré dans les données disponibles."
                         color: ZTheme.color("#a1b9d0")
                     }
+                }
+                NotesPage {
+                    id: notesPanel
+                    visible: window.matchTab === 4
+                    game: window.game
+                    Layout.fillWidth: true
                 }
             }
         }

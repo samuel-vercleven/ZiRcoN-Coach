@@ -28,7 +28,7 @@ def apply_zircon_theme(app) -> None:
     # Read the OS fonts for visual QA; never redistribute Microsoft's font files.
     if os.getenv('QT_QPA_PLATFORM', '').lower() == 'offscreen' and os.name == 'nt':
         fonts = Path(os.environ['SystemRoot']) / 'Fonts'
-        for name in ('segoeui.ttf', 'segoeuib.ttf'):
+        for name in ('segoeui.ttf', 'segoeuib.ttf', 'seguisym.ttf'):
             if (fonts / name).is_file(): QFontDatabase.addApplicationFont(str(fonts / name))
     app.setFont(QFont("Segoe UI", 10))
     app.setStyleSheet(APP_STYLESHEET)

@@ -7,8 +7,12 @@ Elle fonctionne sous Windows 10/11 64 bits, sans installer Python.
 
 1. Extrais tout le ZIP dans un dossier de ton choix. Garde l’exécutable et son dossier `_internal` ensemble.
 2. Ouvre `ZiRcoN-Coach.exe`.
-3. Clique sur **Configurer mon compte**, puis renseigne ton Riot ID `Pseudo#TAG` et ta clé personnelle Riot.
-4. Clique sur **Enregistrer et activer**, puis **Importer mes parties**.
+3. Ouvre **Réglages**, puis renseigne ton Riot ID `Pseudo#TAG` et ta clé personnelle Riot.
+4. Clique sur **Vérifier et enregistrer**, puis **Importer mes parties**.
+
+La candidate rc4 utilise directement la nouvelle interface QML Bel’Veth.
+Les boutons Bel’Veth / Turquoise changent la palette sans relancer l’application.
+Le parcours courant, y compris les réglages, imports et notes, reste dans cette fenêtre.
 
 Pour un usage personnel de développement, la clé est disponible sur le [portail Riot](https://developer.riotgames.com/).
 Elle peut expirer : remplace-la dans Réglages. Aucune clé n’est fournie dans le paquet.
@@ -22,9 +26,8 @@ Elle peut expirer : remplace-la dans Réglages. Aucune clé n’est fournie dans
 - **Notes** : ta leçon personnelle et les parties à revoir.
 
 Survole une courbe pour lire son relevé. Dans Coach, clique sur une heure pour la mettre en évidence dans Déroulé.
-Le vert indique l’avance de ton équipe, le rouge celle des adversaires. Une coupure indique un relevé manquant.
-Dans le résumé, les événements proches sont regroupés sur l’axe : chaque heure reste lisible en dessous.
-Clique sur un objectif pour le situer dans Déroulé ; « Voir les autres moments » déplie la liste complète.
+Le doré indique l’avance de ton équipe dans le thème violet, le vert dans le thème turquoise ; le rose indique un retard. Une coupure indique un relevé manquant.
+Le déroulé conserve les objectifs avec leur heure. Coach donne accès aux autres événements, dans ses thèmes dépliables.
 Les grandes périodes sans heure précise ne disposent pas de raccourci vers un instant inventé.
 
 Les observations ne prouvent pas qu’une décision a causé la victoire ou la défaite.
@@ -41,6 +44,10 @@ La clé est masquée dans l’interface ; son fichier local n’est pas chiffré
 Le paquet distribué ne contient ni clé, ni compte, ni historique du développeur.
 Les communications réseau concernent Riot Games et les images de Data Dragon ; aucun service de télémétrie n’est intégré.
 La version source conserve ses anciens chemins de développement ; elle ne déplace pas ton historique existant.
+
+Enregistre tes notes avant de quitter : les brouillons sont conservés pendant la
+navigation, mais ne sont pas des notes persistantes. Un avertissement protège la
+fermeture. Les favoris apparaissent dans le filtre de l’historique.
 
 ## Limites de cette livraison
 

@@ -8,7 +8,7 @@ import traceback
 
 def main():
     try:
-        if '--qml' in sys.argv:
+        if '--classic' not in sys.argv:
             from app.quick_application import QuickApplication
             return QuickApplication().run()
         from app.application import ZirconCoachApplication
