@@ -3,7 +3,7 @@
 Un coach League of Legends après-match, local sur Windows : retrouver sa partie,
 comprendre les observations disponibles et choisir une habitude à tester.
 
-## Nouvelle interface complète — V1 candidate 1.0.0-rc4
+## Nouvelle interface complète — V1 candidate 1.0.0-rc5
 
 Dans le projet, double-cliquer **Lancer-ZiRcoN-Coach.vbs**, ou lancer
 `python run_app.py`. L’interface QML Bel’Veth est maintenant le lancement normal :
@@ -22,12 +22,15 @@ Le parcours courant est entièrement dans QML :
   et avertissement avant de quitter avec une note non enregistrée.
 
 Les moteurs, recettes, règles temporelles et fondations FROZEN sont inchangés.
+Les conseils distinguent maintenant la situation, une question de replay, une
+alternative conditionnelle et un réflexe à vérifier. [Préparation LLM](COACH_LANGUAGE_CONTRACT.md) :
+contrat de faits/textes contrôlés prêt, aucun modèle ou service externe connecté.
 Les conseils ne prouvent pas qu’une décision a causé le résultat ; des données
 insuffisantes conduisent à une abstention. Avant-match/live-game restent hors scope.
 
 ## Version Windows autonome
 
-Extraire entièrement le ZIP rc4, puis ouvrir `ZiRcoN-Coach.exe`.
+Extraire entièrement le ZIP rc5, puis ouvrir `ZiRcoN-Coach.exe`.
 Python/Qt et les catalogues exacts sont inclus, sans clé, compte ni historique.
 Le [guide de démarrage](RELEASE_GUIDE.md) décrit les réglages et les limites.
 Le manifeste dans `dist/` donne le SHA source, les vérifications et le SHA-256 du ZIP.

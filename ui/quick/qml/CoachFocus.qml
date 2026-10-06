@@ -29,6 +29,11 @@ Surface {
             Layout.fillWidth: true
         }
         ZText {
+            text: "Ce qu’on observe"
+            color: ZTheme.color("#94adc2")
+            font.pixelSize: 11
+        }
+        ZText {
             text: root.coaching.observation || ""
             color: ZTheme.color("#adc5ce")
             Layout.fillWidth: true
@@ -57,6 +62,7 @@ Surface {
             Layout.fillWidth: true
         }
         ZButton {
+            objectName: "coachLanguageToggle"
             text: root.expanded ? "Masquer les explications" : "Comprendre ce conseil"
             onClicked: root.expanded = !root.expanded
         }
@@ -66,6 +72,42 @@ Surface {
             spacing: 10
             ZText {
                 text: root.coaching.why_review || ""
+                color: ZTheme.color("#b2c6d6")
+                Layout.fillWidth: true
+            }
+            ZText {
+                visible: !!root.coaching.review_question
+                text: "À vérifier dans le replay"
+                font.weight: Font.DemiBold
+                Layout.fillWidth: true
+            }
+            ZText {
+                visible: !!root.coaching.review_question
+                text: root.coaching.review_question || ""
+                color: ZTheme.color("#b2c6d6")
+                Layout.fillWidth: true
+            }
+            ZText {
+                visible: !!root.coaching.conditional_alternative
+                text: "Une autre option, si le contexte le permet"
+                font.weight: Font.DemiBold
+                Layout.fillWidth: true
+            }
+            ZText {
+                visible: !!root.coaching.conditional_alternative
+                text: root.coaching.conditional_alternative || ""
+                color: ZTheme.color("#b2c6d6")
+                Layout.fillWidth: true
+            }
+            ZText {
+                visible: !!root.coaching.experiment_check
+                text: "À tester puis vérifier"
+                font.weight: Font.DemiBold
+                Layout.fillWidth: true
+            }
+            ZText {
+                visible: !!root.coaching.experiment_check
+                text: root.coaching.experiment_check || ""
                 color: ZTheme.color("#b2c6d6")
                 Layout.fillWidth: true
             }

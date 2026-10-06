@@ -54,7 +54,13 @@ class CoachingCard(QFrame):
         layout.addWidget(experiment)
         caution = QLabel('Une piste à tester, pas une explication certaine du résultat.'); caution.setObjectName('Muted'); caution.setWordWrap(True); layout.addWidget(caution)
         details = QWidget(); details.setObjectName('CoachEvidenceDetails'); detail_layout = QVBoxLayout(details); detail_layout.setContentsMargins(0, 6, 0, 6); detail_layout.setSpacing(8)
-        for value in (focus.why_review, *focus.evidence, focus.limitation):
+        for value in (focus.why_review,
+                      ('À vérifier dans le replay : ' + focus.review_question) if focus.review_question else '',
+                      ('Une autre option, si le contexte le permet : ' + focus.conditional_alternative) if focus.conditional_alternative else '',
+                      ('À tester puis vérifier : ' + focus.experiment_check) if focus.experiment_check else '',
+                      *focus.evidence, focus.limitation):
+            if not value:
+                continue
             label = QLabel(_player_text(value)); label.setObjectName('Muted'); label.setWordWrap(True); detail_layout.addWidget(label)
         layout.addWidget(details); details.hide()
         controls = QHBoxLayout()

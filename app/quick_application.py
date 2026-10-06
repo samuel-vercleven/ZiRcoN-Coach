@@ -147,11 +147,13 @@ class QuickApplication:
             path = directory / (name + '.png')
             assert self.window.grabWindow().save(str(path)), 'QML capture failed'
             captures.append(str(path))
-        def find(item, name):
+        def find(item, name, visible_only=False):
+            if visible_only and not item.isVisible():
+                return None
             if item.objectName() == name:
                 return item
             for child in item.childItems():
-                found = find(child, name)
+                found = find(child, name, visible_only)
                 if found is not None:
                     return found
             return None
@@ -207,6 +209,17 @@ class QuickApplication:
                 flick.setProperty('contentY', 0)
                 if match_id == selected[0]:
                     self.window.setProperty('matchTab', 1); settle()
+                    language = find(self.window.contentItem(), 'coachLanguageToggle', True)
+                    if language is not None:
+                        card = language.parentItem().parentItem()
+                        if not card.property('expanded'):
+                            point = language.mapToScene(language.boundingRect().center()).toPoint()
+                            QTest.mouseClick(self.window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, point)
+                        assert card.property('expanded') is True
+                        capture(f'{width}-{match_id}-coach-language-expanded')
+                        flick.setProperty('contentY', max(0, flick.property('contentHeight') - flick.height()))
+                        capture(f'{width}-{match_id}-coach-language-bottom')
+                        flick.setProperty('contentY', 0)
                     group = find(self.window.contentItem(), 'coachGroup0')
                     if group is not None:
                         point = group.mapToScene(QPointF(0, 0))

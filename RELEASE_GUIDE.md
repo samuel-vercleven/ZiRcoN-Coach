@@ -10,7 +10,7 @@ Elle fonctionne sous Windows 10/11 64 bits, sans installer Python.
 3. Ouvre **Réglages**, puis renseigne ton Riot ID `Pseudo#TAG` et ta clé personnelle Riot.
 4. Clique sur **Vérifier et enregistrer**, puis **Importer mes parties**.
 
-La candidate rc4 utilise directement la nouvelle interface QML Bel’Veth.
+La candidate rc5 utilise directement la nouvelle interface QML Bel’Veth.
 Les boutons Bel’Veth / Turquoise changent la palette sans relancer l’application.
 Le parcours courant, y compris les réglages, imports et notes, reste dans cette fenêtre.
 
@@ -29,6 +29,12 @@ Survole une courbe pour lire son relevé. Dans Coach, clique sur une heure pour 
 Le doré indique l’avance de ton équipe dans le thème violet, le vert dans le thème turquoise ; le rose indique un retard. Une coupure indique un relevé manquant.
 Le déroulé conserve les objectifs avec leur heure. Coach donne accès aux autres événements, dans ses thèmes dépliables.
 Les grandes périodes sans heure précise ne disposent pas de raccourci vers un instant inventé.
+
+Les conseils distinguent les reprises après mort, avant/après un objectif ou
+suivies d’une mort, ainsi que les morts en avance/en retard et les périodes de
+déplacements. Les détails proposent une question de replay et une alternative
+conditionnelle. Un objectif pris plus tard n’est pas un compte à rebours d’apparition.
+Aucun modèle de langage n’est encore connecté ; les textes restent produits localement.
 
 Les observations ne prouvent pas qu’une décision a causé la victoire ou la défaite.
 Un conseil d’objet peut manquer si le patch, l’historique ou l’inventaire ne permettent pas une proposition fiable.

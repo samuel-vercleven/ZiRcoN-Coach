@@ -1,5 +1,13 @@
 BUILD OPTIMIZER v1 — CONTEXTUAL RECOMMENDATION PASS
 
+COACH WORDING / PROVIDER-NEUTRAL LLM PREPARATION — user request, 2026-10-06
+
+[x] Clear situational copy, concrete replay questions and conditional alternatives
+[x] Correct objective-timing wording: observed events are not spawn countdowns
+[x] Anonymous fact/approved-text contract, strict local response validation and fallback
+[x] No external inference, no new scoring, no changes to FROZEN analyzers
+[x] Synthetic/real-report audits, native render checks and full source regression
+
 COMPLETE QML POST-GAME INTERFACE — user request, 2026-10-05
 
 [x] Native settings, credential validation/import, notes/favorites and full coach details

@@ -1,5 +1,24 @@
 # ZiRcoN Coach - Project State
 
+## Situational coach wording / LLM preparation rc5 — 2026-10-06
+
+- Existing supported findings get clear observation/action copy across eleven
+  situations, plus a replay question, conditional alternative and experiment check.
+  Details remain collapsed in both QML and classic presentation.
+- Objective-event timing is not a spawn countdown; before/after/between cases
+  stay distinct. Duplicate event clocks no longer pick an arbitrary event.
+- Offline provider-neutral language contract uses supported focuses, minimizes
+  exported data, separates unknowns/questions from facts and binds outputs to
+  an anonymous packet. Selection IDs only; generated prose cannot auto-apply.
+  Invalid/missing output uses deterministic fallback. No model/SDK/API connection,
+  training or external data transfer introduced.
+- Sixteen new synthetic checks PASS; read-only audit:143 matches /247 focuses /
+  eleven situations. Full source45/45 suites and real main.py PASS. All89 FROZEN
+  paths unchanged; scores, ranking, gates and sources remain unchanged.
+- Native checks:56 captures including expanded language at desktop/minimum sizes.
+  Candidate rc5 build provenance and packaged checks are in dist manifests.
+  Human wording/gameplay review remains REVIEW_REQUIRED / NO FREEZE.
+
 ## Complete QML post-game candidate rc4 — 2026-10-06
 
 - QML is normal run_app.py/executable startup, default Bel’Veth; turquoise toggle

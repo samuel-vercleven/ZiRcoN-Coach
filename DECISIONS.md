@@ -711,3 +711,15 @@ Draft notes are session-only until saved to the existing journal, scoped to
 the active player and guarded before account changes or process exit.
 Portable delivery remains credential/history-free with existing isolated data
 paths. Technical validation does not approve gameplay quality or a freeze.
+
+## Coaching language boundary — 2026-10-06
+
+User authorized clearer situational wording and preparation for a future LLM,
+not external inference or a new analyzer. Selection/severity and supported-finding
+gates remain unchanged. Objective timing refers to recorded events, not a spawn
+countdown or proof of a missed available opportunity.
+The offline provider-neutral contract exposes selected facts/unknowns, approved
+wording IDs and strict validation. It exports no raw report, match/player IDs,
+notes or credentials by default; invalid output falls back. Free generation
+requires a separately approved fidelity/evaluation layer: keyword filters do
+not prove factual correctness. No model connected, external call or freeze.
