@@ -23,6 +23,8 @@ from build_optimizer.profiles import SUPPORTED_PATCHES
 def main():
     if sys.platform != 'win32':
         raise SystemExit('Build on Windows for the Windows release.')
+    source_commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=PROJECT_ROOT, text=True).strip()
+    source_dirty = bool(subprocess.check_output(['git', 'status', '--porcelain'], cwd=PROJECT_ROOT, text=True).strip())
     staging = PROJECT_ROOT / 'build' / 'release-resources'
     staging.mkdir(parents=True, exist_ok=True)
     for patch in sorted(SUPPORTED_PATCHES):
@@ -111,8 +113,12 @@ def main():
             assert path.name not in ('.env', 'settings.json') and path.suffix != '.db', f'Private file in release: {path.name}'
             if re.search(rb'RGAPI-[A-Za-z0-9-]{30,}|gh[pousr]_[A-Za-z0-9]{30,}', path.read_bytes()):
                 raise AssertionError(f'Credential pattern in release: {path.name}')
-    manifest = {'version': VERSION, 'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=PROJECT_ROOT, text=True).strip(),
-        'source_dirty': bool(subprocess.check_output(['git', 'status', '--porcelain'], cwd=PROJECT_ROOT, text=True).strip()),
+    current_commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=PROJECT_ROOT, text=True).strip()
+    current_dirty = bool(subprocess.check_output(['git', 'status', '--porcelain'], cwd=PROJECT_ROOT, text=True).strip())
+    if current_commit != source_commit or (not source_dirty and current_dirty):
+        raise RuntimeError('Source changed during packaging; rebuild from one unchanged commit.')
+    manifest = {'version': VERSION, 'source_commit': source_commit,
+        'source_dirty': source_dirty,
         'smoke_checks': results, 'patches': sorted(SUPPORTED_PATCHES), 'contains_credentials': False, 'contains_player_history': False}
     (bundle / 'release-manifest.json').write_text(json.dumps(manifest, indent=2), encoding='utf-8')
     archive = Path(shutil.make_archive(str(PROJECT_ROOT / 'dist' / f'ZiRcoN-Coach-{VERSION}-Windows-x64'), 'zip', bundle.parent, bundle.name))
